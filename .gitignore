@@ -1,0 +1,16 @@
+*.suo
+*.user
+
+[Dd]ebug/
+[Rr]elease/
+[Bb]in/
+[Oo]bj/
+[Pp]ublish/
+[Nn]ode_modules/
+[Dd]ist/
+[Bb]uild/
+
+#Rider
+.idea/
+*.*.iml
+
