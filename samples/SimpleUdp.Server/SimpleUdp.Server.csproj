@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>netcoreapp3.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\..\src\UdpToolkit.Core\UdpToolkit.Core.csproj" />
+      <ProjectReference Include="..\..\src\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
+      <ProjectReference Include="..\..\src\UdpToolkit.Network\UdpToolkit.Network.csproj" />
+      <ProjectReference Include="..\..\src\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
+      <ProjectReference Include="..\SimpleUdp.Contracts\SimpleUdp.Contracts.csproj" />
+    </ItemGroup>
+
+</Project>
