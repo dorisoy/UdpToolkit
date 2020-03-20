@@ -1,4 +1,4 @@
-namespace UdpToolkit.Core
+namespace UdpToolkit.Framework.Rpcs
 {
     public readonly struct RpcDescriptorId
     {

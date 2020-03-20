@@ -1,8 +1,11 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using UdpToolkit.Core;
-using UdpToolkit.Framework;
+using UdpToolkit.Framework.Hubs;
+using UdpToolkit.Framework.Rpcs;
+using UdpToolkit.Network.Packets;
+using UdpToolkit.Network.Queues;
 using UdpToolkit.Tests.Fakes;
 using UdpToolkit.Tests.Resources;
 using Xunit;
@@ -16,14 +19,15 @@ namespace UdpToolkit.Tests
         public async Task RpcProvider_InvokeHubRpc_NotThrown(byte hubId, byte rpcId, object[] ctorArgs, object[] methodArgs)
         {
             var rpcTransformer = new RpcTransformer();
-            var rpcs = FrameworkExtensions
-                .FindAllHubMethods()
+            var methods = MethodDescriptorStorage.HubMethods.ToArray();
+                
+            var rpcs = methods
                 .Select(x  => rpcTransformer.Transform(x))
                 .ToList()
-                .ToDictionary(rpcDescriptor => 
+                .ToDictionary(rpcDesc => 
                     new RpcDescriptorId(
-                        hubId: rpcDescriptor.HubId,
-                        rpcId: rpcDescriptor.RpcId));
+                        hubId: rpcDesc.HubId,
+                        rpcId: rpcDesc.RpcId));
 
             IRpcProvider rpcProvider = new RpcProvider(rpcs);
 
@@ -35,7 +39,8 @@ namespace UdpToolkit.Tests
                 hubContext: new HubContext(0,hubId,rpcId,"foo"), 
                 serializer: new FakeSerializer(),
                 peerTracker: new FakePeerTracker(),
-                udpSenderProxy: new FakeUdpSenderProxy(),
+                eventProducer: new BlockingAsyncQueue<OutputUdpPacket>(
+                    boundedCapacity: Int32.MaxValue), 
                 ctorArguments: ctorArgs,
                 methodArguments: methodArgs));
             

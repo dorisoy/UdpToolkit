@@ -1,9 +1,6 @@
 using System;
-using System.Linq;
-using System.Threading.Tasks;
 using UdpToolkit.Core;
-using UdpToolkit.Serialization;
-using UdpToolkit.Tests.Fakes;
+using UdpToolkit.Serialization.MsgPack;
 using UdpToolkit.Tests.Resources;
 using Xunit;
 
@@ -37,6 +34,5 @@ namespace UdpToolkit.Tests
             Assert.Equal(1, message.HubId);
             Assert.Equal(1, message.RpcId);
         }
-
     }
 }

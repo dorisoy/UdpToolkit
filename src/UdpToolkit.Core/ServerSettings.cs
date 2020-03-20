@@ -9,7 +9,8 @@ namespace UdpToolkit.Core
         public int ProcessWorkers { get; set; }
         public IEnumerable<int> InputPorts { get; set; }
         public IEnumerable<int> OutputPorts { get; set; }
-        public string Host { get; set; }
 
+        public ISerializer Serializer { get; set; }
+        public string ServerHost { get; set; }
     }
 }

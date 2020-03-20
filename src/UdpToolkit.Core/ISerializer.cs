@@ -7,5 +7,7 @@ namespace UdpToolkit.Core
         byte[] Serialize<T>(T @event);
 
         object Deserialize(Type type, ArraySegment<byte> bytes);
+
+        T Deserialize<T>(ArraySegment<byte> bytes);
     }
 }

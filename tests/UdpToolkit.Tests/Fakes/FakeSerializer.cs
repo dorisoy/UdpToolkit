@@ -1,5 +1,4 @@
 using System;
-using System.Runtime.Serialization;
 using UdpToolkit.Core;
 
 namespace UdpToolkit.Tests.Fakes
@@ -11,12 +10,12 @@ namespace UdpToolkit.Tests.Fakes
             throw new NotImplementedException();
         }
 
-        public T Deserialize<T>(byte[] bytes)
+        public object Deserialize(Type type, ArraySegment<byte> bytes)
         {
             throw new NotImplementedException();
         }
 
-        public object Deserialize(Type type, ArraySegment<byte> bytes)
+        public T Deserialize<T>(ArraySegment<byte> bytes)
         {
             throw new NotImplementedException();
         }

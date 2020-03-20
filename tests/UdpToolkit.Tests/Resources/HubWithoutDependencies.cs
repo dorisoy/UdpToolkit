@@ -1,29 +1,31 @@
 using System.Threading.Tasks;
-using UdpToolkit.Core;
+using UdpToolkit.Annotations;
 using UdpToolkit.Framework;
+using UdpToolkit.Framework.Hubs;
+using UdpToolkit.Framework.Rpcs;
 
 namespace UdpToolkit.Tests.Resources
 {
     [Hub(0)]
-    public class HubWithoutDependencies : HubBase
+    public sealed class HubWithoutDependencies : HubBase
     {
-        [Rpc(0)]
+        [Rpc(0, UdpChannel.Udp)]
         public Task FuncWithoutArgs()
         {
             this.AssertAllPropertiesInitialized();
             
             return Task.CompletedTask;
         }
-        
-        [Rpc(1)]
+
+        [Rpc(1, UdpChannel.Udp)]
         public Task FuncWithArgs(Message message)
         {
             this.AssertAllPropertiesInitialized();
             
             return Task.CompletedTask;
         }
-        
-        [Rpc(2)]
+
+        [Rpc(2, UdpChannel.Udp)]
         public Task FuncWithArgs(int x, int y)
         {
             this.AssertAllPropertiesInitialized();

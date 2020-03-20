@@ -1,41 +1,24 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using UdpToolkit.Core;
+using UdpToolkit.Annotations;
+using UdpToolkit.Network.Clients;
 
 namespace UdpToolkit.Framework
 {
     public static class FrameworkExtensions
     {
-        public static IReadOnlyCollection<MethodDescriptor> FindAllHubMethods()
+        public static UdpMode Map(UdpChannel mode)
         {
-            var hubs = AppDomain
-                .CurrentDomain
-                .GetAssemblies()
-                .SelectMany(assembly => assembly.GetTypes())
-                .Where(type => type.GetCustomAttribute<HubAttribute>() != null)
-                .ToDictionary(hub => hub, hub => hub.GetCustomAttribute<HubAttribute>());
-
-            if (!hubs.Any())
+            switch (mode)
             {
-                return new List<MethodDescriptor>();
-            }
+                case UdpChannel.Udp:
+                    return UdpMode.Udp;
 
-            return hubs
-                .SelectMany(pair => pair.Key
-                    .GetMethods()
-                    .Where(method => method.GetCustomAttribute<RpcAttribute>() != null))
-                .Select(method => new MethodDescriptor(
-                    hubType: method.DeclaringType,
-                    hubId: method.DeclaringType.GetCustomAttribute<HubAttribute>().HubId,
-                    arguments: method
-                        .GetParameters()
-                        .Select(parameter => parameter.ParameterType),
-                    methodId: method.GetCustomAttribute<RpcAttribute>().RpcId,
-                    returnType: method.ReturnType,
-                    methodInfo: method))
-                .ToList();
+                case UdpChannel.ReliableUdp:
+                    return UdpMode.ReliableUdp;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(mode), mode, null);
+            }
         }
     }
 }

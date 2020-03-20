@@ -1,82 +1,77 @@
 ﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.Sockets;
 using System.Threading;
-using MessagePack;
+using System.Threading.Tasks;
 using SimpleUdp.Contracts;
+using UdpToolkit.Core;
+using UdpToolkit.Framework.Hosts;
+using UdpToolkit.Serialization.MsgPack;
 
 namespace SimpleUdp.Client
 {
-    class Program
+    public static class Program
     {
-        static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
-            var client = new UdpClient();
-            
-            var me = new IPEndPoint(
-                IPAddress.Parse("0.0.0.0"),
-                5000);
-            
-            client.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            client.Client.Bind(me);
-            
-            var serverInput = new IPEndPoint(
-                IPAddress.Parse("0.0.0.0"),
-                7000);
-            
-            var serverOutput1 = new IPEndPoint(
-                IPAddress.Parse("0.0.0.0"),
-                8000);
+            var clientHost = BuildClientHost();
 
-            var serverOutput2 = new IPEndPoint(
-                IPAddress.Parse("0.0.0.0"),
-                8001);
-
-            new Thread(() => StartSend(client, serverInput)).Start();
-            new Thread(() => StartReceive(client, serverOutput1)).Start();
-            new Thread(() => StartReceive(client, serverOutput2)).Start();
+            var consumerFactory = clientHost.GetEventConsumerFactory();
+            var producerFactory = clientHost.GetEventProducerFactory();
             
-            Console.WriteLine("Simple udp client started...");
-            Console.ReadKey();
+            var consumer = consumerFactory.Create<SumEvent>();
+            var producer = producerFactory.Create<AddEvent>(scopeId: 0);
+
+            new Thread(() => Consume(consumer)).Start();
+            new Thread(() => Produce(producer)).Start();
+            
+            await clientHost.RunAsync();
         }
 
-        private static void StartReceive(UdpClient client, IPEndPoint ipEndPoint)
+        private static void Produce(IEventProducer<AddEvent> producer)
         {
-            while (true)
-            {
-                var bytes = client.Receive(ref ipEndPoint);
-                var model = MessagePackSerializer.Deserialize<AddResponse>(bytes);
-                Console.WriteLine($"Summ - {model.Sum} From - {ipEndPoint.Address}:{ipEndPoint.Port}");
-            }
-        }
-
-        private static void StartSend(UdpClient client, IPEndPoint ipEndPoint)
-        {
-            var addRequest = new AddRequest
-            {
-                X = 7,
-                Y = 12
-            };
-
-            var scopeIdBytes = BitConverter.GetBytes(1024); //TODO generate scopeId for client
-            var bytes = MessagePackSerializer.Serialize(addRequest);
-            var protocolHeader = new byte[] { 0, 0, scopeIdBytes[0], scopeIdBytes[1] };
-            //var protocolHeader = new byte[] { 0, 1, scopeIdBytes[0], scopeIdBytes[1] };
-
-            var datagram = protocolHeader
-                .Concat(bytes)
-                .ToArray();
+            var x = 5;
+            var y = 7;
             
             while (true)
             {
-                client.Send(
-                    datagram,
-                    datagram.Length,
-                    ipEndPoint);
-
-                Thread.Sleep(100);
+                producer.Produce(new AddEvent
+                {
+                    X = x,
+                    Y = y
+                });
+                
+                Console.WriteLine($"Event {nameof(AddEvent)} produced with values {x} {y}!");
+                
+                Thread.Sleep(1000);
             }
+        }
+        private static void Consume(IEventConsumer<SumEvent> consumer)
+        {
+            while (true)
+            {
+                var events = consumer.Consume();
+                foreach (var @event in events)
+                {
+                    Console.WriteLine($"Event {nameof(SumEvent)} consumed with value {@event.Sum}!");    
+                }
+                
+                Thread.Sleep(1000);
+            }
+        }
+
+        private static IClientHost BuildClientHost()
+        {
+            return Host
+                .CreateClientBuilder()
+                .Configure(cfg =>
+                {
+                    cfg.ServerHost = "0.0.0.0";
+                    cfg.Serializer = new Serializer();
+                    cfg.ServerInputPorts = new[] { 7000, 7001 };
+                    cfg.ServerOutputPorts = new[] { 8000, 8001 };
+                    cfg.Receivers = 2;
+                    cfg.Senders = 2;
+                })
+                .Build();
         }
     }
 }

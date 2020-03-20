@@ -1,6 +1,6 @@
 namespace SimpleUdp.Server
 {
-    public class Service : IService
+    public sealed class Service : IService
     {
         
     }

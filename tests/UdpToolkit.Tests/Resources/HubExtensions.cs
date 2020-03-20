@@ -1,5 +1,6 @@
 using System;
-using UdpToolkit.Core;
+using UdpToolkit.Framework;
+using UdpToolkit.Framework.Hubs;
 using Xunit;
 
 namespace UdpToolkit.Tests.Resources
@@ -12,7 +13,7 @@ namespace UdpToolkit.Tests.Resources
             
             Assert.NotNull(hubBase.Serializer);
             Assert.NotNull(hubBase.PeerTracker);
-            Assert.NotNull(hubBase.UdpSenderProxy);
+            Assert.NotNull(hubBase.EventProducer);
             Assert.NotNull(hubBase.HubContext);
         }
     }

@@ -7,15 +7,16 @@
 
     <ItemGroup>
         <PackageReference Include="Autofac" Version="4.9.4" />
+        <PackageReference Include="Bogus" Version="28.4.4" />
         <PackageReference Include="MessagePack" Version="1.8.80" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
         <PackageReference Include="xunit" Version="2.4.0" />
         <PackageReference Include="xunit.runner.visualstudio" Version="2.4.0" />
-        <PackageReference Include="coverlet.collector" Version="1.0.1" />
     </ItemGroup>
-
+    
     <ItemGroup>
       <ProjectReference Include="..\..\src\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
+      <ProjectReference Include="..\..\src\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
     </ItemGroup>
 
 </Project>
