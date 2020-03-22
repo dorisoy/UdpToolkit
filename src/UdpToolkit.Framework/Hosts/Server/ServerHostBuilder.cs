@@ -1,6 +1,8 @@
 using System;
 using System.Linq;
 using System.Net;
+using System.Threading.Tasks;
+using Serilog;
 using UdpToolkit.Core;
 using UdpToolkit.Framework.Rpcs;
 using UdpToolkit.Network.Clients;
@@ -13,20 +15,22 @@ namespace UdpToolkit.Framework.Hosts.Server
 {
     public sealed class ServerHostBuilder : IServerHostBuilder
     {
-        private readonly ServerSettings _serverSettings;
+        private readonly ILogger _logger = Log.ForContext<ServerHostBuilder>();
+        
+        private readonly ServerSettings _settings;
         private readonly IContainerBuilder _containerBuilder;
         
         public ServerHostBuilder(
-            ServerSettings serverSettings, 
+            ServerSettings settings, 
             IContainerBuilder containerBuilder)
         {
-            _serverSettings = serverSettings;
+            _settings = settings;
             _containerBuilder = containerBuilder;
         }
         
         public IServerHostBuilder Configure(Action<ServerSettings> configurator)
         {
-            configurator(_serverSettings);
+            configurator(_settings);
 
             return this;
         }
@@ -57,10 +61,10 @@ namespace UdpToolkit.Framework.Hosts.Server
             var rpcProvider = new RpcProvider(rpcs);
 
             var inputQueue = new BlockingAsyncQueue<InputUdpPacket>(
-                boundedCapacity: _serverSettings.InputQueueBoundedCapacity);
+                boundedCapacity: _settings.InputQueueBoundedCapacity);
             
             var outputQueue = new BlockingAsyncQueue<OutputUdpPacket>(
-                boundedCapacity: _serverSettings.OutputQueueBoundedCapacity);
+                boundedCapacity: _settings.OutputQueueBoundedCapacity);
             
             var frameworkProtocol = new DefaultFrameworkProtocol();
             var reliableUdpProtocol = new ReliableUdpProtocol();
@@ -69,33 +73,51 @@ namespace UdpToolkit.Framework.Hosts.Server
                 frameworkProtocol: frameworkProtocol,
                 reliableUdpProtocol: reliableUdpProtocol);
             
-            var udpReceivers = _serverSettings.InputPorts
+            var receivers = _settings.InputPorts
                 .Select(port => new UdpReceiver(
                     receiver: udpClientFactory.Create(
                         endPoint: new IPEndPoint(
-                            address: IPAddress.Parse(_serverSettings.ServerHost), 
+                            address: IPAddress.Parse(_settings.ServerHost), 
                             port: port)),
                     udpProtocol: udpProtocol))
                 .ToList();
 
-            var udpSenders = _serverSettings.OutputPorts
+            var senders = _settings.OutputPorts
                 .Select(port => new UdpSender(
                     sender: udpClientFactory.Create(endPoint: new IPEndPoint(
-                        address: IPAddress.Parse(_serverSettings.ServerHost), 
+                        address: IPAddress.Parse(_settings.ServerHost), 
                         port: port)), 
                     udpProtocol: udpProtocol))
                 .ToList();
 
+            _logger.Information(
+                messageTemplate: "ServerHost created with settings: {@settings}, receivers count: {@receivers}, senders count: {@senders}, methods: {@methods}", 
+                _settings, 
+                receivers.Count, 
+                senders.Count,
+                methods);
+
+            AppDomain.CurrentDomain.UnhandledException += (sender, args) =>
+            {
+                Log.Logger.Fatal("Server down...");
+                Log.CloseAndFlush();
+            };
+
+            TaskScheduler.UnobservedTaskException += (sender, args) =>
+            {
+                Console.WriteLine("dead task");
+            };
+            
             return new ServerHost(
                     outputQueue: outputQueue,
                     inputQueue: inputQueue,
-                    processWorkers: _serverSettings.ProcessWorkers,
-                    senders: udpSenders,
-                    receivers: udpReceivers,
+                    processWorkers: _settings.ProcessWorkers,
+                    senders: senders,
+                    receivers: receivers,
                     peerTracker: peerTracker,
                     container: container,
                     rpcProvider: rpcProvider,
-                    serializer: _serverSettings.Serializer);
+                    serializer: _settings.Serializer);
         }
     }
 }

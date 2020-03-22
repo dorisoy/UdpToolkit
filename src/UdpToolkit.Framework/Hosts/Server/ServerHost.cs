@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Serilog;
 using UdpToolkit.Core;
 using UdpToolkit.Framework.Hubs;
 using UdpToolkit.Framework.Rpcs;
@@ -15,6 +16,8 @@ namespace UdpToolkit.Framework.Hosts.Server
 {
     public sealed class ServerHost : IServerHost
     {
+        private readonly ILogger _logger = Log.ForContext<ServerHost>(); 
+        
         private readonly IAsyncQueue<InputUdpPacket> _inputQueue;
         private readonly IAsyncQueue<OutputUdpPacket> _outputQueue;
 
@@ -52,125 +55,139 @@ namespace UdpToolkit.Framework.Hosts.Server
             {
                 receiver.UdpPacketReceived += packet =>
                 {
-                    Console.WriteLine($"Packet from: {packet.RemotePeer.ToString()}");
-                    
+                    _logger.Debug("Packet received: {@packet}", packet);
+
                     _inputQueue.Produce(packet);
                 };
             }
         }
 
-        private async Task StartProcessingPackets()
+        private async Task ProcessPacket(InputUdpPacket inputUdpPacket)
         {
-            try
+            var getResult = _peerTracker.TryGetPeer(scopeId: inputUdpPacket.ScopeId, peerId: inputUdpPacket.PeerId, out var peer);
+            if (!getResult)
             {
-                await ProcessPackets();
+                _peerTracker.AddPeer(
+                    scopeId: inputUdpPacket.ScopeId,
+                    peer: new Peer(
+                        id: inputUdpPacket.PeerId,
+                        remotePeer: inputUdpPacket.RemotePeer,
+                        reliableChannel: new ReliableChannel()));
             }
-            catch (Exception ex)
+
+            var key = new RpcDescriptorId(hubId: inputUdpPacket.HubId, rpcId: inputUdpPacket.RpcId);
+            if (!_rpcProvider.TryProvide(key, out var rpcDescriptor))
             {
-                Console.WriteLine(ex); //TODO logging
+                _logger.Warning("Rpc not found by rpcDescriptor: {@rpcDescriptor}", rpcDescriptor);
+
+                return;
             }
+
+            if (rpcDescriptor.ParametersTypes.Count > 1)
+            {
+                _logger.Warning("Rpc not support more than one argument");
+
+                return;
+            }
+
+            //TODO check dependencies
+            //TODO check method args
+            
+            var @event = rpcDescriptor.ParametersTypes
+                .Select(type => _serializer.Deserialize(type, inputUdpPacket.Payload))
+                .ToArray();
+            
+            await rpcDescriptor
+                    .HubRpc(
+                        hubContext: new HubContext(
+                            scopeId: inputUdpPacket.ScopeId,
+                            hubId: inputUdpPacket.HubId,
+                            rpcId: inputUdpPacket.RpcId,
+                            peerId: inputUdpPacket.PeerId),
+                        serializer: _serializer,
+                        peerTracker: _peerTracker,
+                        eventProducer: _outputQueue,
+                        ctorArguments: _container
+                            .GetInstances(rpcDescriptor.CtorArguments)
+                            .ToArray(),
+                        methodArguments: @event);
         }
 
-        private async Task ProcessPackets()
+        private async Task StartWorker()
         {
             foreach (var inputUdpPacket in _inputQueue.Consume())
             {
-                var getResult = _peerTracker.TryGetPeer(scopeId: inputUdpPacket.ScopeId, peerId: inputUdpPacket.PeerId, out var peer);
-                if (!getResult)
+                try
                 {
-                    _peerTracker.AddPeer(
-                        scopeId: inputUdpPacket.ScopeId,
-                        peer: new Peer(
-                            id: inputUdpPacket.PeerId,
-                            remotePeer: inputUdpPacket.RemotePeer,
-                            reliableChannel: new ReliableChannel()));
+                    await ProcessPacket(inputUdpPacket: inputUdpPacket);
                 }
-
-                var key = new RpcDescriptorId(hubId: inputUdpPacket.HubId, rpcId: inputUdpPacket.RpcId);
-                if (!_rpcProvider.TryProvide(key, out var rpcDescriptor))
+                catch (Exception ex)
                 {
-                    //TODO log warning
-
-                    continue;
+                    _logger.Warning("Unhandled exception on process packet, {@Exception}", ex);
                 }
-
-                if (rpcDescriptor.ParametersTypes.Count > 1)
-                {
-                    //TODO log warning
-
-                    continue;
-                }
-
-
-                //TODO check dependencies
-                //TODO check method args
-                
-                var @event = rpcDescriptor.ParametersTypes
-                    .Select(type => _serializer.Deserialize(type, inputUdpPacket.Payload))
-                    .ToArray();
-
-                await rpcDescriptor.HubRpc(
-                    hubContext: new HubContext(
-                        scopeId: inputUdpPacket.ScopeId,
-                        hubId: inputUdpPacket.HubId,
-                        rpcId: inputUdpPacket.RpcId,
-                        peerId: inputUdpPacket.PeerId),
-                    serializer: _serializer,
-                    peerTracker: _peerTracker,
-                    eventProducer: _outputQueue,
-                    ctorArguments: _container
-                        .GetInstances(rpcDescriptor.CtorArguments)
-                        .ToArray(),
-                    methodArguments: @event);
             }
         }
 
-        private async Task StartReceivePackets(IUdpReceiver udpReceiver)
+        private async Task StartReceiver(IUdpReceiver udpReceiver)
         {
-            try
+            await udpReceiver.StartReceiveAsync();
+        }
+
+        private async Task StartSender(IUdpSender udpSender)
+        {
+            foreach (var outputUdpPacket in _outputQueue.Consume())
             {
-                await udpReceiver.StartReceiveAsync();
-            }
-            catch (Exception e)
-            {
-                //TODO logging
-                Console.WriteLine(e);
+                await udpSender.SendAsync(outputUdpPacket);
             }
         }
 
-        private async Task SendPackets(IUdpSender udpSender)
+        public async Task RunAsync()
         {
-            try
-            {
-                foreach (var outputUdpPacket in _outputQueue.Consume())
-                {
-                    await udpSender.Send(outputUdpPacket);
-                }
-            }
-            catch (Exception e)
-            {
-                //TODO logging
-                Console.WriteLine(e);
-            }
-        }
-
-        public Task RunAsync()
-        {
-            var sending = _senders
-                .Select(sender => Task.Run(() => SendPackets(sender)))
+            var senders = _senders
+                .Select(
+                    sender => Task.Run(
+                        () => StartSender(sender)
+                            .RestartJobOnFail(
+                                job: () => StartSender(sender), 
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on send task: {@Exception}", exception);
+                                    _logger.Warning("Restart sender...");
+                                })))
                 .ToList();
             
-            var receiving = _receivers
-                .Select(receiver => Task.Run(() => StartReceivePackets(receiver)))
+            var receivers = _receivers
+                .Select(
+                    receiver => Task.Run(
+                        () => StartReceiver(receiver)
+                            .RestartJobOnFail(
+                                job: () => StartReceiver(receiver),
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on receive task: {@Exception}", exception);
+                                    _logger.Warning("Restart receiver...");
+                                })))
                 .ToList();
             
-            var processing = Enumerable.Range(0, _processWorkers)
-                .Select(resenderceiver => Task.Run(StartProcessingPackets))
-                .ToList();
+            
+            var workers = Enumerable.Range(0, _processWorkers)
+                .Select(
+                    _ => Task.Run(
+                        () => StartWorker()
+                            .RestartJobOnFail(
+                                job: StartWorker,
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on worker task: {@Exception}", exception);
+                                    _logger.Warning("Restart worker...");
+                                })))
+                    .ToList();
 
-            var tasks = receiving.Concat(sending).Concat(processing);
+            var tasks = senders.Concat(receivers).Concat(workers);
 
-            return Task.WhenAll(tasks);
+            _logger.Information($"{nameof(ServerHost)} running...");
+            
+            await Task.WhenAll(tasks);
         }
     }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using UdpToolkit.Core;
 using UdpToolkit.Framework.Hubs;
 using UdpToolkit.Network.Clients;
@@ -101,7 +102,7 @@ namespace UdpToolkit.Framework.Rpcs
                         methodArgs
                     })
                 .Compile();
-            
+
             return new RpcDescriptor(
                 rpcId: methodDescriptor.MethodId,
                 hubId: methodDescriptor.HubId,

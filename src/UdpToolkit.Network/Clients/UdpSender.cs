@@ -2,7 +2,6 @@ using System;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Peers;
 using UdpToolkit.Network.Protocol;
 
 namespace UdpToolkit.Network.Clients
@@ -25,7 +24,7 @@ namespace UdpToolkit.Network.Clients
             _sender.Dispose();
         }
 
-        public async Task Send(OutputUdpPacket outputUdpPacket)
+        public async Task SendAsync(OutputUdpPacket outputUdpPacket)
         {
             foreach (var peer in outputUdpPacket.Peers)
             {
@@ -48,9 +47,7 @@ namespace UdpToolkit.Network.Clients
                     default:
                         throw new ArgumentOutOfRangeException($"Unsupoorted udp mode - {outputUdpPacket.Mode}!");
                 }
-                
-                Console.WriteLine($"Packet sended to {peer.RemotePeer}");
-                
+
                 await _sender.SendAsync(networkPacket, networkPacket.Length, peer.RemotePeer);
             }
         }

@@ -1,6 +1,7 @@
 using System;
 using System.Linq;
 using System.Net;
+using Serilog;
 using UdpToolkit.Core;
 using UdpToolkit.Framework.Events;
 using UdpToolkit.Network.Clients;
@@ -13,24 +14,26 @@ namespace UdpToolkit.Framework.Hosts.Client
 {
     public sealed class ClientHostHostBuilder : IClientHostBuilder
     {
-        private readonly ClientSettings _clientSettings;
+        private readonly ILogger _logger = Log.ForContext<ClientHostHostBuilder>();
+        
+        private readonly ClientSettings _settings;
 
         public ClientHostHostBuilder(
-            ClientSettings clientSettings)
+            ClientSettings settings)
         {
-            _clientSettings = clientSettings;
+            _settings = settings;
         }
 
         public IClientHostBuilder Configure(Action<ClientSettings> configurator)
         {
-            configurator(_clientSettings);
+            configurator(_settings);
 
             return this;
         }
 
         public IClientHost Build()
         {
-            var serializer = _clientSettings.Serializer;
+            var serializer = _settings.Serializer;
             
             var udpProtocol = new UdpProtocol(
                 frameworkProtocol: new DefaultFrameworkProtocol(), 
@@ -44,26 +47,27 @@ namespace UdpToolkit.Framework.Hosts.Client
 
             var client = udpClientFactory.Create(endPoint: localIp);
             
-            var senders = _clientSettings.ServerInputPorts
+            var senders = _settings.ServerInputPorts
                 .Select(ip => new UdpSender( 
                     sender: client, 
                     udpProtocol: udpProtocol))
                 .ToList();
 
-            var receivers = _clientSettings.ServerOutputPorts
+            var receivers = _settings.ServerOutputPorts
                 .Select(port => new UdpReceiver(
                     receiver:  client,
                     udpProtocol: udpProtocol))
                 .ToList();
 
-            var serverPeers = _clientSettings.ServerInputPorts
+            var serverPeers = _settings.ServerInputPorts
                 .Select(
                     port => new IPEndPoint(
                         IPAddress.Parse("0.0.0.0"), port))
                 .Select(endPoint => new Peer(
                     id: endPoint.ToString(),
                     remotePeer: endPoint,
-                    reliableChannel: new ReliableChannel()));
+                    reliableChannel: new ReliableChannel()))
+                .ToArray();
             
             var serverSelector = new RandomServerSelector(
                 servers: serverPeers);
@@ -72,6 +76,14 @@ namespace UdpToolkit.Framework.Hosts.Client
                 boundedCapacity: int.MaxValue);
 
             var inputDispatcher = new InputDispatcher();
+            
+            _logger.Information(
+                "ClientHost created with settings: {@settings}, serverSelector: {@serverSelector}, servers: {@servers}, receivers count: {@receivers}, senders count: {@senders}", 
+                _settings, 
+                nameof(RandomServerSelector), 
+                serverPeers, 
+                receivers.Count,
+                senders.Count);
             
             return new ClientHost(
                 serverSelector: serverSelector,

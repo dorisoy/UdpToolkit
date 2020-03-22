@@ -11,14 +11,14 @@ namespace UdpToolkit.Framework.Hosts
         public static IServerHostBuilder CreateServerBuilder()
         {
             return new ServerHostBuilder(
-                serverSettings: new ServerSettings(), 
+                settings: new ServerSettings(), 
                 containerBuilder: new ContainerBuilder());
         }
 
         public static IClientHostBuilder CreateClientBuilder()
         {
             return new ClientHostHostBuilder(
-                clientSettings: new ClientSettings());
+                settings: new ClientSettings());
         }
     }
 }
