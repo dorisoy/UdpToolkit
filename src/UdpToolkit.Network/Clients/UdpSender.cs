@@ -1,11 +1,11 @@
-using System;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Protocol;
-
 namespace UdpToolkit.Network.Clients
 {
+    using System;
+    using System.Net.Sockets;
+    using System.Threading.Tasks;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Protocol;
+
     public sealed class UdpSender : IUdpSender
     {
         private readonly IUdpProtocol _udpProtocol;
@@ -35,20 +35,22 @@ namespace UdpToolkit.Network.Clients
                         networkPacket = _udpProtocol.GetUdpPacketBytes(
                             frameworkHeader: outputUdpPacket.FrameworkHeader,
                             payload: outputUdpPacket.Payload);
-                            
+
                         break;
                     case UdpMode.ReliableUdp:
                         networkPacket = _udpProtocol.GetReliableUdpPacketBytes(
                             frameworkHeader: outputUdpPacket.FrameworkHeader,
                             reliableUdpHeader: peer.GetReliableHeader(),
                             payload: outputUdpPacket.Payload);
-                            
+
                         break;
                     default:
                         throw new ArgumentOutOfRangeException($"Unsupoorted udp mode - {outputUdpPacket.Mode}!");
                 }
 
-                await _sender.SendAsync(networkPacket, networkPacket.Length, peer.RemotePeer);
+                await _sender
+                    .SendAsync(networkPacket, networkPacket.Length, peer.RemotePeer)
+                    .ConfigureAwait(false);
             }
         }
     }

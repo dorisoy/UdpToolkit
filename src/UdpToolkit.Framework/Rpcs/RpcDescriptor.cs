@@ -1,9 +1,9 @@
-using System;
-using System.Collections.Generic;
-using UdpToolkit.Framework.Hubs;
-
 namespace UdpToolkit.Framework.Rpcs
 {
+    using System;
+    using System.Collections.Generic;
+    using UdpToolkit.Framework.Hubs;
+
     public readonly struct RpcDescriptor
     {
         public RpcDescriptor(
@@ -21,7 +21,7 @@ namespace UdpToolkit.Framework.Rpcs
         }
 
         public IReadOnlyCollection<Type> CtorArguments { get; }
-        
+
         public IReadOnlyCollection<Type> ParametersTypes { get; }
 
         public HubRpc HubRpc { get; }

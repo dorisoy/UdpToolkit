@@ -1,7 +1,7 @@
-using System;
-
 namespace UdpToolkit.Network.Protocol
 {
+    using System;
+
     public sealed class DefaultFrameworkProtocol : IFrameworkProtocol
     {
         public bool TryDeserialize(ArraySegment<byte> bytes, out FrameworkHeader header)
@@ -24,18 +24,18 @@ namespace UdpToolkit.Network.Protocol
         {
             var scopeIdBytes = BitConverter.GetBytes(header.ScopeId);
 
-            return new []
+            return new[]
             {
                 header.HubId,
                 header.RpcId,
                 scopeIdBytes[0],
-                scopeIdBytes[1]
+                scopeIdBytes[1],
             };
         }
 
         private ushort ReadScopeId(ArraySegment<byte> buffer)
         {
-            return BitConverter.ToUInt16(new byte[] {buffer[2], buffer[3]}); //TODO span api
+            return BitConverter.ToUInt16(new byte[] { buffer[2], buffer[3] }); // TODO span api
         }
     }
 }

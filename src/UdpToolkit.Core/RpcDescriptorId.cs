@@ -9,10 +9,11 @@ namespace UdpToolkit.Framework.Rpcs
             HubId = hubId;
             RpcId = rpcId;
         }
-     
+
         public byte HubId { get; }
+
         public byte RpcId { get; }
-        
+
         public bool Equals(RpcDescriptorId other)
         {
             return HubId == other.HubId && RpcId == other.RpcId;

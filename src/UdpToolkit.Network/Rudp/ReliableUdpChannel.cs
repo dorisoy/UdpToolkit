@@ -1,14 +1,15 @@
 namespace UdpToolkit.Network.Rudp
 {
-    public sealed class ReliableChannel
+    public sealed class ReliableUdpChannel
     {
+        private const int BufferSize = 1024;
+
         private readonly bool[] _acknowledged;
         private readonly uint[] _sequence;
-        private const int BufferSize = 1024;
-        
+
         private uint _localNumber = 0;
 
-        public ReliableChannel()
+        public ReliableUdpChannel()
         {
             _acknowledged = new bool[BufferSize];
             _sequence = new uint[BufferSize];
@@ -37,7 +38,7 @@ namespace UdpToolkit.Network.Rudp
             {
                 if (PacketAcknowledged(index))
                 {
-                    acks |= 1u << (int) i;
+                    acks |= 1u << (int)i;
                 }
 
                 index--;
@@ -50,7 +51,9 @@ namespace UdpToolkit.Network.Rudp
         {
             uint index = number % BufferSize;
             if (_sequence[index] == number)
+            {
                 return _acknowledged[index];
+            }
 
             return false;
         }

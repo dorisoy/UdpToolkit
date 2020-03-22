@@ -1,12 +1,12 @@
-using System.Threading.Tasks;
-using SimpleUdp.Contracts;
-using UdpToolkit.Annotations;
-using UdpToolkit.Framework.Hubs;
-using UdpToolkit.Framework.Rpcs;
-using UdpToolkit.Network.Clients;
-
 namespace SimpleUdp.Server.Hubs
 {
+    using System.Threading.Tasks;
+    using SimpleUdp.Contracts;
+    using UdpToolkit.Annotations;
+    using UdpToolkit.Framework.Hubs;
+    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Network.Clients;
+
     [Hub(hubId: 0)]
     public sealed class AddHub : HubBase
     {
@@ -23,9 +23,9 @@ namespace SimpleUdp.Server.Hubs
             var sum = @event.X + @event.Y;
             var response = new SumEvent
             {
-                Sum = sum
+                Sum = sum,
             };
-            
+
             Broadcast(response, UdpMode.Udp);
 
             return Task.FromResult(response);

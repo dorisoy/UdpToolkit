@@ -1,8 +1,8 @@
-using System;
-using System.Runtime.Serialization;
-
 namespace UdpToolkit.Framework.Events
 {
+    using System;
+    using System.Runtime.Serialization;
+
     [Serializable]
     public class DuplicateEventTypeException : Exception
     {

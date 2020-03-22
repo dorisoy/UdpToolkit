@@ -13,9 +13,9 @@ namespace UdpToolkit.Network.Rudp
         }
 
         public uint LocalNumber { get; }
-        
+
         public uint Ack { get; }
-        
+
         public uint Acks { get; }
     }
 }

@@ -1,12 +1,12 @@
-using System.Linq;
-using UdpToolkit.Network;
-using UdpToolkit.Network.Protocol;
-using UdpToolkit.Network.Rudp;
-using UdpToolkit.Tests.Utils;
-using Xunit;
-
 namespace UdpToolkit.Tests
 {
+    using System.Linq;
+    using UdpToolkit.Network;
+    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Rudp;
+    using UdpToolkit.Tests.Utils;
+    using Xunit;
+
     public class ReliableUdpProtocolTests
     {
         [Fact]
@@ -18,10 +18,10 @@ namespace UdpToolkit.Tests
                 acks: Gen.GetRandomUint());
 
             var protocol = new ReliableUdpProtocol().Serialize(header);
-            
+
             Assert.Equal(expected: Consts.ReliableUdpProtocolHeaderLength, actual: protocol.Length);
         }
-       
+
         [Fact]
         public void ReliableUdpHeader_Deserialized()
         {
@@ -31,7 +31,7 @@ namespace UdpToolkit.Tests
                 .ToArray();
 
             var result = new ReliableUdpProtocol().TryDeserialize(bytes, out var header);
-            
+
             Assert.True(result);
             Assert.NotEqual(expected: default, actual: header);
         }

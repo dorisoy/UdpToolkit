@@ -1,7 +1,7 @@
-using System;
-
 namespace UdpToolkit.Core
 {
+    using System;
+
     public interface ISerializer
     {
         byte[] Serialize<T>(T @event);

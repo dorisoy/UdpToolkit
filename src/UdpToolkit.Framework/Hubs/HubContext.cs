@@ -7,7 +7,6 @@ namespace UdpToolkit.Framework.Hubs
             byte hubId,
             byte rpcId,
             string peerId)
-        
         {
             ScopeId = scopeId;
             HubId = hubId;
@@ -16,8 +15,11 @@ namespace UdpToolkit.Framework.Hubs
         }
 
         public ushort ScopeId { get; }
+
         public byte HubId { get; }
+
         public byte RpcId { get; }
+
         public string PeerId { get; }
     }
 }

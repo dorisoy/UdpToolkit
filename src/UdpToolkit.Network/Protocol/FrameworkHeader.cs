@@ -13,9 +13,9 @@ namespace UdpToolkit.Network.Protocol
         }
 
         public byte HubId { get; }
-        
+
         public byte RpcId { get; }
-        
+
         public ushort ScopeId { get; }
     }
 }

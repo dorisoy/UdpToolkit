@@ -1,11 +1,11 @@
-using System;
-using System.Net.Sockets;
-using System.Threading.Tasks;
-using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Protocol;
-
 namespace UdpToolkit.Network.Clients
 {
+    using System;
+    using System.Net.Sockets;
+    using System.Threading.Tasks;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Protocol;
+
     public sealed class UdpReceiver : IUdpReceiver
     {
         private readonly UdpClient _receiver;
@@ -14,24 +14,27 @@ namespace UdpToolkit.Network.Clients
         public UdpReceiver(
             UdpClient receiver,
             IUdpProtocol udpProtocol)
-
         {
             _receiver = receiver;
             _udpProtocol = udpProtocol;
         }
 
+        public event Action<InputUdpPacket> UdpPacketReceived;
+
         public async Task StartReceiveAsync()
         {
             while (true)
             {
-                var result = await _receiver.ReceiveAsync();
+                var result = await _receiver
+                    .ReceiveAsync()
+                    .ConfigureAwait(false);
 
                 var parseResult = _udpProtocol
                     .TryParseProtocol(
-                        packet: result.Buffer, 
-                        out var packetType, 
-                        out var frameworkHeader, 
-                        out var reliableUdpHeader, 
+                        packet: result.Buffer,
+                        out var packetType,
+                        out var frameworkHeader,
+                        out var reliableUdpHeader,
                         out var payload);
 
                 if (!parseResult)
@@ -49,8 +52,6 @@ namespace UdpToolkit.Network.Clients
                         remotePeer: result.RemoteEndPoint));
             }
         }
-
-        public event Action<InputUdpPacket> UdpPacketReceived;
 
         public void Dispose()
         {

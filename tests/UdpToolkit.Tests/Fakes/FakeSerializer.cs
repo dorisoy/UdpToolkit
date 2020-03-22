@@ -1,8 +1,8 @@
-using System;
-using UdpToolkit.Core;
-
 namespace UdpToolkit.Tests.Fakes
 {
+    using System;
+    using UdpToolkit.Core;
+
     public class FakeSerializer : ISerializer
     {
         public byte[] Serialize<T>(T @event)

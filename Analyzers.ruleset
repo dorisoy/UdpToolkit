@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RuleSet Name="Rules" Description="" ToolsVersion="14.0">
+    <Rules AnalyzerId="StyleCop.Analyzers" RuleNamespace="StyleCop.Analyzers">
+        <!-- disale documentation -->
+        <Rule Id="SA0001" Action="None" />
+        
+        <!-- file header on top of the file -->
+        <Rule Id="SA1633" Action="None" />
+        
+        <!-- this for private fields -->
+        <Rule Id="SA1309" Action="None" />
+
+        <!-- this prefix for local calls -->
+        <Rule Id="SA1101" Action="None" />
+
+        <!-- element should be documented -->
+        <Rule Id="SA1600" Action="None" />
+
+        <!-- enum should be documented -->
+        <Rule Id="SA1602" Action="None" />
+    </Rules>
+
+</RuleSet>

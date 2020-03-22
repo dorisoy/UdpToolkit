@@ -1,9 +1,9 @@
-using System;
-using UdpToolkit.Annotations;
-using UdpToolkit.Network.Clients;
-
 namespace UdpToolkit.Framework
 {
+    using System;
+    using UdpToolkit.Annotations;
+    using UdpToolkit.Network.Clients;
+
     public static class FrameworkExtensions
     {
         public static UdpMode Map(UdpChannel mode)

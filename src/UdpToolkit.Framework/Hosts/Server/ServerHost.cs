@@ -1,23 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Serilog;
-using UdpToolkit.Core;
-using UdpToolkit.Framework.Hubs;
-using UdpToolkit.Framework.Rpcs;
-using UdpToolkit.Network.Clients;
-using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Peers;
-using UdpToolkit.Network.Queues;
-using UdpToolkit.Network.Rudp;
-
 namespace UdpToolkit.Framework.Hosts.Server
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Serilog;
+    using UdpToolkit.Core;
+    using UdpToolkit.Framework.Hubs;
+    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Network.Clients;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Peers;
+    using UdpToolkit.Network.Queues;
+    using UdpToolkit.Network.Rudp;
+
     public sealed class ServerHost : IServerHost
     {
-        private readonly ILogger _logger = Log.ForContext<ServerHost>(); 
-        
+        private readonly ILogger _logger = Log.ForContext<ServerHost>();
+
         private readonly IAsyncQueue<InputUdpPacket> _inputQueue;
         private readonly IAsyncQueue<OutputUdpPacket> _outputQueue;
 
@@ -29,7 +29,7 @@ namespace UdpToolkit.Framework.Hosts.Server
         private readonly IContainer _container;
         private readonly IRpcProvider _rpcProvider;
         private readonly ISerializer _serializer;
-        
+
         public ServerHost(
             int processWorkers,
             IAsyncQueue<OutputUdpPacket> outputQueue,
@@ -38,7 +38,7 @@ namespace UdpToolkit.Framework.Hosts.Server
             IEnumerable<IUdpReceiver> receivers,
             IPeerTracker peerTracker,
             IContainer container,
-            IRpcProvider rpcProvider, 
+            IRpcProvider rpcProvider,
             ISerializer serializer)
         {
             _processWorkers = processWorkers;
@@ -50,7 +50,7 @@ namespace UdpToolkit.Framework.Hosts.Server
             _receivers = receivers;
             _peerTracker = peerTracker;
             _container = container;
-            
+
             foreach (var receiver in _receivers)
             {
                 receiver.UdpPacketReceived += packet =>
@@ -62,7 +62,56 @@ namespace UdpToolkit.Framework.Hosts.Server
             }
         }
 
-        private async Task ProcessPacket(InputUdpPacket inputUdpPacket)
+        public async Task RunAsync()
+        {
+            var senders = _senders
+                .Select(
+                    sender => Task.Run(
+                        () => StartSenderAsync(sender)
+                            .RestartJobOnFailAsync(
+                                job: () => StartSenderAsync(sender),
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on send task: {@Exception}", exception);
+                                    _logger.Warning("Restart sender...");
+                                })))
+                .ToList();
+
+            var receivers = _receivers
+                .Select(
+                    receiver => Task.Run(
+                        () => StartReceiverAsync(receiver)
+                            .RestartJobOnFailAsync(
+                                job: () => StartReceiverAsync(receiver),
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on receive task: {@Exception}", exception);
+                                    _logger.Warning("Restart receiver...");
+                                })))
+                .ToList();
+
+            var workers = Enumerable.Range(0, _processWorkers)
+                .Select(
+                    _ => Task.Run(
+                        () => StartWorkerAsync()
+                            .RestartJobOnFailAsync(
+                                job: StartWorkerAsync,
+                                logger: (exception) =>
+                                {
+                                    _logger.Error("Exception on worker task: {@Exception}", exception);
+                                    _logger.Warning("Restart worker...");
+                                })))
+                    .ToList();
+
+            var tasks = senders.Concat(receivers).Concat(workers);
+
+            _logger.Information($"{nameof(ServerHost)} running...");
+
+            await Task.WhenAll(tasks)
+                .ConfigureAwait(false);
+        }
+
+        private async Task ProcessPacketAsync(InputUdpPacket inputUdpPacket)
         {
             var getResult = _peerTracker.TryGetPeer(scopeId: inputUdpPacket.ScopeId, peerId: inputUdpPacket.PeerId, out var peer);
             if (!getResult)
@@ -72,7 +121,7 @@ namespace UdpToolkit.Framework.Hosts.Server
                     peer: new Peer(
                         id: inputUdpPacket.PeerId,
                         remotePeer: inputUdpPacket.RemotePeer,
-                        reliableChannel: new ReliableChannel()));
+                        reliableUdpChannel: new ReliableUdpChannel()));
             }
 
             var key = new RpcDescriptorId(hubId: inputUdpPacket.HubId, rpcId: inputUdpPacket.RpcId);
@@ -90,13 +139,12 @@ namespace UdpToolkit.Framework.Hosts.Server
                 return;
             }
 
-            //TODO check dependencies
-            //TODO check method args
-            
+            // TODO check dependencies
+            // TODO check method args
             var @event = rpcDescriptor.ParametersTypes
                 .Select(type => _serializer.Deserialize(type, inputUdpPacket.Payload))
                 .ToArray();
-            
+
             await rpcDescriptor
                     .HubRpc(
                         hubContext: new HubContext(
@@ -110,16 +158,18 @@ namespace UdpToolkit.Framework.Hosts.Server
                         ctorArguments: _container
                             .GetInstances(rpcDescriptor.CtorArguments)
                             .ToArray(),
-                        methodArguments: @event);
+                        methodArguments: @event)
+                    .ConfigureAwait(false);
         }
 
-        private async Task StartWorker()
+        private async Task StartWorkerAsync()
         {
             foreach (var inputUdpPacket in _inputQueue.Consume())
             {
                 try
                 {
-                    await ProcessPacket(inputUdpPacket: inputUdpPacket);
+                    await ProcessPacketAsync(inputUdpPacket: inputUdpPacket)
+                        .ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -128,66 +178,19 @@ namespace UdpToolkit.Framework.Hosts.Server
             }
         }
 
-        private async Task StartReceiver(IUdpReceiver udpReceiver)
+        private async Task StartReceiverAsync(IUdpReceiver udpReceiver)
         {
-            await udpReceiver.StartReceiveAsync();
+            await udpReceiver.StartReceiveAsync()
+                .ConfigureAwait(false);
         }
 
-        private async Task StartSender(IUdpSender udpSender)
+        private async Task StartSenderAsync(IUdpSender udpSender)
         {
             foreach (var outputUdpPacket in _outputQueue.Consume())
             {
-                await udpSender.SendAsync(outputUdpPacket);
+                await udpSender.SendAsync(outputUdpPacket)
+                    .ConfigureAwait(false);
             }
-        }
-
-        public async Task RunAsync()
-        {
-            var senders = _senders
-                .Select(
-                    sender => Task.Run(
-                        () => StartSender(sender)
-                            .RestartJobOnFail(
-                                job: () => StartSender(sender), 
-                                logger: (exception) =>
-                                {
-                                    _logger.Error("Exception on send task: {@Exception}", exception);
-                                    _logger.Warning("Restart sender...");
-                                })))
-                .ToList();
-            
-            var receivers = _receivers
-                .Select(
-                    receiver => Task.Run(
-                        () => StartReceiver(receiver)
-                            .RestartJobOnFail(
-                                job: () => StartReceiver(receiver),
-                                logger: (exception) =>
-                                {
-                                    _logger.Error("Exception on receive task: {@Exception}", exception);
-                                    _logger.Warning("Restart receiver...");
-                                })))
-                .ToList();
-            
-            
-            var workers = Enumerable.Range(0, _processWorkers)
-                .Select(
-                    _ => Task.Run(
-                        () => StartWorker()
-                            .RestartJobOnFail(
-                                job: StartWorker,
-                                logger: (exception) =>
-                                {
-                                    _logger.Error("Exception on worker task: {@Exception}", exception);
-                                    _logger.Warning("Restart worker...");
-                                })))
-                    .ToList();
-
-            var tasks = senders.Concat(receivers).Concat(workers);
-
-            _logger.Information($"{nameof(ServerHost)} running...");
-            
-            await Task.WhenAll(tasks);
         }
     }
 }

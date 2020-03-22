@@ -1,14 +1,10 @@
-using System;
-using UdpToolkit.Core;
-
 namespace UdpToolkit.Framework.Events
 {
+    using System;
+    using UdpToolkit.Core;
+
     public readonly struct ProducedEvent
     {
-        public byte ScopeId { get; }
-        public EventDescriptor EventDescriptor { get; }
-        public Func<ISerializer, byte[]> Serialize { get; }
-
         public ProducedEvent(
             byte scopeId,
             EventDescriptor eventDescriptor,
@@ -18,5 +14,11 @@ namespace UdpToolkit.Framework.Events
             EventDescriptor = eventDescriptor;
             Serialize = serialize;
         }
+
+        public byte ScopeId { get; }
+
+        public EventDescriptor EventDescriptor { get; }
+
+        public Func<ISerializer, byte[]> Serialize { get; }
     }
 }

@@ -1,10 +1,10 @@
-using UdpToolkit.Network;
-using UdpToolkit.Network.Protocol;
-using UdpToolkit.Tests.Utils;
-using Xunit;
-
 namespace UdpToolkit.Tests
 {
+    using UdpToolkit.Network;
+    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Tests.Utils;
+    using Xunit;
+
     public class FrameworkProtocolTests
     {
         [Fact]
@@ -17,23 +17,23 @@ namespace UdpToolkit.Tests
 
             var bytes = new DefaultFrameworkProtocol()
                 .Serialize(header);
-            
+
             Assert.Equal(expected: Consts.FrameworkHeaderLength, actual: bytes.Length);
         }
-        
+
         [Fact]
         public void FrameworkHeader_Deserialized()
         {
-            var bytes = new []
+            var bytes = new[]
             {
                 Gen.GetRandomByte(),
                 Gen.GetRandomByte(),
                 Gen.GetRandomByte(),
                 Gen.GetRandomByte(),
             };
-            
+
             var result = new DefaultFrameworkProtocol().TryDeserialize(bytes: bytes, out var header);
-            
+
             Assert.True(result);
             Assert.NotEqual(expected: default, actual: header);
         }

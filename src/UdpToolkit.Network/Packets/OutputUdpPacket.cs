@@ -1,16 +1,16 @@
-using System.Collections.Generic;
-using UdpToolkit.Network.Clients;
-using UdpToolkit.Network.Peers;
-using UdpToolkit.Network.Protocol;
-
 namespace UdpToolkit.Network.Packets
 {
+    using System.Collections.Generic;
+    using UdpToolkit.Network.Clients;
+    using UdpToolkit.Network.Peers;
+    using UdpToolkit.Network.Protocol;
+
     public readonly struct OutputUdpPacket
     {
         public OutputUdpPacket(
-            byte[] payload, 
+            byte[] payload,
             IEnumerable<Peer> peers,
-            UdpMode mode, 
+            UdpMode mode,
             FrameworkHeader frameworkHeader)
         {
             Peers = peers;
@@ -22,6 +22,7 @@ namespace UdpToolkit.Network.Packets
         public FrameworkHeader FrameworkHeader { get; }
 
         public IEnumerable<Peer> Peers { get; }
+
         public byte[] Payload { get; }
 
         public UdpMode Mode { get; }

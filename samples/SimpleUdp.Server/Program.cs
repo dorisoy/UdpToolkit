@@ -1,17 +1,24 @@
-﻿using System.Threading.Tasks;
-using UdpToolkit.Core;
-using UdpToolkit.Framework.Hosts;
-using UdpToolkit.Serialization.MsgPack;
-
-namespace SimpleUdp.Server
+﻿namespace SimpleUdp.Server
 {
-    public class Program
+    using System.Threading.Tasks;
+    using Serilog;
+    using Serilog.Events;
+    using UdpToolkit.Core;
+    using UdpToolkit.Framework.Hosts;
+    using UdpToolkit.Serialization.MsgPack;
+
+    public static class Program
     {
         public static async Task Main()
         {
+            Log.Logger = new LoggerConfiguration()
+                .MinimumLevel.Is(LogEventLevel.Information)
+                .WriteTo.Console()
+                .CreateLogger();
+
             var server = BuildServer();
 
-            await server.RunAsync();
+            await server.RunAsync().ConfigureAwait(false);
         }
 
         private static IServerHost BuildServer() =>

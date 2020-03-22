@@ -1,23 +1,23 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Serilog;
-using UdpToolkit.Core;
-using UdpToolkit.Framework.Events;
-using UdpToolkit.Framework.Events.EventConsumers;
-using UdpToolkit.Framework.Events.EventProducers;
-using UdpToolkit.Network.Clients;
-using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Protocol;
-using UdpToolkit.Network.Queues;
-
 namespace UdpToolkit.Framework.Hosts.Client
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Threading.Tasks;
+    using Serilog;
+    using UdpToolkit.Core;
+    using UdpToolkit.Framework.Events;
+    using UdpToolkit.Framework.Events.EventConsumers;
+    using UdpToolkit.Framework.Events.EventProducers;
+    using UdpToolkit.Network.Clients;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Queues;
+
     public sealed class ClientHost : IClientHost
     {
-        private readonly ILogger _logger = Log.ForContext<ClientHost>(); 
-        
+        private readonly ILogger _logger = Log.ForContext<ClientHost>();
+
         private readonly IServerSelector _serverSelector;
         private readonly IAsyncQueue<ProducedEvent> _producedEvents;
 
@@ -25,13 +25,13 @@ namespace UdpToolkit.Framework.Hosts.Client
         private readonly IEnumerable<IUdpReceiver> _receivers;
 
         private readonly InputDispatcher _inputDispatcher;
-        
+
         public ClientHost(
             IServerSelector serverSelector,
             ISerializer serializer,
             IAsyncQueue<ProducedEvent> producedEvents,
             IEnumerable<IUdpSender> senders,
-            IEnumerable<IUdpReceiver> receivers, 
+            IEnumerable<IUdpReceiver> receivers,
             InputDispatcher inputDispatcher)
         {
             _serverSelector = serverSelector;
@@ -46,20 +46,22 @@ namespace UdpToolkit.Framework.Hosts.Client
                 receiver.UdpPacketReceived += packet =>
                 {
                     _logger.Debug("Packet received: {@packet}", packet);
-                                
+
                     ProcessInputUdpPacket(packet);
                 };
             }
         }
-        
+
+        public ISerializer Serializer { get; }
+
         public Task RunAsync()
         {
             var receivers = _receivers
                 .Select(
                     receiver => Task.Run(
-                        () => StartReceiver(receiver)
-                            .RestartJobOnFail(
-                                job: () => StartReceiver(receiver),
+                        () => StartReceiverAsync(receiver)
+                            .RestartJobOnFailAsync(
+                                job: () => StartReceiverAsync(receiver),
                                 logger: (exception) =>
                                 {
                                     _logger.Error("Exception on receive task: {@Exception}", exception);
@@ -70,9 +72,9 @@ namespace UdpToolkit.Framework.Hosts.Client
             var senders = _senders
                 .Select(
                     sender => Task.Run(
-                        () => StartSender(sender)
-                            .RestartJobOnFail(
-                                job: () => StartSender(sender),
+                        () => StartSenderAsync(sender)
+                            .RestartJobOnFailAsync(
+                                job: () => StartSenderAsync(sender),
                                 logger: (exception) =>
                                 {
                                     _logger.Error("Exception on send task: {@Exception}", exception);
@@ -83,7 +85,7 @@ namespace UdpToolkit.Framework.Hosts.Client
             var tasks = receivers.Concat(senders);
 
             _logger.Information($"{nameof(ClientHost)} running...");
-            
+
             return Task.WhenAll(tasks);
         }
 
@@ -99,17 +101,17 @@ namespace UdpToolkit.Framework.Hosts.Client
                 inputDispatcher: _inputDispatcher);
         }
 
-        public ISerializer Serializer { get; }
-
-        private async Task StartReceiver(IUdpReceiver udpReceiver)
+        private async Task StartReceiverAsync(IUdpReceiver udpReceiver)
         {
-            await udpReceiver.StartReceiveAsync();
+            await udpReceiver
+                .StartReceiveAsync()
+                .ConfigureAwait(false);
         }
 
-        private async Task ProcessProducedEvent(IUdpSender udpSender, ProducedEvent producedEvent)
+        private async Task ProcessProducedEventAsync(IUdpSender udpSender, ProducedEvent producedEvent)
         {
             var bytes = producedEvent.Serialize(Serializer);
-                    
+
             var outputUdpPacket = new OutputUdpPacket(
                 payload: bytes,
                 peers: new[] { _serverSelector.GetServer() },
@@ -118,17 +120,18 @@ namespace UdpToolkit.Framework.Hosts.Client
                     hubId: producedEvent.EventDescriptor.RpcDescriptorId.HubId,
                     rpcId: producedEvent.EventDescriptor.RpcDescriptorId.RpcId,
                     scopeId: producedEvent.ScopeId));
-                    
-            await udpSender.SendAsync(outputUdpPacket);
+
+            await udpSender.SendAsync(outputUdpPacket).ConfigureAwait(false);
         }
 
-        private async Task StartSender(IUdpSender udpSender)
+        private async Task StartSenderAsync(IUdpSender udpSender)
         {
             foreach (var producedEvent in _producedEvents.Consume())
             {
                 try
                 {
-                    await ProcessProducedEvent(udpSender, producedEvent);
+                    await ProcessProducedEventAsync(udpSender, producedEvent)
+                        .ConfigureAwait(false);
                 }
                 catch (Exception ex)
                 {
@@ -136,10 +139,10 @@ namespace UdpToolkit.Framework.Hosts.Client
                 }
             }
         }
-        
+
         private void ProcessInputUdpPacket(InputUdpPacket packet)
         {
-            _inputDispatcher.Dispatch(packet);            
+            _inputDispatcher.Dispatch(packet);
         }
     }
 }

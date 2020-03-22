@@ -1,10 +1,9 @@
-using System;
-using UdpToolkit.Network.Packets;
-using UdpToolkit.Network.Protocol;
-using UdpToolkit.Network.Rudp;
-
 namespace UdpToolkit.Network.Protocol
 {
+    using System;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Rudp;
+
     public interface IUdpProtocol
     {
         bool TryParseProtocol(
@@ -18,7 +17,7 @@ namespace UdpToolkit.Network.Protocol
             FrameworkHeader frameworkHeader,
             ReliableUdpHeader reliableUdpHeader,
             byte[] payload);
-        
+
         byte[] GetUdpPacketBytes(
             FrameworkHeader frameworkHeader,
             byte[] payload);

@@ -1,8 +1,8 @@
-using UdpToolkit.Network;
-using UdpToolkit.Network.Peers;
-
 namespace UdpToolkit.Tests.Fakes
 {
+    using UdpToolkit.Network;
+    using UdpToolkit.Network.Peers;
+
     public class FakePeerTracker : IPeerTracker
     {
         public bool TryGetScope(ushort scopeId, out IPeerScope scope)

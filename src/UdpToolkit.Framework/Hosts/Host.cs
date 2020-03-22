@@ -1,17 +1,16 @@
-using UdpToolkit.Core;
-using UdpToolkit.Framework.Di;
-using UdpToolkit.Framework.Hosts.Client;
-using UdpToolkit.Framework.Hosts.Server;
-
-
 namespace UdpToolkit.Framework.Hosts
 {
+    using UdpToolkit.Core;
+    using UdpToolkit.Framework.Di;
+    using UdpToolkit.Framework.Hosts.Client;
+    using UdpToolkit.Framework.Hosts.Server;
+
     public static class Host
     {
         public static IServerHostBuilder CreateServerBuilder()
         {
             return new ServerHostBuilder(
-                settings: new ServerSettings(), 
+                settings: new ServerSettings(),
                 containerBuilder: new ContainerBuilder());
         }
 

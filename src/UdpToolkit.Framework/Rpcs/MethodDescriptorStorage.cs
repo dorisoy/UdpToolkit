@@ -1,11 +1,11 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using UdpToolkit.Framework.Hubs;
-
 namespace UdpToolkit.Framework.Rpcs
 {
+    using System;
+    using System.Collections.Generic;
+    using System.Linq;
+    using System.Reflection;
+    using UdpToolkit.Framework.Hubs;
+
     public static class MethodDescriptorStorage
     {
         private static readonly Lazy<IReadOnlyCollection<MethodDescriptor>> Methods = new Lazy<IReadOnlyCollection<MethodDescriptor>>(FindAllHubMethods);
@@ -28,7 +28,7 @@ namespace UdpToolkit.Framework.Rpcs
                             .Select(method => new
                             {
                                 method,
-                                rpcAttribute = method.GetCustomAttribute<RpcAttribute>()
+                                rpcAttribute = method.GetCustomAttribute<RpcAttribute>(),
                             })
                             .Where(item => item.rpcAttribute != null),
                     })
@@ -49,9 +49,9 @@ namespace UdpToolkit.Framework.Rpcs
                     hubId: pair.Value.HubAttribute.HubId,
                     arguments: rpc.method
                         .GetParameters()
-                        .Select(parameter => parameter.ParameterType), 
-                    methodId: rpc.rpcAttribute.RpcId, 
-                    returnType: rpc.method.ReturnType, 
+                        .Select(parameter => parameter.ParameterType),
+                    methodId: rpc.rpcAttribute.RpcId,
+                    returnType: rpc.method.ReturnType,
                     methodInfo: rpc.method))
                 .ToList();
         }

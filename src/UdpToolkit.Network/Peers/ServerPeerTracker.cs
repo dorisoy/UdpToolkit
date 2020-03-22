@@ -1,7 +1,7 @@
-using System.Collections.Concurrent;
-
 namespace UdpToolkit.Network.Peers
 {
+    using System.Collections.Concurrent;
+
     public sealed class ServerPeerTracker : IPeerTracker
     {
         private readonly ConcurrentDictionary<ushort, IPeerScope> _scopes = new ConcurrentDictionary<ushort, IPeerScope>();
@@ -14,14 +14,14 @@ namespace UdpToolkit.Network.Peers
         public IPeerScope AddPeer(ushort scopeId, Peer peer)
         {
             return _scopes.AddOrUpdate(
-                key: scopeId, 
+                key: scopeId,
                 addValueFactory: i =>
                 {
                     var scope = new PeerScope(i);
                     scope.AddPeer(peer);
                     return scope;
                 },
-                updateValueFactory:(i, scope) =>
+                updateValueFactory: (i, scope) =>
             {
                 scope.AddPeer(peer);
                 return scope;

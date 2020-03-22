@@ -1,8 +1,8 @@
-using System;
-using UdpToolkit.Framework.Rpcs;
-
 namespace UdpToolkit.Core
 {
+    using System;
+    using UdpToolkit.Framework.Rpcs;
+
     public interface IEventConsumer
     {
         RpcDescriptorId RpcDescriptorId { get; }

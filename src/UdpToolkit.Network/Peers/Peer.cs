@@ -1,28 +1,28 @@
-using System.Net;
-using UdpToolkit.Network.Rudp;
-
 namespace UdpToolkit.Network.Peers
 {
+    using System.Net;
+    using UdpToolkit.Network.Rudp;
+
     public sealed class Peer
     {
-        private readonly ReliableChannel _reliableChannel;
-        
+        private readonly ReliableUdpChannel _reliableUdpChannel;
+
         public Peer(
             string id,
-            IPEndPoint remotePeer, 
-            ReliableChannel reliableChannel)
+            IPEndPoint remotePeer,
+            ReliableUdpChannel reliableUdpChannel)
         {
             Id = id;
             RemotePeer = remotePeer;
-            _reliableChannel = reliableChannel;
+            _reliableUdpChannel = reliableUdpChannel;
         }
 
-        public ReliableUdpHeader GetReliableHeader() => _reliableChannel.GetReliableHeader();
-
-        public void InsertPacket(uint number) => _reliableChannel.InsertPacket(number);
-        
-        public string  Id { get; }
+        public string Id { get; }
 
         public IPEndPoint RemotePeer { get; }
+
+        public ReliableUdpHeader GetReliableHeader() => _reliableUdpChannel.GetReliableHeader();
+
+        public void InsertPacket(uint number) => _reliableUdpChannel.InsertPacket(number);
     }
 }

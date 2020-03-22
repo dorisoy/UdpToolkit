@@ -1,10 +1,10 @@
-﻿using System;
-using MessagePack;
-using MessagePack.Resolvers;
-using UdpToolkit.Core;
-
-namespace UdpToolkit.Serialization.MsgPack
+﻿namespace UdpToolkit.Serialization.MsgPack
 {
+    using System;
+    using MessagePack;
+    using MessagePack.Resolvers;
+    using UdpToolkit.Core;
+
     public sealed class Serializer : ISerializer
     {
         public byte[] Serialize<T>(T @event)

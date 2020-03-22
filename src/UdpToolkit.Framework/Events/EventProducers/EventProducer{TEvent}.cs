@@ -1,8 +1,8 @@
-using UdpToolkit.Core;
-using UdpToolkit.Network.Queues;
-
 namespace UdpToolkit.Framework.Events.EventProducers
 {
+    using UdpToolkit.Core;
+    using UdpToolkit.Network.Queues;
+
     public sealed class EventProducer<TEvent> : IEventProducer<TEvent>
     {
         private readonly byte _scopeId;
@@ -24,7 +24,7 @@ namespace UdpToolkit.Framework.Events.EventProducers
             _outputQueue.Produce(new ProducedEvent(
                 scopeId: _scopeId,
                 eventDescriptor: _eventDescriptor,
-                serialize: (serializer => serializer.Serialize(@event))));
+                serialize: serializer => serializer.Serialize(@event)));
         }
     }
 }

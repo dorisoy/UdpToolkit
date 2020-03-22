@@ -1,9 +1,9 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace UdpToolkit.Network.Peers
 {
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Linq;
+
     public sealed class PeerScope : IPeerScope
     {
         private readonly ushort _scopeId;

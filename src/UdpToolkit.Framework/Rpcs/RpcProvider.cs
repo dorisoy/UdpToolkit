@@ -1,8 +1,7 @@
-using System.Collections.Generic;
-using UdpToolkit.Core;
-
 namespace UdpToolkit.Framework.Rpcs
 {
+    using System.Collections.Generic;
+
     public sealed class RpcProvider : IRpcProvider
     {
         private readonly IReadOnlyDictionary<RpcDescriptorId, RpcDescriptor> _hubs;

@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
-using System.Collections.Generic;
-
 namespace UdpToolkit.Network.Queues
 {
+    using System.Collections.Concurrent;
+    using System.Collections.Generic;
+
     public sealed class BlockingAsyncQueue<TEvent> : IAsyncQueue<TEvent>
     {
         private readonly BlockingCollection<TEvent> _input;
@@ -10,10 +10,10 @@ namespace UdpToolkit.Network.Queues
         public BlockingAsyncQueue(int boundedCapacity)
         {
             _input = new BlockingCollection<TEvent>(
-                boundedCapacity: boundedCapacity, 
+                boundedCapacity: boundedCapacity,
                 collection: new ConcurrentQueue<TEvent>());
         }
-        
+
         public void Produce(TEvent @event)
         {
             _input.Add(@event);
