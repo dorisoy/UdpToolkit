@@ -8,6 +8,8 @@ namespace UdpToolkit.Core
 
         IServerHostBuilder ConfigureServices(Action<IContainerBuilder> configurator);
 
+        IServerHostBuilder Use(Action<IPipelineBuilder> configurator);
+
         IServerHost Build();
     }
 }

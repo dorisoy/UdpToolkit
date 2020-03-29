@@ -10,18 +10,18 @@ namespace UdpToolkit.Framework.Events
         private static readonly ConcurrentDictionary<RpcDescriptorId, IEventConsumer> InputQueues =
             new ConcurrentDictionary<RpcDescriptorId, IEventConsumer>();
 
-        public void Dispatch(InputUdpPacket inputUdpPacket)
+        public void Dispatch(NetworkPacket networkPacket)
         {
             var rpcDescriptorId = new RpcDescriptorId(
-                hubId: inputUdpPacket.HubId,
-                rpcId: inputUdpPacket.RpcId);
+                hubId: networkPacket.FrameworkHeader.HubId,
+                rpcId: networkPacket.FrameworkHeader.RpcId);
 
             if (!InputQueues.TryGetValue(key: rpcDescriptorId, value: out var queue))
             {
                 return;
             }
 
-            queue.Enqueue(payload: inputUdpPacket.Payload);
+            queue.Enqueue(payload: networkPacket.Payload);
         }
 
         public void AddEventConsumer(IEventConsumer eventConsumer)

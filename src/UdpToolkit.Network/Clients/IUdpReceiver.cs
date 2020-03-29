@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Clients
 
     public interface IUdpReceiver : IDisposable
     {
-        event Action<InputUdpPacket> UdpPacketReceived;
+        event Action<NetworkPacket> UdpPacketReceived;
 
         Task StartReceiveAsync();
     }

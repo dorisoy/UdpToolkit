@@ -5,10 +5,16 @@ namespace UdpToolkit.Core
     public interface IContainerBuilder
     {
         IContainerBuilder RegisterSingleton<TInterface, TService>(TService instance)
-            where TService : TInterface;
+            where TService : class, TInterface;
+
+        IContainerBuilder RegisterSingleton<TInterface, TService>(TService instance, string name)
+            where TService : class, TInterface;
+
+        IContainerBuilder RegisterSingleton<TInterface, TService>(Func<IRegistrationContext, TService> func)
+            where TService : class, TInterface;
 
         IContainerBuilder RegisterSingleton<TInterface, TService>(Func<TService> factory)
-            where TService : TInterface;
+            where TService : class, TInterface;
 
         IContainer Build();
     }

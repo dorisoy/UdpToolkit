@@ -11,9 +11,9 @@ namespace UdpToolkit.Tests
         public void FrameworkHeader_Serialized()
         {
             var header = new FrameworkHeader(
-                hubId: Gen.GetRandomByte(),
-                rpcId: Gen.GetRandomByte(),
-                scopeId: Gen.GetRandomUshort());
+                hubId: Gen.RandomByte(),
+                rpcId: Gen.RandomByte(),
+                scopeId: Gen.RandomUshort());
 
             var bytes = new DefaultFrameworkProtocol()
                 .Serialize(header);
@@ -26,10 +26,10 @@ namespace UdpToolkit.Tests
         {
             var bytes = new[]
             {
-                Gen.GetRandomByte(),
-                Gen.GetRandomByte(),
-                Gen.GetRandomByte(),
-                Gen.GetRandomByte(),
+                Gen.RandomByte(),
+                Gen.RandomByte(),
+                Gen.RandomByte(),
+                Gen.RandomByte(),
             };
 
             var result = new DefaultFrameworkProtocol().TryDeserialize(bytes: bytes, out var header);

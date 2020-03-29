@@ -3,30 +3,27 @@ namespace UdpToolkit.Framework.Rpcs
     using System;
     using System.Collections.Generic;
     using System.Reflection;
+    using UdpToolkit.Core;
 
     public readonly struct MethodDescriptor
     {
         public MethodDescriptor(
             IEnumerable<Type> arguments,
-            byte hubId,
-            byte methodId,
             Type returnType,
             Type hubType,
-            MethodInfo methodInfo)
+            MethodInfo methodInfo,
+            RpcDescriptorId rpcDescriptorId)
         {
             Arguments = arguments;
-            HubId = hubId;
-            MethodId = methodId;
             ReturnType = returnType;
             HubType = hubType;
             MethodInfo = methodInfo;
+            RpcDescriptorId = rpcDescriptorId;
         }
 
-        public byte MethodId { get; }
+        public RpcDescriptorId RpcDescriptorId { get; }
 
         public IEnumerable<Type> Arguments { get; }
-
-        public byte HubId { get; }
 
         public Type ReturnType { get; }
 

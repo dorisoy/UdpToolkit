@@ -1,6 +1,7 @@
 namespace UdpToolkit.Core
 {
     using System.Collections.Generic;
+    using UdpToolkit.Utils;
 
     public sealed class ServerSettings
     {
@@ -9,6 +10,8 @@ namespace UdpToolkit.Core
         public int OutputQueueBoundedCapacity { get; set; } = int.MaxValue;
 
         public int ProcessWorkers { get; set; }
+
+        public CacheOptions CacheOptions { get; set; } = new CacheOptions();
 
         public IEnumerable<int> InputPorts { get; set; }
 

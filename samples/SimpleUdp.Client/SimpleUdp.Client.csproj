@@ -6,6 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\src\UdpToolkit.Di.AutofacIntegration\UdpToolkit.Di.AutofacIntegration.csproj" />
       <ProjectReference Include="..\..\src\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
       <ProjectReference Include="..\..\src\UdpToolkit.Network\UdpToolkit.Network.csproj" />
       <ProjectReference Include="..\..\src\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />

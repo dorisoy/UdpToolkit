@@ -3,11 +3,8 @@ namespace UdpToolkit.Tests
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
-    using UdpToolkit.Framework.Hubs;
+    using UdpToolkit.Core;
     using UdpToolkit.Framework.Rpcs;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
-    using UdpToolkit.Tests.Fakes;
     using UdpToolkit.Tests.Resources;
     using Xunit;
 
@@ -97,10 +94,7 @@ namespace UdpToolkit.Tests
             var rpcs = methods
                 .Select(x => rpcTransformer.Transform(x))
                 .ToList()
-                .ToDictionary(rpcDesc =>
-                    new RpcDescriptorId(
-                        hubId: rpcDesc.HubId,
-                        rpcId: rpcDesc.RpcId));
+                .ToDictionary(rpcDesc => rpcDesc.RpcDescriptorId);
 
             IRpcProvider rpcProvider = new RpcProvider(rpcs);
 
@@ -110,11 +104,6 @@ namespace UdpToolkit.Tests
 
             var exception = await Record
                 .ExceptionAsync(() => rpcDescriptor.HubRpc(
-                    hubContext: new HubContext(0, hubId, rpcId, "foo"),
-                    serializer: new FakeSerializer(),
-                    peerTracker: new FakePeerTracker(),
-                    eventProducer: new BlockingAsyncQueue<OutputUdpPacket>(
-                        boundedCapacity: int.MaxValue),
                     ctorArguments: ctorArgs,
                     methodArguments: methodArgs))
                 .ConfigureAwait(false);

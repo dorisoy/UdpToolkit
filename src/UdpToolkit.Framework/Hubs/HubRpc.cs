@@ -1,16 +1,8 @@
 namespace UdpToolkit.Framework.Hubs
 {
     using System.Threading.Tasks;
-    using UdpToolkit.Core;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
-    using UdpToolkit.Network.Queues;
 
-    public delegate Task HubRpc(
-        HubContext hubContext,
-        ISerializer serializer,
-        IPeerTracker peerTracker,
-        IAsyncQueue<OutputUdpPacket> eventProducer,
+    public delegate Task<IRpcResult> HubRpc(
         object[] ctorArguments,
         object[] methodArguments);
 }

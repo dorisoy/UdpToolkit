@@ -17,6 +17,7 @@
     <ItemGroup>
       <ProjectReference Include="..\..\src\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
       <ProjectReference Include="..\..\src\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
+      <ProjectReference Include="..\..\src\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
     </ItemGroup>
 
 </Project>

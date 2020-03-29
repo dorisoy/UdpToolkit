@@ -1,21 +1,16 @@
 namespace UdpToolkit.Tests.Fakes
 {
-    using UdpToolkit.Network;
+    using UdpToolkit.Framework.Peers;
     using UdpToolkit.Network.Peers;
 
-    public class FakePeerTracker : IPeerTracker
+    public class FakePeerScopeTracker : IPeerScopeTracker
     {
         public bool TryGetScope(ushort scopeId, out IPeerScope scope)
         {
             throw new System.NotImplementedException();
         }
 
-        public IPeerScope AddPeer(ushort scopeId, Peer peerScope)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public bool TryGetPeer(ushort scopeId, string peerId, out Peer peer)
+        public IPeerScope GetOrAddScope(ushort scopeId, PeerScope peerScope)
         {
             throw new System.NotImplementedException();
         }

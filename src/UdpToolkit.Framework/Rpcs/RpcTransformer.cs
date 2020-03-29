@@ -1,17 +1,9 @@
 namespace UdpToolkit.Framework.Rpcs
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
-    using System.Reflection;
-    using System.Threading.Tasks;
-    using UdpToolkit.Core;
     using UdpToolkit.Framework.Hubs;
-    using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
-    using UdpToolkit.Network.Queues;
 
     public sealed class RpcTransformer
     {
@@ -29,26 +21,6 @@ namespace UdpToolkit.Framework.Rpcs
         public RpcDescriptor Transform(MethodDescriptor methodDescriptor)
         {
             var hubType = methodDescriptor.HubType;
-
-            var hubContextProperty = InitBaseClassProperty(
-                hubType: hubType,
-                propertyName: nameof(HubBase.HubContext),
-                propertyType: typeof(HubContext));
-
-            var eventProducer = InitBaseClassProperty(
-                hubType: hubType,
-                propertyName: nameof(HubBase.EventProducer),
-                propertyType: typeof(IAsyncQueue<OutputUdpPacket>));
-
-            var peerTracker = InitBaseClassProperty(
-                hubType: hubType,
-                propertyName: nameof(HubBase.PeerTracker),
-                propertyType: typeof(IPeerTracker));
-
-            var serializaer = InitBaseClassProperty(
-                hubType: hubType,
-                propertyName: nameof(HubBase.Serializer),
-                propertyType: typeof(ISerializer));
 
             var methodArgs = Expression.Parameter(typeof(object[]), MethodArgs);
             var ctorArgs = Expression.Parameter(typeof(object[]), CtorArgs);
@@ -78,58 +50,30 @@ namespace UdpToolkit.Framework.Rpcs
                 })
                 .ToArray();
 
+            var instance = Expression.MemberInit(
+                newExpression: Expression.New(
+                    constructor: ctor,
+                    arguments: ctorArguments.Select(x => x.expression)),
+                bindings: new List<MemberBinding>());
+
             var rpc = Expression
                 .Lambda<HubRpc>(
                     body: Expression.Call(
-                        instance: Expression.MemberInit(
-                            newExpression: Expression.New(constructor: ctor, arguments: ctorArguments.Select(x => x.expression)),
-                            bindings: new List<MemberBinding>
-                            {
-                                hubContextProperty.binding,
-                                serializaer.binding,
-                                peerTracker.binding,
-                                eventProducer.binding,
-                            }),
+                        instance: instance,
                         method: methodDescriptor.MethodInfo,
                         arguments: methodArguments),
                     parameters: new List<ParameterExpression>
                     {
-                        hubContextProperty.parameter,
-                        serializaer.parameter,
-                        peerTracker.parameter,
-                        eventProducer.parameter,
                         ctorArgs,
                         methodArgs,
                     })
                 .Compile();
 
             return new RpcDescriptor(
-                rpcId: methodDescriptor.MethodId,
-                hubId: methodDescriptor.HubId,
+                rpcDescriptorId: methodDescriptor.RpcDescriptorId,
                 hubRpc: rpc,
                 ctorArguments: ctorArguments.Select(x => x.type).ToArray(),
                 parametersTypes: methodDescriptor.Arguments.ToList());
-        }
-
-        private (ParameterExpression parameter, MemberAssignment binding) InitBaseClassProperty(
-            Type hubType,
-            string propertyName,
-            Type propertyType)
-        {
-            var hubBaseProperty = hubType
-                .GetProperty(
-                    name: propertyName,
-                    bindingAttr: BindingFlags.Public | BindingFlags.Instance);
-
-            var hubBasePropertyParameter = Expression.Parameter(
-                type: propertyType,
-                name: nameof(HubBase.EventProducer));
-
-            var propertyBinding = Expression.Bind(
-                member: hubBaseProperty,
-                expression: hubBasePropertyParameter);
-
-            return (hubBasePropertyParameter, propertyBinding);
         }
     }
 }

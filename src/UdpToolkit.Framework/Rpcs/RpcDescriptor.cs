@@ -2,22 +2,21 @@ namespace UdpToolkit.Framework.Rpcs
 {
     using System;
     using System.Collections.Generic;
+    using UdpToolkit.Core;
     using UdpToolkit.Framework.Hubs;
 
     public readonly struct RpcDescriptor
     {
         public RpcDescriptor(
-            byte rpcId,
-            byte hubId,
             HubRpc hubRpc,
+            RpcDescriptorId rpcDescriptorId,
             IReadOnlyCollection<Type> parametersTypes,
             IReadOnlyCollection<Type> ctorArguments)
         {
-            RpcId = rpcId;
-            HubId = hubId;
             HubRpc = hubRpc;
             ParametersTypes = parametersTypes;
             CtorArguments = ctorArguments;
+            RpcDescriptorId = rpcDescriptorId;
         }
 
         public IReadOnlyCollection<Type> CtorArguments { get; }
@@ -26,8 +25,6 @@ namespace UdpToolkit.Framework.Rpcs
 
         public HubRpc HubRpc { get; }
 
-        public byte HubId { get; }
-
-        public byte RpcId { get; }
+        public RpcDescriptorId RpcDescriptorId { get; }
     }
 }

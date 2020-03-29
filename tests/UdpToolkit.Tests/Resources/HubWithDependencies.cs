@@ -18,19 +18,21 @@ namespace UdpToolkit.Tests.Resources
         }
 
         [Rpc(0, UdpChannel.Udp)]
-        public Task FuncWithoutArgs()
+        public async Task<IRpcResult> FuncWithoutArgs()
         {
-            this.AssertAllPropertiesInitialized();
+            await Task.CompletedTask
+                .ConfigureAwait(false);
 
-            return Task.CompletedTask;
+            return Broadcast(new { });
         }
 
         [Rpc(1, UdpChannel.Udp)]
-        public Task FuncWithArgs(Message message)
+        public async Task<IRpcResult> FuncWithArgs(Message message)
         {
-            this.AssertAllPropertiesInitialized();
+            await Task.CompletedTask
+                .ConfigureAwait(false);
 
-            return Task.CompletedTask;
+            return Broadcast(new { });
         }
 
         public Task Foo(Message message)
@@ -39,11 +41,12 @@ namespace UdpToolkit.Tests.Resources
         }
 
         [Rpc(2, UdpChannel.Udp)]
-        public Task FuncWithArgs(int x, int y)
+        public async Task<IRpcResult> FuncWithArgs(int x, int y)
         {
-            this.AssertAllPropertiesInitialized();
+            await Task.CompletedTask
+                .ConfigureAwait(false);
 
-            return Task.CompletedTask;
+            return Broadcast(new { });
         }
     }
 }

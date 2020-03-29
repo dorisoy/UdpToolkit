@@ -13,9 +13,9 @@ namespace UdpToolkit.Tests
         public void ReliableUdpHeader_Serialized()
         {
             var header = new ReliableUdpHeader(
-                localNumber: Gen.GetRandomUint(),
-                ack: Gen.GetRandomUint(),
-                acks: Gen.GetRandomUint());
+                localNumber: Gen.RandomUint(),
+                ack: Gen.RandomUint(),
+                acks: Gen.RandomUint());
 
             var protocol = new ReliableUdpProtocol().Serialize(header);
 
@@ -27,7 +27,7 @@ namespace UdpToolkit.Tests
         {
             var bytes = Enumerable
                 .Range(0, Consts.ReliableUdpProtocolHeaderLength)
-                .Select(_ => Gen.GetRandomByte())
+                .Select(_ => Gen.RandomByte())
                 .ToArray();
 
             var result = new ReliableUdpProtocol().TryDeserialize(bytes, out var header);

@@ -5,7 +5,6 @@ namespace SimpleUdp.Server.Hubs
     using UdpToolkit.Annotations;
     using UdpToolkit.Framework.Hubs;
     using UdpToolkit.Framework.Rpcs;
-    using UdpToolkit.Network.Clients;
 
     [Hub(hubId: 0)]
     public sealed class AddHub : HubBase
@@ -18,7 +17,7 @@ namespace SimpleUdp.Server.Hubs
         }
 
         [Rpc(rpcId: 0, UdpChannel.Udp)]
-        public Task<SumEvent> AddUnicast(AddEvent @event)
+        public async Task<IRpcResult> AddBroadcast(AddEvent @event)
         {
             var sum = @event.X + @event.Y;
             var response = new SumEvent
@@ -26,9 +25,11 @@ namespace SimpleUdp.Server.Hubs
                 Sum = sum,
             };
 
-            Broadcast(response, UdpMode.Udp);
+            await _service
+                .ProcessAsync()
+                .ConfigureAwait(false);
 
-            return Task.FromResult(response);
+            return Broadcast(response);
         }
     }
 }

@@ -6,6 +6,6 @@ namespace UdpToolkit.Network.Clients
 
     public interface IUdpSender : IDisposable
     {
-        Task SendAsync(OutputUdpPacket outputUdpPacket);
+        Task SendAsync(NetworkPacket networkPacket);
     }
 }

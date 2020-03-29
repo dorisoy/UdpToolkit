@@ -5,26 +5,26 @@ namespace UdpToolkit.Network.Packets
     using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Protocol;
 
-    public readonly struct OutputUdpPacket
+    public readonly struct NetworkPacket
     {
-        public OutputUdpPacket(
+        public NetworkPacket(
+            FrameworkHeader frameworkHeader,
+            UdpMode udpMode,
             byte[] payload,
-            IEnumerable<Peer> peers,
-            UdpMode mode,
-            FrameworkHeader frameworkHeader)
+            IEnumerable<Peer> peers)
         {
-            Peers = peers;
-            Mode = mode;
             Payload = payload;
+            Peers = peers;
             FrameworkHeader = frameworkHeader;
+            UdpMode = udpMode;
         }
 
         public FrameworkHeader FrameworkHeader { get; }
 
-        public IEnumerable<Peer> Peers { get; }
+        public UdpMode UdpMode { get; }
 
         public byte[] Payload { get; }
 
-        public UdpMode Mode { get; }
+        public IEnumerable<Peer> Peers { get; }
     }
 }

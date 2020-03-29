@@ -6,50 +6,37 @@ namespace UdpToolkit.Framework.Hosts.Server
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework.Hubs;
-    using UdpToolkit.Framework.Rpcs;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Queues;
-    using UdpToolkit.Network.Rudp;
 
     public sealed class ServerHost : IServerHost
     {
         private readonly ILogger _logger = Log.ForContext<ServerHost>();
 
-        private readonly IAsyncQueue<InputUdpPacket> _inputQueue;
-        private readonly IAsyncQueue<OutputUdpPacket> _outputQueue;
+        private readonly IAsyncQueue<NetworkPacket> _inputQueue;
+        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
 
         private readonly int _processWorkers;
-        private readonly IEnumerable<IUdpSender> _senders;
-        private readonly IEnumerable<IUdpReceiver> _receivers;
+        private readonly IReadOnlyCollection<IUdpSender> _senders;
+        private readonly IReadOnlyCollection<IUdpReceiver> _receivers;
 
-        private readonly IPeerTracker _peerTracker;
-        private readonly IContainer _container;
-        private readonly IRpcProvider _rpcProvider;
-        private readonly ISerializer _serializer;
+        private readonly IPipeline _pipeline;
 
         public ServerHost(
             int processWorkers,
-            IAsyncQueue<OutputUdpPacket> outputQueue,
-            IAsyncQueue<InputUdpPacket> inputQueue,
-            IEnumerable<IUdpSender> senders,
-            IEnumerable<IUdpReceiver> receivers,
-            IPeerTracker peerTracker,
-            IContainer container,
-            IRpcProvider rpcProvider,
-            ISerializer serializer)
+            IAsyncQueue<NetworkPacket> outputQueue,
+            IAsyncQueue<NetworkPacket> inputQueue,
+            IReadOnlyCollection<IUdpSender> senders,
+            IReadOnlyCollection<IUdpReceiver> receivers,
+            IPipeline pipeline)
         {
             _processWorkers = processWorkers;
             _outputQueue = outputQueue;
-            _rpcProvider = rpcProvider;
-            _serializer = serializer;
             _inputQueue = inputQueue;
             _senders = senders;
             _receivers = receivers;
-            _peerTracker = peerTracker;
-            _container = container;
+            _pipeline = pipeline;
 
             foreach (var receiver in _receivers)
             {
@@ -107,68 +94,31 @@ namespace UdpToolkit.Framework.Hosts.Server
 
             _logger.Information($"{nameof(ServerHost)} running...");
 
-            await Task.WhenAll(tasks)
+            await Task
+                .WhenAll(tasks)
                 .ConfigureAwait(false);
         }
 
-        private async Task ProcessPacketAsync(InputUdpPacket inputUdpPacket)
+        private async Task ProcessPacketAsync(NetworkPacket networkPacket)
         {
-            var getResult = _peerTracker.TryGetPeer(scopeId: inputUdpPacket.ScopeId, peerId: inputUdpPacket.PeerId, out var peer);
-            if (!getResult)
-            {
-                _peerTracker.AddPeer(
-                    scopeId: inputUdpPacket.ScopeId,
-                    peer: new Peer(
-                        id: inputUdpPacket.PeerId,
-                        remotePeer: inputUdpPacket.RemotePeer,
-                        reliableUdpChannel: new ReliableUdpChannel()));
-            }
-
-            var key = new RpcDescriptorId(hubId: inputUdpPacket.HubId, rpcId: inputUdpPacket.RpcId);
-            if (!_rpcProvider.TryProvide(key, out var rpcDescriptor))
-            {
-                _logger.Warning("Rpc not found by rpcDescriptor: {@rpcDescriptor}", rpcDescriptor);
-
-                return;
-            }
-
-            if (rpcDescriptor.ParametersTypes.Count > 1)
-            {
-                _logger.Warning("Rpc not support more than one argument");
-
-                return;
-            }
-
-            // TODO check dependencies
-            // TODO check method args
-            var @event = rpcDescriptor.ParametersTypes
-                .Select(type => _serializer.Deserialize(type, inputUdpPacket.Payload))
-                .ToArray();
-
-            await rpcDescriptor
-                    .HubRpc(
-                        hubContext: new HubContext(
-                            scopeId: inputUdpPacket.ScopeId,
-                            hubId: inputUdpPacket.HubId,
-                            rpcId: inputUdpPacket.RpcId,
-                            peerId: inputUdpPacket.PeerId),
-                        serializer: _serializer,
-                        peerTracker: _peerTracker,
-                        eventProducer: _outputQueue,
-                        ctorArguments: _container
-                            .GetInstances(rpcDescriptor.CtorArguments)
-                            .ToArray(),
-                        methodArguments: @event)
-                    .ConfigureAwait(false);
+            await _pipeline
+                .ExecuteAsync(new CallContext(
+                    hubId: networkPacket.FrameworkHeader.HubId,
+                    rpcId: networkPacket.FrameworkHeader.RpcId,
+                    scopeId: networkPacket.FrameworkHeader.ScopeId,
+                    udpMode: networkPacket.UdpMode.Map(),
+                    payload: networkPacket.Payload,
+                    peerIPs: networkPacket.Peers.Select(x => x.IpEndPoint)))
+                .ConfigureAwait(false);
         }
 
         private async Task StartWorkerAsync()
         {
-            foreach (var inputUdpPacket in _inputQueue.Consume())
+            foreach (var networkPacket in _inputQueue.Consume())
             {
                 try
                 {
-                    await ProcessPacketAsync(inputUdpPacket: inputUdpPacket)
+                    await ProcessPacketAsync(networkPacket: networkPacket)
                         .ConfigureAwait(false);
                 }
                 catch (Exception ex)
@@ -186,9 +136,10 @@ namespace UdpToolkit.Framework.Hosts.Server
 
         private async Task StartSenderAsync(IUdpSender udpSender)
         {
-            foreach (var outputUdpPacket in _outputQueue.Consume())
+            foreach (var networkPacket in _outputQueue.Consume())
             {
-                await udpSender.SendAsync(outputUdpPacket)
+                await udpSender
+                    .SendAsync(networkPacket)
                     .ConfigureAwait(false);
             }
         }

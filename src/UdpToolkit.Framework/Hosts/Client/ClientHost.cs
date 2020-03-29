@@ -47,7 +47,7 @@ namespace UdpToolkit.Framework.Hosts.Client
                 {
                     _logger.Debug("Packet received: {@packet}", packet);
 
-                    ProcessInputUdpPacket(packet);
+                    ProcessNetworkPacket(packet);
                 };
             }
         }
@@ -112,16 +112,16 @@ namespace UdpToolkit.Framework.Hosts.Client
         {
             var bytes = producedEvent.Serialize(Serializer);
 
-            var outputUdpPacket = new OutputUdpPacket(
+            var networkPacket = new NetworkPacket(
                 payload: bytes,
                 peers: new[] { _serverSelector.GetServer() },
-                mode: producedEvent.EventDescriptor.UdpMode,
+                udpMode: producedEvent.EventDescriptor.UdpMode,
                 frameworkHeader: new FrameworkHeader(
                     hubId: producedEvent.EventDescriptor.RpcDescriptorId.HubId,
                     rpcId: producedEvent.EventDescriptor.RpcDescriptorId.RpcId,
                     scopeId: producedEvent.ScopeId));
 
-            await udpSender.SendAsync(outputUdpPacket).ConfigureAwait(false);
+            await udpSender.SendAsync(networkPacket).ConfigureAwait(false);
         }
 
         private async Task StartSenderAsync(IUdpSender udpSender)
@@ -140,9 +140,9 @@ namespace UdpToolkit.Framework.Hosts.Client
             }
         }
 
-        private void ProcessInputUdpPacket(InputUdpPacket packet)
+        private void ProcessNetworkPacket(NetworkPacket networkPacket)
         {
-            _inputDispatcher.Dispatch(packet);
+            _inputDispatcher.Dispatch(networkPacket);
         }
     }
 }

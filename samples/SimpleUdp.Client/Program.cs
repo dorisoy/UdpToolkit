@@ -1,22 +1,21 @@
 ﻿namespace SimpleUdp.Client
 {
-    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
     using SimpleUdp.Contracts;
     using UdpToolkit.Core;
+    using UdpToolkit.Di.AutofacIntegration;
     using UdpToolkit.Framework.Hosts;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
-        [STAThread]
         public static async Task Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Information)
+                .MinimumLevel.Is(LogEventLevel.Debug)
                 .WriteTo.Console()
                 .CreateLogger();
 
@@ -31,7 +30,9 @@
             new Thread(() => Consume(consumer)).Start();
             new Thread(() => Produce(producer)).Start();
 
-            await clientHost.RunAsync().ConfigureAwait(false);
+            await clientHost
+                .RunAsync()
+                .ConfigureAwait(false);
         }
 
         private static void Produce(IEventProducer<AddEvent> producer)
@@ -70,7 +71,7 @@
         private static IClientHost BuildClientHost()
         {
             return Host
-                .CreateClientBuilder()
+                .CreateClientBuilder(containerBuilder: new ContainerBuilder())
                 .Configure(cfg =>
                 {
                     cfg.ServerHost = "0.0.0.0";

@@ -8,6 +8,7 @@
       <ProjectReference Include="..\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
       <ProjectReference Include="..\UdpToolkit.Core\UdpToolkit.Core.csproj" />
       <ProjectReference Include="..\UdpToolkit.Network\UdpToolkit.Network.csproj" />
+      <ProjectReference Include="..\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
     </ItemGroup>
 
     <ItemGroup>

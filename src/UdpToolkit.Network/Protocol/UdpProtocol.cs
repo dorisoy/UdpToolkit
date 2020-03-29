@@ -2,39 +2,136 @@ namespace UdpToolkit.Network.Protocol
 {
     using System;
     using System.Linq;
+    using System.Net;
+    using Serilog;
+    using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Rudp;
+    using UdpToolkit.Utils;
 
     public sealed class UdpProtocol : IUdpProtocol
     {
         private readonly IFrameworkProtocol _frameworkProtocol;
         private readonly IReliableUdpProtocol _reliableUdpProtocol;
+        private readonly IDateTimeProvider _dateTimeProvider;
+
+        private readonly ILogger _logger = Log.ForContext<UdpProtocol>();
 
         public UdpProtocol(
             IFrameworkProtocol frameworkProtocol,
-            IReliableUdpProtocol reliableUdpProtocol)
+            IReliableUdpProtocol reliableUdpProtocol,
+            IDateTimeProvider dateTimeProvider)
         {
             _frameworkProtocol = frameworkProtocol;
             _reliableUdpProtocol = reliableUdpProtocol;
+            _dateTimeProvider = dateTimeProvider;
         }
 
-        public bool TryParseProtocol(
-            byte[] packet,
-            out PacketType packetType,
-            out FrameworkHeader frameworkHeader,
-            out ReliableUdpHeader reliableUdpHeader,
-            out ArraySegment<byte> payload)
+        public bool TryGetInputPacket(
+            byte[] bytes,
+            IPEndPoint ipEndPoint,
+            out NetworkPacket networkPacket)
         {
-            packetType = (PacketType)packet[Consts.PacketTypeIndex];
-            payload = GetPayload(packet: packet, packetType: packetType);
-            frameworkHeader = GetFrameworkHeader(packet: packet);
-            reliableUdpHeader = GetReliableUdpHeader(packet);
+            networkPacket = default;
+
+            var paketResult = TryGetPacketType(bytes, out var packetType);
+            if (!paketResult)
+            {
+                _logger.Warning("Can't parse packet type!");
+
+                return false;
+            }
+
+            var payloadResult = TryGetPayload(packet: bytes, packetType: packetType, out var payload);
+            if (!payloadResult)
+            {
+                _logger.Warning("Can't retrieve payload!");
+
+                return false;
+            }
+
+            var frameworkHeaderResult = TryGetFrameworkHeader(packet: bytes, out var frameworkHeader);
+            if (!frameworkHeaderResult)
+            {
+                _logger.Warning("Can't parse framework header!");
+
+                return false;
+            }
+
+            if (packetType == PacketType.ReliableUdp)
+            {
+                var rudpResult = TryGetReliableUdpHeader(bytes, out var reliableUdpHeader); // TODO use it!
+                if (!rudpResult)
+                {
+                    _logger.Warning("Can't parse rudp header!");
+
+                    return false;
+                }
+            }
+
+            var now = _dateTimeProvider.UtcNow();
+
+            var peer = new Peer(
+                id: ipEndPoint.Address.ToString(),
+                ipEndPoint: ipEndPoint,
+                reliableUdpChannel: new ReliableUdpChannel(),
+                lastActivityAt: now,
+                createdAt: now);
+
+            networkPacket = new NetworkPacket(
+                frameworkHeader: frameworkHeader,
+                udpMode: NetworkExtensions.Map(packetType),
+                payload: payload.ToArray(), // TODO remove ToArray()!
+                peers: new[] { peer }); // TODO way for read existing rudp channel
 
             return true;
         }
 
-        public byte[] GetReliableUdpPacketBytes(FrameworkHeader frameworkHeader, ReliableUdpHeader reliableUdpHeader, byte[] payload)
+        public byte[] GetBytes(
+            NetworkPacket networkPacket,
+            ReliableUdpHeader reliableUdpHeader)
+        {
+            byte[] bytes = null;
+            switch (networkPacket.UdpMode)
+            {
+                case UdpMode.Udp:
+                    bytes = GetUdpPacketBytes(
+                        frameworkHeader: networkPacket.FrameworkHeader,
+                        payload: networkPacket.Payload);
+
+                    break;
+                case UdpMode.ReliableUdp:
+                    bytes = GetReliableUdpPacketBytes(
+                        frameworkHeader: networkPacket.FrameworkHeader,
+                        reliableUdpHeader: reliableUdpHeader,
+                        payload: networkPacket.Payload);
+
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Unsupoorted udp mode - {networkPacket.UdpMode}!");
+            }
+
+            return bytes;
+        }
+
+        private bool TryGetPacketType(byte[] bytes, out PacketType packetType)
+        {
+            packetType = PacketType.None;
+            if (bytes.Length - 1 < Consts.PacketTypeIndex)
+            {
+                return false;
+            }
+
+            packetType = (PacketType)bytes[Consts.PacketTypeIndex];
+
+            return true;
+        }
+
+        private byte[] GetReliableUdpPacketBytes(
+            FrameworkHeader frameworkHeader,
+            ReliableUdpHeader reliableUdpHeader,
+            byte[] payload)
         {
             var frameworkHeaderBytes = _frameworkProtocol.Serialize(header: frameworkHeader);
             var reliableHeaderBytes = _reliableUdpProtocol.Serialize(header: reliableUdpHeader);
@@ -46,7 +143,9 @@ namespace UdpToolkit.Network.Protocol
                 .ToArray();
         }
 
-        public byte[] GetUdpPacketBytes(FrameworkHeader frameworkHeader, byte[] payload)
+        private byte[] GetUdpPacketBytes(
+            FrameworkHeader frameworkHeader,
+            byte[] payload)
         {
             var frameworkHeaderBytes = _frameworkProtocol.Serialize(header: frameworkHeader);
 
@@ -56,43 +155,61 @@ namespace UdpToolkit.Network.Protocol
                 .ToArray();
         }
 
-        private ReliableUdpHeader GetReliableUdpHeader(byte[] packet)
+        private bool TryGetReliableUdpHeader(byte[] packet, out ReliableUdpHeader reliableUdpHeader)
         {
-            _reliableUdpProtocol.TryDeserialize(packet, out var reliableUdpHeader);
+            var result = _reliableUdpProtocol.TryDeserialize(packet, out reliableUdpHeader);
+            if (!result)
+            {
+                return false;
+            }
 
-            return reliableUdpHeader;
+            return true;
         }
 
-        private FrameworkHeader GetFrameworkHeader(byte[] packet)
+        private bool TryGetFrameworkHeader(byte[] packet, out FrameworkHeader frameworkHeader)
         {
-            var fh = new ArraySegment<byte>(
+            frameworkHeader = default;
+
+            var segment = new ArraySegment<byte>(
                 array: packet,
                 offset: 0,
                 count: Consts.FrameworkHeaderLength);
 
-            _frameworkProtocol.TryDeserialize(bytes: fh, out var frameworkHeader);
+            var result = _frameworkProtocol.TryDeserialize(bytes: segment, out var fh);
+            if (!result)
+            {
+                return false;
+            }
 
-            return frameworkHeader;
+            frameworkHeader = fh;
+
+            return true;
         }
 
-        private ArraySegment<byte> GetPayload(byte[] packet, PacketType packetType)
+        private bool TryGetPayload(byte[] packet, PacketType packetType, out ArraySegment<byte> payload)
         {
             switch (packetType)
             {
                 case PacketType.Udp:
-                    return new ArraySegment<byte>(
+                    payload = new ArraySegment<byte>(
                         array: packet,
                         offset: Consts.FrameworkHeaderOffset,
                         count: packet.Length - Consts.FrameworkHeaderOffset);
 
+                    return true;
+
                 case PacketType.ReliableUdp:
-                    return new ArraySegment<byte>(
+                    payload = new ArraySegment<byte>(
                         array: packet,
                         offset: Consts.ReliableUdpProtocolHeaderOffset,
                         count: packet.Length - Consts.ReliableUdpProtocolHeaderOffset);
 
+                    return true;
+
                 default:
-                    return null;
+                    payload = ArraySegment<byte>.Empty;
+
+                    return true;
             }
         }
     }

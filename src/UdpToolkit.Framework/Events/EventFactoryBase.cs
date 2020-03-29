@@ -5,12 +5,12 @@ namespace UdpToolkit.Framework.Events
     using System.Linq;
     using System.Reflection;
     using UdpToolkit.Annotations;
-    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Core;
 
     public abstract class EventFactoryBase
     {
         protected static IEnumerable<EventDescriptor> FindEventsWithAttribute<TAttribute>()
-            where TAttribute : Attribute, IEventAttribute
+            where TAttribute : EventBaseAttribute
         {
             return FindTypesWithAttribute<TAttribute>()
                 .Select(type =>
@@ -19,13 +19,13 @@ namespace UdpToolkit.Framework.Events
 
                     return new EventDescriptor(
                         rpcDescriptorId: new RpcDescriptorId(hubId: attribute.HubId, rpcId: attribute.RpcId),
-                        udpMode: FrameworkExtensions.Map(attribute.UdpChannel),
+                        udpMode: attribute.UdpChannel.Map(),
                         eventType: type);
                 });
         }
 
         private static IEnumerable<Type> FindTypesWithAttribute<TAttribute>()
-            where TAttribute : Attribute, IEventAttribute
+            where TAttribute : EventBaseAttribute
         {
             return AppDomain
                 .CurrentDomain

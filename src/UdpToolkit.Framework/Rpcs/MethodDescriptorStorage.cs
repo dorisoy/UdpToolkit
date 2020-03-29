@@ -4,6 +4,7 @@ namespace UdpToolkit.Framework.Rpcs
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
+    using UdpToolkit.Core;
     using UdpToolkit.Framework.Hubs;
 
     public static class MethodDescriptorStorage
@@ -46,11 +47,12 @@ namespace UdpToolkit.Framework.Rpcs
                 from rpc in rpcs
                 select new MethodDescriptor(
                     hubType: hubType,
-                    hubId: pair.Value.HubAttribute.HubId,
                     arguments: rpc.method
                         .GetParameters()
                         .Select(parameter => parameter.ParameterType),
-                    methodId: rpc.rpcAttribute.RpcId,
+                    rpcDescriptorId: new RpcDescriptorId(
+                        hubId: pair.Value.HubAttribute.HubId,
+                        rpcId: rpc.rpcAttribute.RpcId),
                     returnType: rpc.method.ReturnType,
                     methodInfo: rpc.method))
                 .ToList();

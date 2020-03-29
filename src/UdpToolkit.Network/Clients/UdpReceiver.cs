@@ -3,6 +3,7 @@ namespace UdpToolkit.Network.Clients
     using System;
     using System.Net.Sockets;
     using System.Threading.Tasks;
+    using Serilog;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Protocol;
 
@@ -10,6 +11,8 @@ namespace UdpToolkit.Network.Clients
     {
         private readonly UdpClient _receiver;
         private readonly IUdpProtocol _udpProtocol;
+
+        private readonly ILogger _logger = Log.ForContext<UdpReceiver>();
 
         public UdpReceiver(
             UdpClient receiver,
@@ -19,7 +22,7 @@ namespace UdpToolkit.Network.Clients
             _udpProtocol = udpProtocol;
         }
 
-        public event Action<InputUdpPacket> UdpPacketReceived;
+        public event Action<NetworkPacket> UdpPacketReceived;
 
         public async Task StartReceiveAsync()
         {
@@ -30,26 +33,19 @@ namespace UdpToolkit.Network.Clients
                     .ConfigureAwait(false);
 
                 var parseResult = _udpProtocol
-                    .TryParseProtocol(
-                        packet: result.Buffer,
-                        out var packetType,
-                        out var frameworkHeader,
-                        out var reliableUdpHeader,
-                        out var payload);
+                    .TryGetInputPacket(
+                        bytes: result.Buffer,
+                        ipEndPoint: result.RemoteEndPoint,
+                        out var networkPacket);
 
                 if (!parseResult)
                 {
+                    _logger.Warning("Can't parse received udp packet!");
+
                     continue;
                 }
 
-                UdpPacketReceived?.Invoke(
-                    obj: new InputUdpPacket(
-                        hubId: frameworkHeader.HubId,
-                        rpcId: frameworkHeader.RpcId,
-                        scopeId: frameworkHeader.ScopeId,
-                        peerId: result.RemoteEndPoint.ToString(),
-                        payload: payload,
-                        remotePeer: result.RemoteEndPoint));
+                UdpPacketReceived?.Invoke(obj: networkPacket);
             }
         }
 

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework.Rpcs
 {
     using System.Collections.Generic;
+    using UdpToolkit.Core;
 
     public sealed class RpcProvider : IRpcProvider
     {
