@@ -2,8 +2,9 @@ namespace UdpToolkit.Tests.Resources
 {
     using System.Threading.Tasks;
     using UdpToolkit.Annotations;
-    using UdpToolkit.Framework.Hubs;
-    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Framework.Server.Core;
+    using UdpToolkit.Framework.Server.Hubs;
+    using UdpToolkit.Framework.Server.Rpcs;
 
     [Hub(0)]
     public sealed class HubWithoutDependencies : HubBase

@@ -6,7 +6,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Autofac" Version="4.9.4" />
+        <PackageReference Include="Autofac" Version="5.2.0" />
         <PackageReference Include="Bogus" Version="28.4.4" />
         <PackageReference Include="MessagePack" Version="1.8.80" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.2.0" />
@@ -15,9 +15,10 @@
     </ItemGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\..\src\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
-      <ProjectReference Include="..\..\src\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
-      <ProjectReference Include="..\..\src\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
+      <ProjectReference Include="..\..\src\server\UdpToolkit.Framework.Server\UdpToolkit.Framework.Server.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
     </ItemGroup>
 
 </Project>

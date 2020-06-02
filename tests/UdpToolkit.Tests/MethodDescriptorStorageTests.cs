@@ -1,7 +1,7 @@
 namespace UdpToolkit.Tests
 {
     using System.Linq;
-    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Framework.Server.Rpcs;
     using Xunit;
 
     public class MethodDescriptorStorageTests

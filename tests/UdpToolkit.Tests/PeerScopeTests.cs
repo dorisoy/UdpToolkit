@@ -2,7 +2,7 @@ namespace UdpToolkit.Tests
 {
     using System;
     using System.Net;
-    using UdpToolkit.Framework.Peers;
+    using UdpToolkit.Framework.Server.Peers;
     using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Rudp;
     using UdpToolkit.Tests.Fakes;

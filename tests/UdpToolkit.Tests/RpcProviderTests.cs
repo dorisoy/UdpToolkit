@@ -4,7 +4,8 @@ namespace UdpToolkit.Tests
     using System.Linq;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework.Rpcs;
+    using UdpToolkit.Framework.Server.Core;
+    using UdpToolkit.Framework.Server.Rpcs;
     using UdpToolkit.Tests.Resources;
     using Xunit;
 

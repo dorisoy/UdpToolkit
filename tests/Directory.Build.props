@@ -5,7 +5,7 @@
     </PropertyGroup>
 
     <PropertyGroup>
-        <CodeAnalysisRuleSet>../../../Analyzers.ruleset</CodeAnalysisRuleSet>
+        <CodeAnalysisRuleSet>../../Analyzers.ruleset</CodeAnalysisRuleSet>
         <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
