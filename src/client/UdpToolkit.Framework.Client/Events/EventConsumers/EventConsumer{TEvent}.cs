@@ -3,7 +3,6 @@ namespace UdpToolkit.Framework.Client.Events.EventConsumers
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Linq;
     using UdpToolkit.Core;
     using UdpToolkit.Framework.Client.Core;
 
@@ -25,7 +24,15 @@ namespace UdpToolkit.Framework.Client.Events.EventConsumers
 
         public IEnumerable<TEvent> Consume()
         {
-            return _queue.AsEnumerable();
+            for (var i = 0; i < _queue.Count; i++)
+            {
+                if (!_queue.TryDequeue(out var @event))
+                {
+                    break;
+                }
+
+                yield return @event;
+            }
         }
 
         public void Enqueue(ArraySegment<byte> payload)
