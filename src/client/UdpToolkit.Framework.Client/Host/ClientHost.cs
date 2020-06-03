@@ -115,12 +115,12 @@ namespace UdpToolkit.Framework.Client.Host
 
             var networkPacket = new NetworkPacket(
                 payload: bytes,
-                peers: new[] { _serverSelector.GetServer() },
+                ipEndPoint: _serverSelector.GetServer().IpEndPoint,
                 udpMode: producedEvent.EventDescriptor.UdpMode,
                 frameworkHeader: new FrameworkHeader(
                     hubId: producedEvent.EventDescriptor.RpcDescriptorId.HubId,
                     rpcId: producedEvent.EventDescriptor.RpcDescriptorId.RpcId,
-                    scopeId: producedEvent.ScopeId));
+                    roomId: producedEvent.RoomId));
 
             await udpSender.SendAsync(networkPacket).ConfigureAwait(false);
         }

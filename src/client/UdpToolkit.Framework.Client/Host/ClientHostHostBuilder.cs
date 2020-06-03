@@ -57,7 +57,7 @@ namespace UdpToolkit.Framework.Client.Host
                             port => new IPEndPoint(
                                 IPAddress.Parse("0.0.0.0"), port))
                         .Select(endPoint => new Peer(
-                            id: endPoint.ToString(),
+                            peerId: Guid.NewGuid(),
                             ipEndPoint: endPoint,
                             reliableUdpChannel: new ReliableUdpChannel(),
                             createdAt: now,

@@ -7,6 +7,7 @@ namespace UdpToolkit.Framework.Server.Di.Autofac
     using System.Threading.Tasks;
     using global::Autofac;
     using Serilog;
+    using UdpToolkit.Core;
     using UdpToolkit.Framework.Server.Core;
     using UdpToolkit.Framework.Server.Host;
     using UdpToolkit.Framework.Server.Peers;
@@ -62,45 +63,47 @@ namespace UdpToolkit.Framework.Server.Di.Autofac
             };
 
             _containerBuilder
-                    .RegisterInstance(new UdpClientFactory())
-                    .As<IUdpClientFactory>()
-                    .SingleInstance();
+                .RegisterInstance(_serverSettings.Serializer)
+                .As<ISerializer>()
+                .SingleInstance();
 
             _containerBuilder
-                .RegisterInstance(new UdpClientFactory())
+                .RegisterType<UdpClientFactory>()
                 .As<IUdpClientFactory>()
                 .SingleInstance();
 
             _containerBuilder
-                .RegisterInstance(new DateTimeProvider())
+                .RegisterType<UdpClientFactory>()
+                .As<IUdpClientFactory>()
+                .SingleInstance();
+
+            _containerBuilder
+                .RegisterType<DateTimeProvider>()
                 .As<IDateTimeProvider>()
                 .SingleInstance();
 
             _containerBuilder
-                .RegisterInstance(new DefaultFrameworkProtocol())
+                .RegisterType<DefaultFrameworkProtocol>()
                 .As<IFrameworkProtocol>()
                 .SingleInstance();
 
             _containerBuilder
-                .RegisterInstance(new ReliableUdpProtocol())
+                .RegisterType<ReliableUdpProtocol>()
                 .As<IReliableUdpProtocol>()
                 .SingleInstance();
 
             _containerBuilder
-                .Register((context) => new AutofacCtorArgumentsResolver(context.Resolve<ILifetimeScope>()))
+                .RegisterType<AutofacCtorArgumentsResolver>()
                 .As<ICtorArgumentsResolver>()
                 .SingleInstance();
 
             _containerBuilder
-                .Register((context) => new UdpProtocol(
-                    frameworkProtocol: context.Resolve<IFrameworkProtocol>(),
-                    reliableUdpProtocol: context.Resolve<IReliableUdpProtocol>(),
-                    dateTimeProvider: context.Resolve<IDateTimeProvider>()))
+                .RegisterType<UdpProtocol>()
                 .As<IUdpProtocol>()
                 .SingleInstance();
 
             _containerBuilder
-                .RegisterInstance(new RpcTransformer())
+                .RegisterType<RpcTransformer>()
                 .AsSelf()
                 .SingleInstance();
 
@@ -119,27 +122,26 @@ namespace UdpToolkit.Framework.Server.Di.Autofac
                 .SingleInstance();
 
             _containerBuilder
-                .Register((context) => new PeerScopeTracker(
-                    dateTimeProvider: context.Resolve<IDateTimeProvider>(),
-                    cacheEntryTtl: _serverSettings.CacheOptions.CacheEntryTtl,
-                    scanFrequency: _serverSettings.CacheOptions.ScanForExpirationFrequency))
-                .As<IPeerScopeTracker>()
+                .RegisterType<PeerManager>()
+                .As<IPeerManager>()
                 .SingleInstance();
 
             _containerBuilder
-                .Register((context) => new GlobalScopeStage(
-                    peerScopeTracker: context.Resolve<IPeerScopeTracker>(),
-                    dateTimeProvider: context.Resolve<IDateTimeProvider>()))
-                .AsSelf()
+                .RegisterType<RoomManager>()
+                .As<IRoomManager>()
                 .SingleInstance();
 
             _containerBuilder
-                .Register((context) => new ProcessStage(
-                    rpcProvider: context.Resolve<IRpcProvider>(),
-                    serializer: _serverSettings.Serializer,
-                    peerScopeTracker: context.Resolve<IPeerScopeTracker>(),
-                    outputQueue: context.ResolveNamed<IAsyncQueue<NetworkPacket>>(serviceName: "outputQueue"),
-                    ctorArgumentsResolver: context.Resolve<ICtorArgumentsResolver>()))
+                .Register((context) => new HubClients(
+                    peerManager: context.Resolve<IPeerManager>(),
+                    roomManager: context.Resolve<IRoomManager>(),
+                    outputQueue: context.ResolveNamed<IAsyncQueue<NetworkPacket>>("outputQueue"),
+                    serializer: context.Resolve<ISerializer>()))
+                .As<IHubClients>()
+                .SingleInstance();
+
+            _containerBuilder
+                .RegisterType<ProcessStage>()
                 .AsSelf()
                 .SingleInstance();
 
@@ -192,6 +194,7 @@ namespace UdpToolkit.Framework.Server.Di.Autofac
 
             _containerBuilder
                 .Register((context) => new ServerHost(
+                    peerManager: context.Resolve<IPeerManager>(),
                     outputQueue: context.ResolveNamed<IAsyncQueue<NetworkPacket>>("outputQueue"),
                     inputQueue: context.ResolveNamed<IAsyncQueue<NetworkPacket>>("inputQueue"),
                     processWorkers: _serverSettings.ProcessWorkers,

@@ -1,20 +1,18 @@
 namespace UdpToolkit.Framework.Server.Core
 {
+    using System;
     using UdpToolkit.Core;
-    using UdpToolkit.Network.Peers;
 
-    public readonly struct CallContext
+    public readonly struct HubContext
     {
-        public CallContext(
+        public HubContext(
+            Guid peerId,
             byte hubId,
             byte rpcId,
             ushort roomId,
-            UdpMode udpMode,
-            byte[] payload,
-            Peer peer)
+            UdpMode udpMode)
         {
-            Payload = payload;
-            Peer = peer;
+            PeerId = peerId;
             HubId = hubId;
             RpcId = rpcId;
             RoomId = roomId;
@@ -29,8 +27,6 @@ namespace UdpToolkit.Framework.Server.Core
 
         public UdpMode UdpMode { get; }
 
-        public byte[] Payload { get; }
-
-        public Peer Peer { get; }
+        public Guid PeerId { get; }
     }
 }

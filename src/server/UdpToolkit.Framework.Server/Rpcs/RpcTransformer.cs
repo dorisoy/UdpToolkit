@@ -1,8 +1,10 @@
 namespace UdpToolkit.Framework.Server.Rpcs
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Linq.Expressions;
+    using System.Reflection;
     using UdpToolkit.Framework.Server.Core;
     using UdpToolkit.Framework.Server.Hubs;
 
@@ -25,6 +27,21 @@ namespace UdpToolkit.Framework.Server.Rpcs
 
             var methodArgs = Expression.Parameter(typeof(object[]), MethodArgs);
             var ctorArgs = Expression.Parameter(typeof(object[]), CtorArgs);
+
+            var roomManager = InitBaseClassProperty(
+                hubType: hubType,
+                propertyName: nameof(HubBase.Rooms),
+                propertyType: typeof(IRoomManager));
+
+            var eventDispatcher = InitBaseClassProperty(
+                hubType: hubType,
+                propertyName: nameof(HubBase.Clients),
+                propertyType: typeof(IHubClients));
+
+            var hubContext = InitBaseClassProperty(
+                hubType: hubType,
+                propertyName: nameof(HubBase.HubContext),
+                propertyType: typeof(HubContext));
 
             var methodArguments = methodDescriptor
                 .Arguments
@@ -55,7 +72,12 @@ namespace UdpToolkit.Framework.Server.Rpcs
                 newExpression: Expression.New(
                     constructor: ctor,
                     arguments: ctorArguments.Select(x => x.expression)),
-                bindings: new List<MemberBinding>());
+                bindings: new List<MemberBinding>()
+                {
+                    roomManager.binding,
+                    eventDispatcher.binding,
+                    hubContext.binding,
+                });
 
             var rpc = Expression
                 .Lambda<HubRpc>(
@@ -65,16 +87,47 @@ namespace UdpToolkit.Framework.Server.Rpcs
                         arguments: methodArguments),
                     parameters: new List<ParameterExpression>
                     {
+                        roomManager.parameter,
+                        eventDispatcher.parameter,
+                        hubContext.parameter,
                         ctorArgs,
                         methodArgs,
                     })
                 .Compile();
 
+            var parametersTypes = methodDescriptor.Arguments.ToList();
+
+            if (parametersTypes.Count > 1)
+            {
+                throw new InvalidOperationException("Rpc not support more than one argument");
+            }
+
             return new RpcDescriptor(
                 rpcDescriptorId: methodDescriptor.RpcDescriptorId,
                 hubRpc: rpc,
                 ctorArguments: ctorArguments.Select(x => x.type).ToArray(),
-                parametersTypes: methodDescriptor.Arguments.ToList());
+                parametersTypes: parametersTypes);
         }
+
+        private (ParameterExpression parameter, MemberAssignment binding) InitBaseClassProperty(
+                Type hubType,
+                string propertyName,
+                Type propertyType)
+            {
+                var hubBaseProperty = hubType
+                    .GetProperty(
+                        name: propertyName,
+                        bindingAttr: BindingFlags.Public | BindingFlags.Instance);
+
+                var hubBasePropertyParameter = Expression.Parameter(
+                    type: propertyType,
+                    name: propertyName);
+
+                var propertyBinding = Expression.Bind(
+                    member: hubBaseProperty,
+                    expression: hubBasePropertyParameter);
+
+                return (hubBasePropertyParameter, propertyBinding);
+            }
     }
 }

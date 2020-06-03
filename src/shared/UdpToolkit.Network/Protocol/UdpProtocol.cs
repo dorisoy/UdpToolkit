@@ -6,7 +6,6 @@ namespace UdpToolkit.Network.Protocol
     using Serilog;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Rudp;
     using UdpToolkit.Utils;
 
@@ -70,20 +69,11 @@ namespace UdpToolkit.Network.Protocol
                 }
             }
 
-            var now = _dateTimeProvider.UtcNow();
-
-            var peer = new Peer(
-                id: ipEndPoint.Address.ToString(),
-                ipEndPoint: ipEndPoint,
-                reliableUdpChannel: new ReliableUdpChannel(),
-                lastActivityAt: now,
-                createdAt: now);
-
             networkPacket = new NetworkPacket(
                 frameworkHeader: frameworkHeader,
                 udpMode: NetworkExtensions.Map(packetType),
                 payload: payload.ToArray(), // TODO remove ToArray()!
-                peers: new[] { peer }); // TODO way for read existing rudp channel
+                ipEndPoint: ipEndPoint);
 
             return true;
         }

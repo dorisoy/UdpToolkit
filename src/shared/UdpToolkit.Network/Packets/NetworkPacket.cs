@@ -1,9 +1,9 @@
 namespace UdpToolkit.Network.Packets
 {
-    using System.Collections.Generic;
+    using System.Net;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Rudp;
 
     public readonly struct NetworkPacket
     {
@@ -11,10 +11,10 @@ namespace UdpToolkit.Network.Packets
             FrameworkHeader frameworkHeader,
             UdpMode udpMode,
             byte[] payload,
-            IEnumerable<Peer> peers)
+            IPEndPoint ipEndPoint)
         {
             Payload = payload;
-            Peers = peers;
+            IpEndPoint = ipEndPoint;
             FrameworkHeader = frameworkHeader;
             UdpMode = udpMode;
         }
@@ -25,6 +25,6 @@ namespace UdpToolkit.Network.Packets
 
         public byte[] Payload { get; }
 
-        public IEnumerable<Peer> Peers { get; }
+        public IPEndPoint IpEndPoint { get; }
     }
 }

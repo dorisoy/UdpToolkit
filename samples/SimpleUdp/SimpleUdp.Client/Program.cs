@@ -1,21 +1,24 @@
 ﻿namespace SimpleUdp.Client
 {
+    using System;
     using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
     using SimpleUdp.Contracts;
-    using UdpToolkit.Framework.Client;
     using UdpToolkit.Framework.Client.Core;
     using UdpToolkit.Framework.Client.Host;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
+        private static readonly byte RoomId = 0;
+        private static readonly string Nickname = "Foo";
+
         public static async Task Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
+                .MinimumLevel.Is(LogEventLevel.Information)
                 .WriteTo.Console()
                 .CreateLogger();
 
@@ -24,44 +27,42 @@
             var consumerFactory = clientHost.GetEventConsumerFactory();
             var producerFactory = clientHost.GetEventProducerFactory();
 
-            var consumer = consumerFactory.Create<SumEvent>();
-            var producer = producerFactory.Create<AddEvent>(scopeId: 0);
+            var joinedConsumer = consumerFactory.Create<JoinedEvent>();
+            var leavedConsumer = consumerFactory.Create<LeavedEvent>();
 
-            new Thread(() => Consume(consumer)).Start();
-            new Thread(() => Produce(producer)).Start();
+            var joinProducer = producerFactory.Create<JoinEvent>(roomId: 0);
+            var leaveProducer = producerFactory.Create<LeaveEvent>(roomId: 0);
+
+            new Thread(() => Consume(joinedConsumer)).Start();
+            new Thread(() => Produce(joinProducer)).Start();
 
             await clientHost
                 .RunAsync()
                 .ConfigureAwait(false);
         }
 
-        private static void Produce(IEventProducer<AddEvent> producer)
+        private static void Produce(IEventProducer<JoinEvent> producer)
         {
-            var x = 5;
-            var y = 7;
-
             while (true)
             {
-                producer.Produce(new AddEvent
+                producer.Produce(new JoinEvent
                 {
-                    X = x,
-                    Y = y,
+                    RoomId = RoomId,
+                    Nickname = Nickname,
                 });
-
-                Log.Logger.Debug($"Event {nameof(AddEvent)} produced with values {x} {y}!");
 
                 Thread.Sleep(1000);
             }
         }
 
-        private static void Consume(IEventConsumer<SumEvent> consumer)
+        private static void Consume(IEventConsumer<JoinedEvent> consumer)
         {
             while (true)
             {
                 var events = consumer.Consume();
                 foreach (var @event in events)
                 {
-                    Log.Logger.Debug($"Event {nameof(SumEvent)} consumed with value {@event.Sum}!");
+                    Log.Logger.Information($"Player {@event.Nickname} joined to room!");
                 }
 
                 Thread.Sleep(1000);

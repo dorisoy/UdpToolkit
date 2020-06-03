@@ -52,7 +52,6 @@
                 .Use(pipeline =>
                 {
                     pipeline
-                        .Append<GlobalScopeStage>()
                         .Append<ProcessStage>();
                 })
                 .Build();

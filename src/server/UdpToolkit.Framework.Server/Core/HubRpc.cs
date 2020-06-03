@@ -2,7 +2,10 @@ namespace UdpToolkit.Framework.Server.Core
 {
     using System.Threading.Tasks;
 
-    public delegate Task<IRpcResult> HubRpc(
+    public delegate Task HubRpc(
+        IRoomManager roomManager,
+        IHubClients hubClients,
+        HubContext hubContext,
         object[] ctorArguments,
         object[] methodArguments);
 }

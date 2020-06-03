@@ -5,9 +5,9 @@ namespace SimpleUdp.Contracts
 
     [MessagePackObject]
     [ConsumedEvent(hubId: 0, rpcId: 0, udpChannel: UdpChannel.Udp)]
-    public class SumEvent
+    public class JoinedEvent
     {
         [Key(0)]
-        public int Sum { get; set; }
+        public string Nickname { get; set; }
     }
 }

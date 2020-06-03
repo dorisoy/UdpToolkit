@@ -4,9 +4,10 @@ namespace UdpToolkit.Framework.Server.Hubs
 
     public abstract class HubBase
     {
-        protected IBroadcastResult Broadcast(object result)
-        {
-            return new BroadcastResult(result);
-        }
+        public IRoomManager Rooms { get; set; }
+
+        public IHubClients Clients { get; set; }
+
+        public HubContext HubContext { get; set; }
     }
 }

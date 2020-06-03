@@ -15,25 +15,25 @@ namespace UdpToolkit.Network.Protocol
             header = new FrameworkHeader(
                 hubId: bytes[0],
                 rpcId: bytes[1],
-                scopeId: ReadScopeId(bytes));
+                roomId: ReadRoomId(bytes));
 
             return true;
         }
 
         public byte[] Serialize(FrameworkHeader header)
         {
-            var scopeIdBytes = BitConverter.GetBytes(header.ScopeId);
+            var roomIdBytes = BitConverter.GetBytes(header.RoomId);
 
             return new[]
             {
                 header.HubId,
                 header.RpcId,
-                scopeIdBytes[0],
-                scopeIdBytes[1],
+                roomIdBytes[0],
+                roomIdBytes[1],
             };
         }
 
-        private ushort ReadScopeId(ArraySegment<byte> buffer)
+        private ushort ReadRoomId(ArraySegment<byte> buffer)
         {
             return BitConverter.ToUInt16(new byte[] { buffer[2], buffer[3] }); // TODO span api
         }

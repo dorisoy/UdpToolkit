@@ -25,12 +25,12 @@ namespace UdpToolkit.Framework.Client.Events.EventProducers
             _producedEvents = producedEvents;
         }
 
-        public IEventProducer<TEvent> Create<TEvent>(byte scopeId)
+        public IEventProducer<TEvent> Create<TEvent>(byte roomId)
         {
             var eventDescriptor = GetEventDescriptor(type: typeof(TEvent));
 
             return new EventProducer<TEvent>(
-                scopeId: scopeId,
+                roomId: roomId,
                 eventDescriptor: eventDescriptor,
                 outputQueue: _producedEvents);
         }

@@ -2,7 +2,6 @@ namespace UdpToolkit.Tests.Resources
 {
     using System.Threading.Tasks;
     using UdpToolkit.Annotations;
-    using UdpToolkit.Framework.Server.Core;
     using UdpToolkit.Framework.Server.Hubs;
     using UdpToolkit.Framework.Server.Rpcs;
 
@@ -10,30 +9,45 @@ namespace UdpToolkit.Tests.Resources
     public sealed class HubWithoutDependencies : HubBase
     {
         [Rpc(0, UdpChannel.Udp)]
-        public async Task<IRpcResult> FuncWithoutArgs()
+        public async Task FuncWithoutArgs()
         {
             await Task.CompletedTask
                 .ConfigureAwait(false);
 
-            return Broadcast(new { });
+            await Clients
+                .All()
+                .SendAsync(
+                    @event: new { },
+                    hubContext: HubContext)
+                .ConfigureAwait(false);
         }
 
         [Rpc(1, UdpChannel.Udp)]
-        public async Task<IRpcResult> FuncWithArgs(Message message)
+        public async Task FuncWithArgs(Message message)
         {
             await Task.CompletedTask
                 .ConfigureAwait(false);
 
-            return Broadcast(new { });
+            await Clients
+                .All()
+                .SendAsync(
+                    @event: new { },
+                    hubContext: HubContext)
+                .ConfigureAwait(false);
         }
 
         [Rpc(2, UdpChannel.Udp)]
-        public async Task<IRpcResult> FuncWithArgs(int x, int y)
+        public async Task FuncWithArgs(int x, int y)
         {
             await Task.CompletedTask
                 .ConfigureAwait(false);
 
-            return Broadcast(new { });
+            await Clients
+                .All()
+                .SendAsync(
+                    @event: new { },
+                    hubContext: HubContext)
+                .ConfigureAwait(false);
         }
     }
 }

@@ -25,14 +25,11 @@ namespace UdpToolkit.Network.Clients
 
         public async Task SendAsync(NetworkPacket networkPacket)
         {
-            foreach (var peer in networkPacket.Peers)
-            {
-                var bytes = _udpProtocol.GetBytes(networkPacket, peer.GetReliableHeader());
+            var bytes = _udpProtocol.GetBytes(networkPacket, default); // TODO remove default
 
-                await _sender
-                    .SendAsync(bytes, bytes.Length, peer.IpEndPoint)
-                    .ConfigureAwait(false);
-            }
+            await _sender
+                .SendAsync(bytes, bytes.Length, networkPacket.IpEndPoint)
+                .ConfigureAwait(false);
         }
     }
 }

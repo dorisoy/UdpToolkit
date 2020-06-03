@@ -19,6 +19,7 @@ namespace UdpToolkit.Framework.Server.Host
         private readonly IAsyncQueue<NetworkPacket> _outputQueue;
 
         private readonly int _processWorkers;
+        private readonly IPeerManager _peerManager;
         private readonly IReadOnlyCollection<IUdpSender> _senders;
         private readonly IReadOnlyCollection<IUdpReceiver> _receivers;
 
@@ -26,6 +27,7 @@ namespace UdpToolkit.Framework.Server.Host
 
         public ServerHost(
             int processWorkers,
+            IPeerManager peerManager,
             IAsyncQueue<NetworkPacket> outputQueue,
             IAsyncQueue<NetworkPacket> inputQueue,
             IReadOnlyCollection<IUdpSender> senders,
@@ -33,6 +35,7 @@ namespace UdpToolkit.Framework.Server.Host
             IPipeline pipeline)
         {
             _processWorkers = processWorkers;
+            _peerManager = peerManager;
             _outputQueue = outputQueue;
             _inputQueue = inputQueue;
             _senders = senders;
@@ -102,14 +105,16 @@ namespace UdpToolkit.Framework.Server.Host
 
         private async Task ProcessPacketAsync(NetworkPacket networkPacket)
         {
+            var peer = _peerManager.GetOrAdd(networkPacket.IpEndPoint);
+
             await _pipeline
                 .ExecuteAsync(new CallContext(
                     hubId: networkPacket.FrameworkHeader.HubId,
                     rpcId: networkPacket.FrameworkHeader.RpcId,
-                    scopeId: networkPacket.FrameworkHeader.ScopeId,
+                    roomId: networkPacket.FrameworkHeader.RoomId,
                     udpMode: networkPacket.UdpMode.Map(),
                     payload: networkPacket.Payload,
-                    peerIPs: networkPacket.Peers.Select(x => x.IpEndPoint)))
+                    peer: peer))
                 .ConfigureAwait(false);
         }
 

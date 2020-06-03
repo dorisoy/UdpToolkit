@@ -6,16 +6,16 @@ namespace UdpToolkit.Framework.Client.Events
     public readonly struct ProducedEvent
     {
         public ProducedEvent(
-            byte scopeId,
+            byte roomId,
             EventDescriptor eventDescriptor,
             Func<ISerializer, byte[]> serialize)
         {
-            ScopeId = scopeId;
+            RoomId = roomId;
             EventDescriptor = eventDescriptor;
             Serialize = serialize;
         }
 
-        public byte ScopeId { get; }
+        public byte RoomId { get; }
 
         public EventDescriptor EventDescriptor { get; }
 

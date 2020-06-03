@@ -84,25 +84,25 @@ namespace UdpToolkit.Framework.Server.Host
 
             var rpcProvider = new RpcProvider(rpcs);
 
-            var peerScopeTracker = new PeerScopeTracker(
-                dateTimeProvider: dateTimeProvider,
-                cacheEntryTtl: _serverSettings.CacheOptions.CacheEntryTtl,
-                scanFrequency: _serverSettings.CacheOptions.ScanForExpirationFrequency);
-
-            var globalScopeStage = new GlobalScopeStage(
-                peerScopeTracker: peerScopeTracker,
-                dateTimeProvider: dateTimeProvider);
+            var peerManager = new PeerManager(dateTimeProvider: dateTimeProvider);
+            var roomManager = new RoomManager(peerManager: peerManager);
 
             var outputQueue = new BlockingAsyncQueue<NetworkPacket>(
                 boundedCapacity: _serverSettings.OutputQueueBoundedCapacity);
 
             var container = _containerBuilder.Build();
 
+            var hubClients = new HubClients(
+                peerManager: peerManager,
+                roomManager: roomManager,
+                outputQueue: outputQueue,
+                serializer: _serverSettings.Serializer);
+
             var processStage = new ProcessStage(
+                hubClients: hubClients,
                 rpcProvider: rpcProvider,
                 serializer: _serverSettings.Serializer,
-                peerScopeTracker: peerScopeTracker,
-                outputQueue: outputQueue,
+                roomManager: roomManager,
                 ctorArgumentsResolver: new CtorArgumentsResolver(container));
 
             var inputQueue = new BlockingAsyncQueue<NetworkPacket>(
@@ -131,6 +131,7 @@ namespace UdpToolkit.Framework.Server.Host
             _pipelineConfigurator(pipelineBuilder);
 
             var serverHost = new ServerHost(
+                peerManager: peerManager,
                 outputQueue: outputQueue,
                 inputQueue: inputQueue,
                 processWorkers: _serverSettings.ProcessWorkers,

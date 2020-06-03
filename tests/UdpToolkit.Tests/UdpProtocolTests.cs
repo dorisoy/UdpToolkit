@@ -5,7 +5,6 @@ namespace UdpToolkit.Tests
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Protocol;
     using UdpToolkit.Network.Rudp;
     using UdpToolkit.Tests.Utils;
@@ -48,7 +47,7 @@ namespace UdpToolkit.Tests
             var fh = new FrameworkHeader(
                 hubId: Gen.RandomByte(),
                 rpcId: Gen.RandomByte(),
-                scopeId: Gen.RandomUshort());
+                roomId: Gen.RandomUshort());
 
             var rh = new ReliableUdpHeader(
                 localNumber: Gen.RandomUint(),
@@ -57,7 +56,7 @@ namespace UdpToolkit.Tests
 
             var networkPacket = new NetworkPacket(
                 payload: payload,
-                peers: Enumerable.Empty<Peer>(),
+                ipEndPoint: IPEndPoint.Parse("0.0.0.0"),
                 udpMode: UdpMode.Udp,
                 frameworkHeader: fh);
 

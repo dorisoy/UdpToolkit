@@ -5,12 +5,12 @@ namespace SimpleUdp.Contracts
 
     [MessagePackObject]
     [ProducedEvent(hubId: 0, rpcId: 0, udpChannel: UdpChannel.Udp)]
-    public class AddEvent
+    public class JoinEvent
     {
         [Key(0)]
-        public int X { get; set; }
+        public byte RoomId { get; set; }
 
         [Key(1)]
-        public int Y { get; set; }
+        public string Nickname { get; set; }
     }
 }

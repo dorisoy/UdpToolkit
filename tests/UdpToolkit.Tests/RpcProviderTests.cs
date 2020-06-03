@@ -1,12 +1,15 @@
 namespace UdpToolkit.Tests
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
     using UdpToolkit.Framework.Server.Core;
+    using UdpToolkit.Framework.Server.Peers;
     using UdpToolkit.Framework.Server.Rpcs;
     using UdpToolkit.Tests.Resources;
+    using UdpToolkit.Utils;
     using Xunit;
 
     public class RpcProviderTests
@@ -105,6 +108,9 @@ namespace UdpToolkit.Tests
 
             var exception = await Record
                 .ExceptionAsync(() => rpcDescriptor.HubRpc(
+                    hubContext: new HubContext(Guid.NewGuid(), 0, 0, 0, UdpMode.Udp),
+                    hubClients: null,
+                    roomManager: new RoomManager(new PeerManager(new DateTimeProvider())),
                     ctorArguments: ctorArgs,
                     methodArguments: methodArgs))
                 .ConfigureAwait(false);

@@ -6,16 +6,16 @@ namespace UdpToolkit.Framework.Client.Events.EventProducers
 
     public sealed class EventProducer<TEvent> : IEventProducer<TEvent>
     {
-        private readonly byte _scopeId;
+        private readonly byte _roomId;
         private readonly EventDescriptor _eventDescriptor;
         private readonly IAsyncQueue<ProducedEvent> _outputQueue;
 
         public EventProducer(
-            byte scopeId,
+            byte roomId,
             EventDescriptor eventDescriptor,
             IAsyncQueue<ProducedEvent> outputQueue)
         {
-            _scopeId = scopeId;
+            _roomId = roomId;
             _eventDescriptor = eventDescriptor;
             _outputQueue = outputQueue;
         }
@@ -23,7 +23,7 @@ namespace UdpToolkit.Framework.Client.Events.EventProducers
         public void Produce(TEvent @event)
         {
             _outputQueue.Produce(new ProducedEvent(
-                scopeId: _scopeId,
+                roomId: _roomId,
                 eventDescriptor: _eventDescriptor,
                 serialize: serializer => serializer.Serialize(@event)));
         }

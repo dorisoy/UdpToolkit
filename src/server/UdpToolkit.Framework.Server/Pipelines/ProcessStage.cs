@@ -6,11 +6,6 @@ namespace UdpToolkit.Framework.Server.Pipelines
     using UdpToolkit.Core;
     using UdpToolkit.Framework.Server.Core;
     using UdpToolkit.Framework.Server.Host;
-    using UdpToolkit.Framework.Server.Peers;
-    using UdpToolkit.Framework.Server.Rpcs;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Protocol;
-    using UdpToolkit.Network.Queues;
 
     public sealed class ProcessStage : StageBase
     {
@@ -19,21 +14,21 @@ namespace UdpToolkit.Framework.Server.Pipelines
         private readonly ICtorArgumentsResolver _ctorArgumentsResolver;
         private readonly IRpcProvider _rpcProvider;
         private readonly ISerializer _serializer;
-        private readonly IPeerScopeTracker _peerScopeTracker;
-        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
+        private readonly IRoomManager _roomManager;
+        private readonly IHubClients _hubClients;
 
         public ProcessStage(
             IRpcProvider rpcProvider,
             ISerializer serializer,
             ICtorArgumentsResolver ctorArgumentsResolver,
-            IPeerScopeTracker peerScopeTracker,
-            IAsyncQueue<NetworkPacket> outputQueue)
+            IRoomManager roomManager,
+            IHubClients hubClients)
         {
             _rpcProvider = rpcProvider;
             _serializer = serializer;
             _ctorArgumentsResolver = ctorArgumentsResolver;
-            _peerScopeTracker = peerScopeTracker;
-            _outputQueue = outputQueue;
+            _roomManager = roomManager;
+            _hubClients = hubClients;
         }
 
         public override async Task ExecuteAsync(CallContext callContext)
@@ -46,45 +41,25 @@ namespace UdpToolkit.Framework.Server.Pipelines
                 return;
             }
 
-            if (rpcDescriptor.ParametersTypes.Count > 1)
-            {
-                _logger.Warning("Rpc not support more than one argument");
-
-                return;
-            }
-
             var @event = rpcDescriptor.ParametersTypes
                 .Select(type => _serializer.Deserialize(type, callContext.Payload))
                 .ToArray();
 
-            var result = await rpcDescriptor
+            await rpcDescriptor
                 .HubRpc(
+                    hubContext: new HubContext(
+                        peerId: callContext.Peer.PeerId,
+                        hubId: callContext.HubId,
+                        rpcId: callContext.RpcId,
+                        roomId: callContext.RoomId,
+                        udpMode: callContext.UdpMode),
+                    hubClients: _hubClients,
+                    roomManager: _roomManager,
                     ctorArguments: _ctorArgumentsResolver
                         .GetInstances(rpcDescriptor.CtorArguments)
                         .ToArray(),
                     methodArguments: @event)
                 .ConfigureAwait(false);
-
-            var bytes = _serializer.Serialize(result.Result);
-
-            if (!_peerScopeTracker.TryGetScope(callContext.ScopeId, out var scope))
-            {
-                // TODO log warning
-                return;
-            }
-
-            var peers = scope.GetPeers();
-
-            var packet = new NetworkPacket(
-                payload: bytes,
-                peers: peers,
-                udpMode: callContext.UdpMode.Map(),
-                frameworkHeader: new FrameworkHeader(
-                    hubId: callContext.HubId,
-                    rpcId: callContext.RpcId,
-                    scopeId: callContext.ScopeId));
-
-            _outputQueue.Produce(@event: packet);
         }
     }
 }
