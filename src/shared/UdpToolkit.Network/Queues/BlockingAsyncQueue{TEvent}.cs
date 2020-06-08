@@ -23,5 +23,10 @@ namespace UdpToolkit.Network.Queues
         {
             return _input.GetConsumingEnumerable();
         }
+
+        public void Dispose()
+        {
+            _input?.Dispose();
+        }
     }
 }

@@ -51,7 +51,6 @@ namespace UdpToolkit.Framework.Server.Pipelines
                         peerId: callContext.Peer.PeerId,
                         hubId: callContext.HubId,
                         rpcId: callContext.RpcId,
-                        roomId: callContext.RoomId,
                         udpMode: callContext.UdpMode),
                     hubClients: _hubClients,
                     roomManager: _roomManager,

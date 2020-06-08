@@ -11,5 +11,7 @@ namespace UdpToolkit.Framework.Server.Core
         IPeerProxy Room(byte roomId);
 
         IPeerProxy RoomExcept(byte roomId, Guid peerId);
+
+        IPeerProxy Caller(byte roomId, Guid peerId);
     }
 }

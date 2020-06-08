@@ -46,8 +46,7 @@ namespace UdpToolkit.Tests
 
             var fh = new FrameworkHeader(
                 hubId: Gen.RandomByte(),
-                rpcId: Gen.RandomByte(),
-                roomId: Gen.RandomUshort());
+                rpcId: Gen.RandomByte());
 
             var rh = new ReliableUdpHeader(
                 localNumber: Gen.RandomUint(),

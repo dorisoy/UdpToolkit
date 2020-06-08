@@ -2,7 +2,6 @@ namespace UdpToolkit.Framework.Client.Events
 {
     using System;
     using UdpToolkit.Core;
-    using UdpToolkit.Network.Clients;
 
     public readonly struct EventDescriptor
     {

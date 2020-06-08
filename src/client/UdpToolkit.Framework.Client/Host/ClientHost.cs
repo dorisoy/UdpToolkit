@@ -8,8 +8,6 @@ namespace UdpToolkit.Framework.Client.Host
     using UdpToolkit.Core;
     using UdpToolkit.Framework.Client.Core;
     using UdpToolkit.Framework.Client.Events;
-    using UdpToolkit.Framework.Client.Events.EventConsumers;
-    using UdpToolkit.Framework.Client.Events.EventProducers;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Protocol;
@@ -20,27 +18,27 @@ namespace UdpToolkit.Framework.Client.Host
         private readonly ILogger _logger = Log.ForContext<ClientHost>();
 
         private readonly IServerSelector _serverSelector;
-        private readonly IAsyncQueue<ProducedEvent> _producedEvents;
+        private readonly IAsyncQueue<ProducedEvent> _outputQueue;
 
         private readonly IEnumerable<IUdpSender> _senders;
         private readonly IEnumerable<IUdpReceiver> _receivers;
 
-        private readonly InputDispatcher _inputDispatcher;
+        private readonly ISubscriptionManager _subscriptionManager;
 
         public ClientHost(
             IServerSelector serverSelector,
             ISerializer serializer,
-            IAsyncQueue<ProducedEvent> producedEvents,
+            IAsyncQueue<ProducedEvent> outputQueue,
             IEnumerable<IUdpSender> senders,
             IEnumerable<IUdpReceiver> receivers,
-            InputDispatcher inputDispatcher)
+            ISubscriptionManager subscriptionManager)
         {
             _serverSelector = serverSelector;
             Serializer = serializer;
-            _producedEvents = producedEvents;
+            _outputQueue = outputQueue;
             _senders = senders;
             _receivers = receivers;
-            _inputDispatcher = inputDispatcher;
+            _subscriptionManager = subscriptionManager;
 
             foreach (var receiver in _receivers)
             {
@@ -90,16 +88,44 @@ namespace UdpToolkit.Framework.Client.Host
             return Task.WhenAll(tasks);
         }
 
-        public IEventProducerFactory GetEventProducerFactory()
+        public Task StopAsync()
         {
-            return new EventProducerFactory(producedEvents: _producedEvents);
+            throw new NotImplementedException();
         }
 
-        public IEventConsumerFactory GetEventConsumerFactory()
+        public void On<TEvent>(Action<TEvent> handler)
         {
-            return new EventConsumerFactory(
-                serializer: Serializer,
-                inputDispatcher: _inputDispatcher);
+            var eventDescriptor = EventDescriptorStorage.Find(typeof(TEvent));
+
+            _subscriptionManager.Subscribe(
+                rpcDescriptorId: eventDescriptor.RpcDescriptorId,
+                subscription: (bytes) =>
+                {
+                    var @event = Serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                    handler(@event);
+                });
+        }
+
+        public void Publish<TEvent>(TEvent @event)
+        {
+            _outputQueue.Produce(new ProducedEvent(
+                eventDescriptor: EventDescriptorStorage.Find(typeof(TEvent)),
+                serialize: (serializer) => serializer.Serialize(@event)));
+        }
+
+        public void Dispose()
+        {
+            foreach (var sender in _senders)
+            {
+                sender.Dispose();
+            }
+
+            foreach (var receiver in _receivers)
+            {
+                receiver.Dispose();
+            }
+
+            _outputQueue.Dispose();
         }
 
         private async Task StartReceiverAsync(IUdpReceiver udpReceiver)
@@ -119,15 +145,14 @@ namespace UdpToolkit.Framework.Client.Host
                 udpMode: producedEvent.EventDescriptor.UdpMode,
                 frameworkHeader: new FrameworkHeader(
                     hubId: producedEvent.EventDescriptor.RpcDescriptorId.HubId,
-                    rpcId: producedEvent.EventDescriptor.RpcDescriptorId.RpcId,
-                    roomId: producedEvent.RoomId));
+                    rpcId: producedEvent.EventDescriptor.RpcDescriptorId.RpcId));
 
             await udpSender.SendAsync(networkPacket).ConfigureAwait(false);
         }
 
         private async Task StartSenderAsync(IUdpSender udpSender)
         {
-            foreach (var producedEvent in _producedEvents.Consume())
+            foreach (var producedEvent in _outputQueue.Consume())
             {
                 try
                 {
@@ -143,7 +168,11 @@ namespace UdpToolkit.Framework.Client.Host
 
         private void ProcessNetworkPacket(NetworkPacket networkPacket)
         {
-            _inputDispatcher.Dispatch(networkPacket);
+            var rpcDescriptorId = new RpcDescriptorId(
+                hubId: networkPacket.FrameworkHeader.HubId,
+                rpcId: networkPacket.FrameworkHeader.RpcId);
+
+            _subscriptionManager.GetSubscription(rpcDescriptorId)(networkPacket.Payload);
         }
     }
 }

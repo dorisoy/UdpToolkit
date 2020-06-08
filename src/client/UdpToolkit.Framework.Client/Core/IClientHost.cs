@@ -1,11 +1,12 @@
 namespace UdpToolkit.Framework.Client.Core
 {
+    using System;
     using UdpToolkit.Core;
 
     public interface IClientHost : IHost
     {
-        IEventProducerFactory GetEventProducerFactory();
+        void On<TEvent>(Action<TEvent> handler);
 
-        IEventConsumerFactory GetEventConsumerFactory();
+        void Publish<TEvent>(TEvent @event);
     }
 }

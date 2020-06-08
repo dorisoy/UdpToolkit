@@ -103,6 +103,27 @@ namespace UdpToolkit.Framework.Server.Host
                 .ConfigureAwait(false);
         }
 
+        public Task StopAsync()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void Dispose()
+        {
+            foreach (var receiver in _receivers)
+            {
+                receiver.Dispose();
+            }
+
+            foreach (var sender in _senders)
+            {
+                sender.Dispose();
+            }
+
+            _outputQueue.Dispose();
+            _inputQueue.Dispose();
+        }
+
         private async Task ProcessPacketAsync(NetworkPacket networkPacket)
         {
             var peer = _peerManager.GetOrAdd(networkPacket.IpEndPoint);
@@ -111,7 +132,6 @@ namespace UdpToolkit.Framework.Server.Host
                 .ExecuteAsync(new CallContext(
                     hubId: networkPacket.FrameworkHeader.HubId,
                     rpcId: networkPacket.FrameworkHeader.RpcId,
-                    roomId: networkPacket.FrameworkHeader.RoomId,
                     udpMode: networkPacket.UdpMode.Map(),
                     payload: networkPacket.Payload,
                     peer: peer))

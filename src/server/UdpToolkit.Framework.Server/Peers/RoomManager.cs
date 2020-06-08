@@ -20,7 +20,13 @@ namespace UdpToolkit.Framework.Server.Peers
 
             _rooms.AddOrUpdate(
                 key: roomId,
-                addValueFactory: (id) => new Room(roomId),
+                addValueFactory: (id) =>
+                {
+                    var room = new Room(roomId);
+                    room.AddPeer(peer);
+
+                    return room;
+                },
                 updateValueFactory: (id, room) =>
                 {
                     room.AddPeer(peer);

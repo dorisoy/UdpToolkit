@@ -108,7 +108,7 @@ namespace UdpToolkit.Tests
 
             var exception = await Record
                 .ExceptionAsync(() => rpcDescriptor.HubRpc(
-                    hubContext: new HubContext(Guid.NewGuid(), 0, 0, 0, UdpMode.Udp),
+                    hubContext: new HubContext(Guid.NewGuid(), 0, 0, UdpMode.Udp),
                     hubClients: null,
                     roomManager: new RoomManager(new PeerManager(new DateTimeProvider())),
                     ctorArguments: ctorArgs,

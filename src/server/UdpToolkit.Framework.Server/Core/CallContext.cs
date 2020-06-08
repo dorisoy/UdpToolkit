@@ -8,7 +8,6 @@ namespace UdpToolkit.Framework.Server.Core
         public CallContext(
             byte hubId,
             byte rpcId,
-            ushort roomId,
             UdpMode udpMode,
             byte[] payload,
             Peer peer)
@@ -17,15 +16,12 @@ namespace UdpToolkit.Framework.Server.Core
             Peer = peer;
             HubId = hubId;
             RpcId = rpcId;
-            RoomId = roomId;
             UdpMode = udpMode;
         }
 
         public byte HubId { get; }
 
         public byte RpcId { get; }
-
-        public ushort RoomId { get; }
 
         public UdpMode UdpMode { get; }
 

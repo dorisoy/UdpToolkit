@@ -46,8 +46,8 @@
                     settings.ProcessWorkers = 2;
                     settings.Serializer = new Serializer();
                     settings.CacheOptions = new CacheOptions(
-                        scanForExpirationFrequency: TimeSpan.FromMinutes(1),
-                        cacheEntryTtl: Timeout.InfiniteTimeSpan);
+                        roomTtl: TimeSpan.FromMinutes(1),
+                        peerTtl: Timeout.InfiniteTimeSpan);
                 })
                 .Use(pipeline =>
                 {

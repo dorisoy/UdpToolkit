@@ -12,6 +12,9 @@ namespace UdpToolkit.Framework.Server.Peers
 
     public class PeerManager : IPeerManager
     {
+        // TODOOOOOOOOO remove this shit
+        private static readonly object Locker = new object();
+
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ConcurrentDictionary<IPEndPoint, Guid> _ips = new ConcurrentDictionary<IPEndPoint, Guid>();
         private readonly ConcurrentDictionary<Guid, Peer> _peers = new ConcurrentDictionary<Guid, Peer>();
@@ -23,14 +26,20 @@ namespace UdpToolkit.Framework.Server.Peers
 
         public void Add(Peer peer)
         {
-            _peers[peer.PeerId] = peer;
-            _ips[peer.IpEndPoint] = peer.PeerId;
+            lock (Locker)
+            {
+                _peers[peer.PeerId] = peer;
+                _ips[peer.IpEndPoint] = peer.PeerId;
+            }
         }
 
         public void Remove(Peer peer)
         {
-            _peers.Remove(peer.PeerId, out _);
-            _ips.Remove(peer.IpEndPoint, out _);
+            lock (Locker)
+            {
+                _peers.Remove(peer.PeerId, out _);
+                _ips.Remove(peer.IpEndPoint, out _);
+            }
         }
 
         public Peer Get(Guid peerId)

@@ -10,44 +10,14 @@ namespace SimpleUdp.Server.Hubs
     public sealed class GameHub : HubBase
     {
         [Rpc(rpcId: 0, UdpChannel.Udp)]
-        public async Task Join(JoinEvent @event)
+        public async Task Test(JoinEvent joinEvent)
         {
-            Rooms.JoinOrCreate(@event.RoomId, HubContext.PeerId);
+            Rooms.JoinOrCreate(joinEvent.RoomId, HubContext.PeerId);
 
             await Clients
-                .Room(@event.RoomId)
+                .Room(joinEvent.RoomId)
                 .SendAsync(
-                    @event: new JoinedEvent
-                    {
-                        Nickname = @event.Nickname,
-                    },
-                    hubContext: HubContext)
-                .ConfigureAwait(false);
-        }
-
-        [Rpc(rpcId: 1, UdpChannel.Udp)]
-        public async Task Leave(LeaveEvent @event)
-        {
-            Rooms.Leave(roomId: @event.RoomId, peerId: HubContext.PeerId);
-
-            await Clients
-                .Room(@event.RoomId)
-                .SendAsync(
-                    @event: new LeavedEvent
-                    {
-                        Nickname = @event.Nickname,
-                    },
-                    hubContext: HubContext)
-                .ConfigureAwait(false);
-        }
-
-        [Rpc(rpcId: 2, UdpChannel.Udp)]
-        public async Task Move(MoveEvent @event)
-        {
-            await Clients
-                .Room(@event.RoomId)
-                .SendAsync(
-                    @event: @event,
+                    @event: joinEvent,
                     hubContext: HubContext)
                 .ConfigureAwait(false);
         }

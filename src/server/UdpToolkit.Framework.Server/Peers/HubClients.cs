@@ -60,5 +60,14 @@ namespace UdpToolkit.Framework.Server.Peers
 
             return new PeerProxy(peers: peers, outputQueue: _outputQueue, serializer: _serializer);
         }
+
+        public IPeerProxy Caller(byte roomId, Guid peerId)
+        {
+            var peer = _roomManager
+                .GetRoom(roomId)
+                .GetPeer(peerId);
+
+            return new PeerProxy(peers: new[] { peer }, outputQueue: _outputQueue, serializer: _serializer);
+        }
     }
 }

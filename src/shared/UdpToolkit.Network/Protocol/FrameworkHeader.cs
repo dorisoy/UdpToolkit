@@ -4,18 +4,14 @@ namespace UdpToolkit.Network.Protocol
     {
         public FrameworkHeader(
             byte hubId,
-            byte rpcId,
-            ushort roomId)
+            byte rpcId)
         {
             HubId = hubId;
             RpcId = rpcId;
-            RoomId = roomId;
         }
 
         public byte HubId { get; }
 
         public byte RpcId { get; }
-
-        public ushort RoomId { get; }
     }
 }

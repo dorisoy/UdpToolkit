@@ -197,7 +197,7 @@ namespace UdpToolkit.Network.Protocol
                     return true;
 
                 default:
-                    payload = ArraySegment<byte>.Empty;
+                    payload = default;
 
                     return true;
             }

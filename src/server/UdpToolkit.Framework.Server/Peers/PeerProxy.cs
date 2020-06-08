@@ -32,9 +32,8 @@ namespace UdpToolkit.Framework.Server.Peers
             foreach (var peer in _peers)
             {
                 var frameworkHeader = new FrameworkHeader(
-                        hubId: hubContext.HubId,
-                        rpcId: hubContext.RpcId,
-                        roomId: hubContext.RoomId);
+                    hubId: hubContext.HubId,
+                    rpcId: hubContext.RpcId);
 
                 _outputQueue.Produce(
                     new NetworkPacket(

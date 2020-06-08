@@ -9,12 +9,12 @@
     {
         public byte[] Serialize<T>(T @event)
         {
-            return MessagePackSerializer.Serialize(@event, ContractlessStandardResolver.Instance);
+            return MessagePackSerializer.Serialize(@event);
         }
 
         public object Deserialize(Type type, ArraySegment<byte> bytes)
         {
-            return MessagePackSerializer.NonGeneric.Deserialize(type, bytes, ContractlessStandardResolver.Instance);
+            return MessagePackSerializer.Deserialize(type, bytes);
         }
 
         public T Deserialize<T>(ArraySegment<byte> bytes)

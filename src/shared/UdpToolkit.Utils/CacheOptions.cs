@@ -5,21 +5,15 @@ namespace UdpToolkit.Utils
     public class CacheOptions
     {
         public CacheOptions(
-            TimeSpan scanForExpirationFrequency,
-            TimeSpan cacheEntryTtl)
+            TimeSpan roomTtl,
+            TimeSpan peerTtl)
         {
-            ScanForExpirationFrequency = scanForExpirationFrequency;
-            CacheEntryTtl = cacheEntryTtl;
+            RoomTtl = roomTtl;
+            PeerTtl = peerTtl;
         }
 
-        public CacheOptions()
-        {
-            ScanForExpirationFrequency = TimeSpan.FromMinutes(1);
-            CacheEntryTtl = TimeSpan.FromMinutes(10);
-        }
+        public TimeSpan RoomTtl { get; }
 
-        public TimeSpan ScanForExpirationFrequency { get; }
-
-        public TimeSpan CacheEntryTtl { get; }
+        public TimeSpan PeerTtl { get; }
     }
 }

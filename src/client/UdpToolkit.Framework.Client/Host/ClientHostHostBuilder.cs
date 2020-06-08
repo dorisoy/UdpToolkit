@@ -1,15 +1,12 @@
 namespace UdpToolkit.Framework.Client.Host
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Net.Sockets;
     using Serilog;
-    using UdpToolkit.Core;
     using UdpToolkit.Framework.Client.Core;
     using UdpToolkit.Framework.Client.Events;
-    using UdpToolkit.Framework.Client.Host;
+    using UdpToolkit.Framework.Client.Infrastructure;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Protocol;
@@ -64,8 +61,6 @@ namespace UdpToolkit.Framework.Client.Host
                             lastActivityAt: now))
                         .ToArray());
 
-            var inputDispatcher = new InputDispatcher();
-
             var defaultFrameworkProtocol = new DefaultFrameworkProtocol();
 
             var reliableUdpProtocol = new ReliableUdpProtocol();
@@ -91,12 +86,12 @@ namespace UdpToolkit.Framework.Client.Host
                 .ToList();
 
             var clientHost = new ClientHost(
+                subscriptionManager: new SubscriptionManager(),
                 serverSelector: randomServerSelector,
                 serializer: _settings.Serializer,
-                producedEvents: producedEvents,
+                outputQueue: producedEvents,
                 senders: senders,
-                receivers: receivers,
-                inputDispatcher: inputDispatcher);
+                receivers: receivers);
 
             _logger.Information("ClientHost created with settings: {@settings}", _settings);
 

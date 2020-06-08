@@ -1,5 +1,6 @@
 namespace UdpToolkit.Framework.Server.Core
 {
+    using System;
     using System.Collections.Generic;
     using UdpToolkit.Core;
     using UdpToolkit.Utils;
@@ -12,7 +13,7 @@ namespace UdpToolkit.Framework.Server.Core
 
         public int ProcessWorkers { get; set; }
 
-        public CacheOptions CacheOptions { get; set; } = new CacheOptions();
+        public CacheOptions CacheOptions { get; set; } = new CacheOptions(roomTtl: TimeSpan.FromMinutes(10), peerTtl: TimeSpan.FromMinutes(10));
 
         public IEnumerable<int> InputPorts { get; set; }
 

@@ -12,8 +12,7 @@ namespace UdpToolkit.Tests
         {
             var header = new FrameworkHeader(
                 hubId: Gen.RandomByte(),
-                rpcId: Gen.RandomByte(),
-                roomId: Gen.RandomUshort());
+                rpcId: Gen.RandomByte());
 
             var bytes = new DefaultFrameworkProtocol()
                 .Serialize(header);

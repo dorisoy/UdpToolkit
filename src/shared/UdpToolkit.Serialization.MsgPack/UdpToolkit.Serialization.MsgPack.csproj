@@ -1,11 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.1</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MessagePack" Version="1.8.80" />
+      <PackageReference Include="MessagePack" Version="2.1.115" />
     </ItemGroup>
 
     <ItemGroup>
