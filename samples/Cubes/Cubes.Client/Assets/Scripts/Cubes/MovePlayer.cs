@@ -1,4 +1,5 @@
 ﻿using Shared.Move;
+using UdpToolkit.Core;
 using UdpToolkit.Framework.Client.Core;
 using UnityEngine;
 
@@ -74,12 +75,14 @@ public class MovePlayer : MonoBehaviour
             rigidbody.AddForce(0f, 0f, -forwardForce * Time.deltaTime, ForceMode.VelocityChange);
         }
 
+        // network
         SendPosition();
         prevPosition = transform.position;
     }
 
     private void SendPosition()
     {
+        // todo delta for jitter
         if (prevPosition != transform.position)
         {
             var @event = new MoveEvent
@@ -89,7 +92,7 @@ public class MovePlayer : MonoBehaviour
                 Position = transform.position,
             };
 
-            ClientHost.Publish(@event);
+            ClientHost.Publish(@event, hubId: 0,  rpcId: 2, UdpMode.Udp);
         }
     }
 }

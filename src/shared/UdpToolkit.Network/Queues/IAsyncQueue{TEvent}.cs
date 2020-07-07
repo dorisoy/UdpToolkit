@@ -8,5 +8,7 @@ namespace UdpToolkit.Network.Queues
         IEnumerable<TEvent> Consume();
 
         void Produce(TEvent @event);
+
+        void Stop();
     }
 }

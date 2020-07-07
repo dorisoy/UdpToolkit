@@ -5,9 +5,13 @@
         <TargetFramework>netcoreapp3.0</TargetFramework>
     </PropertyGroup>
 
+    <PropertyGroup>
+        <ServerGarbageCollection>true</ServerGarbageCollection>
+    </PropertyGroup>
+    
     <ItemGroup>
-      <ProjectReference Include="..\..\..\src\server\UdpToolkit.Framework.Server.Di.Autofac\UdpToolkit.Framework.Server.Di.Autofac.csproj" />
       <ProjectReference Include="..\..\..\src\server\UdpToolkit.Framework.Server\UdpToolkit.Framework.Server.csproj" />
+      <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
       <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
       <ProjectReference Include="..\SimpleUdp.Contracts\SimpleUdp.Contracts.csproj" />
     </ItemGroup>

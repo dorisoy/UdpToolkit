@@ -1,12 +1,9 @@
 namespace Shared.Move
 {
     using MessagePack;
-    using UdpToolkit.Annotations;
     using UnityEngine;
 
     [MessagePackObject]
-    [ProducedEvent(0, 2, UdpChannel.Udp)]
-    [ConsumedEvent(0, 2, UdpChannel.Udp)]
     public class MoveEvent
     {
         [Key(0)]

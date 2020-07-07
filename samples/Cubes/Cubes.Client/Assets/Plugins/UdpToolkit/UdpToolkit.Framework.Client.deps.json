@@ -12,7 +12,6 @@
           "ConfigureAwaitChecker.Analyzer": "4.0.0",
           "NETStandard.Library": "2.0.3",
           "StyleCop.Analyzers": "1.1.118",
-          "UdpToolkit.Annotations": "1.0.0",
           "UdpToolkit.Core": "1.0.0",
           "UdpToolkit.Network": "1.0.0"
         },
@@ -36,15 +35,6 @@
         }
       },
       "StyleCop.Analyzers/1.1.118": {},
-      "UdpToolkit.Annotations/1.0.0": {
-        "dependencies": {
-          "ConfigureAwaitChecker.Analyzer": "4.0.0",
-          "StyleCop.Analyzers": "1.1.118"
-        },
-        "runtime": {
-          "UdpToolkit.Annotations.dll": {}
-        }
-      },
       "UdpToolkit.Core/1.0.0": {
         "dependencies": {
           "ConfigureAwaitChecker.Analyzer": "4.0.0",
@@ -117,11 +107,6 @@
       "sha512": "sha512-Onx6ovGSqXSK07n/0eM3ZusiNdB6cIlJdabQhWGgJp3Vooy9AaLS/tigeybOJAobqbtggTamoWndz72JscZBvw==",
       "path": "stylecop.analyzers/1.1.118",
       "hashPath": "stylecop.analyzers.1.1.118.nupkg.sha512"
-    },
-    "UdpToolkit.Annotations/1.0.0": {
-      "type": "project",
-      "serviceable": false,
-      "sha512": ""
     },
     "UdpToolkit.Core/1.0.0": {
       "type": "project",

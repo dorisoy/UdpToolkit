@@ -1,12 +1,9 @@
 namespace Shared.Spawn
 {
     using MessagePack;
-    using UdpToolkit.Annotations;
     using UnityEngine;
 
     [MessagePackObject]
-    [ProducedEvent(0, 1, UdpChannel.Udp)]
-    [ConsumedEvent(0, 1, UdpChannel.Udp)]
     public class SpawnedEvent
     {
         [Key(0)]

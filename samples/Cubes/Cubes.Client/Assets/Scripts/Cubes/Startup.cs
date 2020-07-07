@@ -22,7 +22,7 @@ public class Startup
             serializerRegistered = true;
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Debug()
+                .MinimumLevel.Fatal()
                 .WriteTo.Unity3D()
                 .CreateLogger();
         }

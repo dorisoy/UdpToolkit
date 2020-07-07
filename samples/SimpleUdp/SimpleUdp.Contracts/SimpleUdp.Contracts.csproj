@@ -8,9 +8,4 @@
       <PackageReference Include="MessagePack" Version="2.1.115" />
     </ItemGroup>
 
-    <ItemGroup>
-      <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
-        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
-    </ItemGroup>
-
 </Project>

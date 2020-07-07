@@ -2,11 +2,18 @@ namespace UdpToolkit.Core
 {
     using System;
     using System.Threading.Tasks;
+    using UdpToolkit.Serialization;
 
     public interface IHost : IDisposable
     {
+        IServerHostClient ServerHostClient { get; }
+
         Task RunAsync();
 
-        Task StopAsync();
+        void Stop();
+
+        void OnCore<TCoreEvent>(Subscription subscription, byte hookId);
+
+        void PublishCore<TResponse>(DataGram<TResponse> dataGram, UdpMode udpMode, Func<TResponse, byte[]> serializer);
     }
 }

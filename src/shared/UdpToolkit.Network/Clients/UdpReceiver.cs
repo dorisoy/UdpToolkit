@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
+    using System.Net;
     using System.Net.Sockets;
     using System.Threading.Tasks;
     using Serilog;
@@ -20,6 +21,7 @@ namespace UdpToolkit.Network.Clients
         {
             _receiver = receiver;
             _udpProtocol = udpProtocol;
+            _logger.Debug($"{nameof(UdpReceiver)} - {receiver.Client.LocalEndPoint} created");
         }
 
         public event Action<NetworkPacket> UdpPacketReceived;
@@ -32,9 +34,11 @@ namespace UdpToolkit.Network.Clients
                     .ReceiveAsync()
                     .ConfigureAwait(false);
 
+                _logger.Debug($"Packet from - {result.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
+
                 var parseResult = _udpProtocol
                     .TryGetInputPacket(
-                        bytes: result.Buffer,
+                        bytes: new ArraySegment<byte>(result.Buffer),
                         ipEndPoint: result.RemoteEndPoint,
                         out var networkPacket);
 
@@ -45,7 +49,7 @@ namespace UdpToolkit.Network.Clients
                     continue;
                 }
 
-                UdpPacketReceived?.Invoke(obj: networkPacket);
+                UdpPacketReceived?.Invoke(networkPacket);
             }
         }
 

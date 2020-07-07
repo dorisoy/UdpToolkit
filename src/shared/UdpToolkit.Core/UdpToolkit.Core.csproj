@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\UdpToolkit.Utils\UdpToolkit.Utils.csproj" />
+    <ProjectReference Include="..\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
   </ItemGroup>
 
 </Project>

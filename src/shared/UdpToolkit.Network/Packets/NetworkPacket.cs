@@ -1,29 +1,36 @@
 namespace UdpToolkit.Network.Packets
 {
+    using System;
     using System.Net;
-    using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Protocol;
-    using UdpToolkit.Network.Rudp;
+    using UdpToolkit.Network.Channels;
 
     public readonly struct NetworkPacket
     {
         public NetworkPacket(
-            FrameworkHeader frameworkHeader,
-            UdpMode udpMode,
-            byte[] payload,
-            IPEndPoint ipEndPoint)
+            ChannelHeader channelHeader,
+            Func<byte[]> serializer,
+            IPEndPoint ipEndPoint,
+            byte hookId,
+            ChannelType channelType,
+            Guid peerId)
         {
-            Payload = payload;
+            Serializer = serializer;
             IpEndPoint = ipEndPoint;
-            FrameworkHeader = frameworkHeader;
-            UdpMode = udpMode;
+            HookId = hookId;
+            ChannelType = channelType;
+            PeerId = peerId;
+            ChannelHeader = channelHeader;
         }
 
-        public FrameworkHeader FrameworkHeader { get; }
+        public byte HookId { get; }
 
-        public UdpMode UdpMode { get; }
+        public ChannelType ChannelType { get; }
 
-        public byte[] Payload { get; }
+        public Guid PeerId { get; }
+
+        public ChannelHeader ChannelHeader { get; }
+
+        public Func<byte[]> Serializer { get; }
 
         public IPEndPoint IpEndPoint { get; }
     }

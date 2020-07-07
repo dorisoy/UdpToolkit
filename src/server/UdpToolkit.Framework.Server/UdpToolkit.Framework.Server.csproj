@@ -5,7 +5,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
       <ProjectReference Include="..\..\shared\UdpToolkit.Core\UdpToolkit.Core.csproj" />
       <ProjectReference Include="..\..\shared\UdpToolkit.Network\UdpToolkit.Network.csproj" />
     </ItemGroup>

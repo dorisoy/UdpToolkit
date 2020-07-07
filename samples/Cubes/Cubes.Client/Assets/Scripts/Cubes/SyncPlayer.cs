@@ -11,25 +11,23 @@ public class SyncPlayer : MonoBehaviour
 
     void Update()
     {
-        if (_moves.Any())
+        if (!_moves.Any())
         {
-            var moveEvent = _moves.Dequeue();
-
-            var currentPosition = transform.position;
-            var currentRotation = transform.rotation;
-
-            var networkPosition = moveEvent.Position;
-            var networkRotation = moveEvent.Rotation;
-
-            _lerpTime += Time.deltaTime / Time.fixedDeltaTime;
-
-            transform.position = Vector3.Lerp(a: currentPosition, b: networkPosition, t: _lerpTime);
-            transform.rotation = Quaternion.Lerp(a: currentRotation, b: networkRotation, t: _lerpTime);
+            return;
         }
-        else
-        {
-            Debug.Log("No moves..");
-        }
+
+        var moveEvent = _moves.Dequeue();
+
+        var currentPosition = transform.position;
+        var currentRotation = transform.rotation;
+
+        var networkPosition = moveEvent.Position;
+        var networkRotation = moveEvent.Rotation;
+
+        _lerpTime += Time.deltaTime / Time.fixedDeltaTime;
+
+        transform.position = Vector3.Lerp(a: currentPosition, b: networkPosition, t: _lerpTime);
+        transform.rotation = Quaternion.Lerp(a: currentRotation, b: networkRotation, t: _lerpTime);
     }
 
     public void ApplyMove(MoveEvent moveEvent)

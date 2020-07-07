@@ -3,13 +3,13 @@ using UdpToolkit.Framework.Client.Core;
 
 public static class ClientHostExtensions
 {
-    public static void OnEvent<TEvent>(this IClientHost clientHost, Action<TEvent> handler)
+    public static void OnEvent<TEvent>(this IClientHost clientHost, Action<TEvent> handler, byte hubId, byte rpcId)
     {
         if (clientHost == null)
         {
             throw new ArgumentNullException(nameof(clientHost));
         }
 
-        clientHost.On<TEvent>((evnt) => NetworkThreadToMainThreadDispatcher.Instance().Enqueue(() => handler(evnt)));
+        clientHost.On<TEvent>((evnt) => NetworkThreadToMainThreadDispatcher.Instance().Enqueue(() => handler(evnt)), hubId, rpcId);
     }
 }

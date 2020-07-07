@@ -1,0 +1,18 @@
+<Project>
+    <PropertyGroup>
+        <GenerateFullPaths>true</GenerateFullPaths>
+        <LangVersion>latest</LangVersion>
+    </PropertyGroup>
+
+    <PropertyGroup>
+        <CodeAnalysisRuleSet>../../Analyzers.ruleset</CodeAnalysisRuleSet>
+        <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+        <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0"/>
+    </ItemGroup>
+
+</Project>

@@ -1,57 +1,58 @@
 ﻿namespace SimpleUdp.Client
 {
     using System;
-    using System.Threading;
+    using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
-    using SimpleUdp.Contracts;
-    using UdpToolkit.Framework.Client.Core;
-    using UdpToolkit.Framework.Client.Host;
+    using UdpToolkit.Core;
+    using UdpToolkit.Framework;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
-        public static void Main(string[] args)
+        public static void Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
                 .WriteTo.Console()
                 .CreateLogger();
 
-            var clientHost = BuildClientHost();
+            var host = BuildHost();
 
-            clientHost.On<JoinEvent>((@event) => Log.Logger.Information($"Player {@event.Index} joined to room!"));
+#pragma warning disable
+            Task.Run(() => host.RunAsync());
+#pragma warning restore
 
-            new Thread(
-                start: () =>
-                {
-                    while (true)
-                    {
-                        clientHost.Publish(new JoinEvent());
+            var serverHostClient = host.ServerHostClient;
 
-                        Thread.Sleep(1000);
-                    }
-                })
-                .Start();
+            serverHostClient.Connect(TimeSpan.FromSeconds(5));
 
-            clientHost.RunAsync();
+#pragma warning disable
+            // serverHostClient.Disconnect();
+#pragma warning restore
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
         }
 
-        private static IClientHost BuildClientHost()
+        private static IHost BuildHost()
         {
-            return Host
-                .CreateClientBuilder()
-                .Configure(cfg =>
+            return UdpHost
+                .CreateHostBuilder()
+                .ConfigureHost((settings) =>
                 {
-                    cfg.ServerHost = "0.0.0.0";
-                    cfg.Serializer = new Serializer();
-                    cfg.ServerInputPorts = new[] { 7000, 7001 };
-                    cfg.ServerOutputPorts = new[] { 8000, 8001 };
-                    cfg.Receivers = 2;
-                    cfg.Senders = 2;
+                    settings.Host = "0.0.0.0";
+                    settings.Serializer = new Serializer();
+                    settings.InputPorts = new[] { 5000, 5001 };
+                    settings.OutputPorts = new[] { 6000, 6001 };
+                    settings.Receivers = 2;
+                    settings.Senders = 2;
+                    settings.Workers = 2;
+                })
+                .ConfigureServerHostClient((settings) =>
+                {
+                    settings.ServerHost = "0.0.0.0";
+                    settings.ServerPorts = new[] { 7000, 7001 };
                 })
                 .Build();
         }

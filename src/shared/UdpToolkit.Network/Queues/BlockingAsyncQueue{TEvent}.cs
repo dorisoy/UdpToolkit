@@ -19,6 +19,11 @@ namespace UdpToolkit.Network.Queues
             _input.Add(@event);
         }
 
+        public void Stop()
+        {
+            _input.CompleteAdding();
+        }
+
         public IEnumerable<TEvent> Consume()
         {
             return _input.GetConsumingEnumerable();

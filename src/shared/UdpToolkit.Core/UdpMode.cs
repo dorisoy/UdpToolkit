@@ -1,8 +1,10 @@
 namespace UdpToolkit.Core
 {
-    public enum UdpMode
+    public enum UdpMode : byte
     {
-        Udp = 0,
-        ReliableUdp = 1,
+        Udp = 1,
+        Sequenced = 2,
+        ReliableUdp = 3,
+        ReliableOrderedUdp = 4,
     }
 }
