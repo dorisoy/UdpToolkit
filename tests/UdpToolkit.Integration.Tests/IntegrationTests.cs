@@ -74,23 +74,6 @@ namespace UdpToolkit.Integration.Tests
         }
 
         [Fact(Timeout = 10_000)]
-        public void ServerDisposed()
-        {
-            var serverInputPorts = Gen.GenerateUdpPorts(2);
-            var serverOutputPorts = Gen.GenerateUdpPorts(2);
-
-            var serverHost = HostFactory.CreateServerHost(
-                inputPorts: serverInputPorts,
-                outputPorts: serverOutputPorts);
-
-            var host = serverHost;
-            Task.Run(() => host.RunAsync());
-
-            serverHost.Stop();
-            serverHost.Dispose();
-        }
-
-        [Fact(Timeout = 10_000)]
         public void P2P()
         {
             var expectedPayload = "pong";
@@ -139,20 +122,20 @@ namespace UdpToolkit.Integration.Tests
         }
 
         [Fact(Timeout = 10_000)]
-        public void ClientDisposed()
+        public void ServerDisposed()
         {
             var serverInputPorts = Gen.GenerateUdpPorts(2);
             var serverOutputPorts = Gen.GenerateUdpPorts(2);
 
-            var clientHost = HostFactory.CreateServerHost(
+            var serverHost = HostFactory.CreateServerHost(
                 inputPorts: serverInputPorts,
                 outputPorts: serverOutputPorts);
 
-            var host = clientHost;
+            var host = serverHost;
             Task.Run(() => host.RunAsync());
 
-            clientHost.Stop();
-            clientHost.Dispose();
+            serverHost.Stop();
+            serverHost.Dispose();
         }
     }
 }
