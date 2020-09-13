@@ -50,8 +50,6 @@
                     cfg.Serializer = new Serializer();
                     cfg.InputPorts = new[] { 7000, 7001 };
                     cfg.OutputPorts = new[] { 8000, 8001 };
-                    cfg.Receivers = 2;
-                    cfg.Senders = 2;
                 })
                 .Build();
         }

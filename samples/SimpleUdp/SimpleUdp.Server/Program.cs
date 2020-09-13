@@ -34,8 +34,6 @@
                     settings.InputPorts = new[] { 7000, 7001 };
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
-                    settings.Receivers = 2;
-                    settings.Senders = 2;
                     settings.Serializer = new Serializer();
                 })
                 .Build();

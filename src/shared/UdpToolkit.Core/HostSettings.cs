@@ -9,10 +9,6 @@ namespace UdpToolkit.Core
 
         public IEnumerable<int> InputPorts { get; set; }
 
-        public int Senders { get; set; }
-
-        public int Receivers { get; set; }
-
         public int Workers { get; set; }
 
         public ISerializer Serializer { get; set; }

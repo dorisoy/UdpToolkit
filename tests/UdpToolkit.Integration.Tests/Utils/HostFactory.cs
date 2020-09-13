@@ -19,8 +19,6 @@ namespace UdpToolkit.Integration.Tests.Utils
                     settings.InputPorts = inputPorts;
                     settings.OutputPorts = outputPorts;
                     settings.Workers = 2;
-                    settings.Receivers = 2;
-                    settings.Senders = 2;
                     settings.Serializer = new Serializer();
                 })
                 .Build();
@@ -39,8 +37,6 @@ namespace UdpToolkit.Integration.Tests.Utils
                     settings.InputPorts = inputPorts;
                     settings.OutputPorts = outputPorts;
                     settings.Workers = 2;
-                    settings.Receivers = 2;
-                    settings.Senders = 2;
                     settings.Serializer = new Serializer();
                 })
                 .ConfigureServerHostClient((settings) =>

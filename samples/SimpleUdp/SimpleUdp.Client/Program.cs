@@ -45,8 +45,6 @@
                     settings.Serializer = new Serializer();
                     settings.InputPorts = new[] { 5000, 5001 };
                     settings.OutputPorts = new[] { 6000, 6001 };
-                    settings.Receivers = 2;
-                    settings.Senders = 2;
                     settings.Workers = 2;
                 })
                 .ConfigureServerHostClient((settings) =>
