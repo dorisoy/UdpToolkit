@@ -1,9 +1,11 @@
 namespace UdpToolkit.Network.Channels
 {
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
+    [ExcludeFromCodeCoverage]
     public sealed class ReliableOrderedChannel : IChannel
     {
         public ChannelResult TryHandleInputPacket(NetworkPacket networkPacket)

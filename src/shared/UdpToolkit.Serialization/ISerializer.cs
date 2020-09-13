@@ -10,8 +10,6 @@ namespace UdpToolkit.Serialization
 
         T DeserializeContractLess<T>(ArraySegment<byte> bytes);
 
-        object Deserialize(Type type, ArraySegment<byte> bytes);
-
         T Deserialize<T>(ArraySegment<byte> bytes);
     }
 }

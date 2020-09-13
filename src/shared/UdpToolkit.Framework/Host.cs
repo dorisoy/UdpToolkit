@@ -67,28 +67,26 @@ namespace UdpToolkit.Framework
         {
             var senders = _senders
                 .Select(
-                    sender => Task.Run(
-                        () => StartSenderAsync(sender)
-                            .RestartJobOnFailAsync(
-                                job: () => StartSenderAsync(sender),
-                                logger: (exception) =>
-                                {
-                                    _logger.Error("Exception on send task: {@Exception}", exception);
-                                    _logger.Warning("Restart sender...");
-                                })))
+                    sender => TaskUtils.RunWithRestartOnFail(
+                        job: () => StartSenderAsync(sender),
+                        logger: (exception) =>
+                        {
+                            _logger.Error("Exception on send task: {@Exception}", exception);
+                            _logger.Warning("Restart sender...");
+                        },
+                        token: default))
                 .ToList();
 
             var receivers = _receivers
                 .Select(
-                    receiver => Task.Run(
-                        () => StartReceiverAsync(receiver)
-                            .RestartJobOnFailAsync(
-                                job: () => StartReceiverAsync(receiver),
-                                logger: (exception) =>
-                                {
-                                    _logger.Error("Exception on receive task: {@Exception}", exception);
-                                    _logger.Warning("Restart receiver...");
-                                })))
+                    receiver => TaskUtils.RunWithRestartOnFail(
+                        job: () => StartReceiverAsync(receiver),
+                        logger: (exception) =>
+                        {
+                            _logger.Error("Exception on receive task: {@Exception}", exception);
+                            _logger.Warning("Restart receiver...");
+                        },
+                        token: default))
                 .ToList();
 
             var workers = Enumerable

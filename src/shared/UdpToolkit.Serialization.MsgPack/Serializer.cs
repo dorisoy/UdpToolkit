@@ -21,11 +21,6 @@
             return MessagePackSerializer.Deserialize<T>(bytes, ContractlessStandardResolver.Options);
         }
 
-        public object Deserialize(Type type, ArraySegment<byte> bytes)
-        {
-            return MessagePackSerializer.Deserialize(type, bytes);
-        }
-
         public T Deserialize<T>(ArraySegment<byte> bytes)
         {
             return MessagePackSerializer.Deserialize<T>(bytes);
