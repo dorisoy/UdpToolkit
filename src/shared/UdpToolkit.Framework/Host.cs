@@ -27,7 +27,10 @@ namespace UdpToolkit.Framework
 
         private readonly IPeerManager _peerManager;
         private readonly IDataGramBuilder _dataGramBuilder;
+
         private readonly ISubscriptionManager _subscriptionManager;
+        private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
+
         private readonly IRoomManager _roomManager;
 
         public Host(
@@ -41,7 +44,8 @@ namespace UdpToolkit.Framework
             IPeerManager peerManager,
             IDataGramBuilder dataGramBuilder,
             IServerHostClient serverHostClient,
-            IRoomManager roomManager)
+            IRoomManager roomManager,
+            IProtocolSubscriptionManager protocolSubscriptionManager)
         {
             _workers = workers;
             _serializer = serializer;
@@ -53,6 +57,7 @@ namespace UdpToolkit.Framework
             _dataGramBuilder = dataGramBuilder;
             ServerHostClient = serverHostClient;
             _roomManager = roomManager;
+            _protocolSubscriptionManager = protocolSubscriptionManager;
             _inputQueue = inputQueue;
 
             foreach (var receiver in _receivers)
@@ -190,7 +195,12 @@ namespace UdpToolkit.Framework
             var bytes = networkPacket.Serializer();
             var subscription = _subscriptionManager.GetSubscription(hookId: networkPacket.HookId);
 
-            subscription(bytes, networkPacket.PeerId, _serializer, _dataGramBuilder, networkPacket.ChannelType.Map());
+            subscription(
+                bytes: bytes,
+                peerId: networkPacket.PeerId,
+                serializer: _serializer,
+                dataGramBuilder: _dataGramBuilder,
+                udpMode: networkPacket.ChannelType.Map());
         }
 
         private void OnUdpPacketReceived(NetworkPacket networkPacket)
@@ -262,40 +272,85 @@ namespace UdpToolkit.Framework
                 case PacketType.P2P:
                     break;
                 case PacketType.Connect:
-                    var onConnect = _subscriptionManager
-                        .GetSubscription(hookId: networkPacket.HookId);
+                    _protocolSubscriptionManager.OnConnect(networkPacket.PeerId, networkPacket.Serializer());
 
-                    onConnect(
-                        bytes: networkPacket.Serializer(),
-                        serializer: _serializer,
-                        dataGramBuilder: _dataGramBuilder,
-                        peerId: networkPacket.PeerId,
-                        udpMode: UdpMode.ReliableUdp);
-
-                    break;
-                case PacketType.Disconnect:
-                    var onDisconnect = _subscriptionManager.GetSubscription(networkPacket.HookId);
-                    onDisconnect(
-                        bytes: networkPacket.Serializer(),
-                        peerId: networkPacket.PeerId,
-                        serializer: _serializer,
-                        dataGramBuilder: _dataGramBuilder,
-                        udpMode: UdpMode.ReliableUdp);
-                    break;
-                case PacketType.Disconnected:
-                    break;
-                case PacketType.Connected:
-                    var onConnected = _subscriptionManager
-                        .GetSubscription(networkPacket.HookId);
-
-                    var result = _peerManager
+                    var connect = _peerManager
                         .Get(networkPacket.PeerId)
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (result.HasValue)
+                    if (connect.HasValue)
                     {
-                        onConnected(
+                        var onConnect = _subscriptionManager
+                            .GetSubscription(hookId: networkPacket.HookId);
+
+                        onConnect?.Invoke(
+                            bytes: networkPacket.Serializer(),
+                            serializer: _serializer,
+                            dataGramBuilder: _dataGramBuilder,
+                            peerId: networkPacket.PeerId,
+                            udpMode: UdpMode.ReliableUdp);
+                    }
+
+                    break;
+                case PacketType.Disconnect:
+                    var disconnect = _peerManager
+                        .Get(networkPacket.PeerId)
+                        .GetChannel(ChannelType.ReliableUdp)
+                        .HandleAck(networkPacket);
+
+                    if (disconnect.HasValue)
+                    {
+                        var onDisconnect = _subscriptionManager
+                            .GetSubscription(networkPacket.HookId);
+
+                        onDisconnect?.Invoke(
+                            bytes: networkPacket.Serializer(),
+                            peerId: networkPacket.PeerId,
+                            serializer: _serializer,
+                            dataGramBuilder: _dataGramBuilder,
+                            udpMode: UdpMode.ReliableUdp);
+
+                        _protocolSubscriptionManager.OnDisconnect(networkPacket.PeerId, networkPacket.Serializer());
+                    }
+
+                    break;
+                case PacketType.Disconnected:
+                    var disconnected = _peerManager
+                        .Get(networkPacket.PeerId)
+                        .GetChannel(ChannelType.ReliableUdp)
+                        .HandleAck(networkPacket);
+
+                    if (disconnected.HasValue)
+                    {
+                        var onDisconnected = _subscriptionManager
+                            .GetSubscription(networkPacket.HookId);
+
+                        onDisconnected?.Invoke(
+                            serializer: _serializer,
+                            dataGramBuilder: _dataGramBuilder,
+                            bytes: networkPacket.Serializer(),
+                            peerId: networkPacket.PeerId,
+                            udpMode: UdpMode.ReliableUdp);
+
+                        _protocolSubscriptionManager.OnDisconnected(networkPacket.PeerId, networkPacket.Serializer());
+                    }
+
+                    break;
+                case PacketType.Connected:
+                    _protocolSubscriptionManager.OnConnected(networkPacket.PeerId, networkPacket.Serializer());
+
+                    var connected = _peerManager
+                        .Get(networkPacket.PeerId)
+                        .GetChannel(ChannelType.ReliableUdp)
+                        .HandleAck(networkPacket);
+
+                    if (connected.HasValue)
+                    {
+                        var onConnected = _subscriptionManager
+                            .GetSubscription(networkPacket.HookId);
+
+                        onConnected?.Invoke(
                             serializer: _serializer,
                             dataGramBuilder: _dataGramBuilder,
                             bytes: networkPacket.Serializer(),
@@ -305,7 +360,7 @@ namespace UdpToolkit.Framework
 
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new ArgumentOutOfRangeException($"Unsupported packet type {packetType}!");
             }
         }
     }

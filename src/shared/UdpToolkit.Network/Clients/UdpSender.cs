@@ -4,7 +4,6 @@ namespace UdpToolkit.Network.Clients
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Protocol;
 
     public sealed class UdpSender : IUdpSender
     {

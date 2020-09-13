@@ -25,7 +25,7 @@
 
             var serverHostClient = host.ServerHostClient;
 
-            serverHostClient.Connect(TimeSpan.FromSeconds(5));
+            serverHostClient.Connect();
 
 #pragma warning disable
             // serverHostClient.Disconnect();

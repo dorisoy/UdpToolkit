@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using UdpToolkit.Core;
 
     public interface IPeerManager
     {

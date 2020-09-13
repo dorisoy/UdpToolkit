@@ -12,7 +12,7 @@ namespace UdpToolkit.Core
 
         void Stop();
 
-        void OnCore<TCoreEvent>(Subscription subscription, byte hookId);
+        void OnCore<TEvent>(Subscription subscription, byte hookId);
 
         void PublishCore<TResponse>(DataGram<TResponse> dataGram, UdpMode udpMode, Func<TResponse, byte[]> serializer);
     }

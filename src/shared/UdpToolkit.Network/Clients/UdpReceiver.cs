@@ -1,12 +1,10 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
-    using System.Net;
     using System.Net.Sockets;
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Protocol;
 
     public sealed class UdpReceiver : IUdpReceiver
     {

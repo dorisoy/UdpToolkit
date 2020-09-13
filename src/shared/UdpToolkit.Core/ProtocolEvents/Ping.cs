@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Protocol
+namespace UdpToolkit.Core.ProtocolEvents
 {
     public sealed class Ping
     {

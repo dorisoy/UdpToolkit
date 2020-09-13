@@ -5,9 +5,9 @@ namespace UdpToolkit.Core
 
     public interface IServerHostClient
     {
-        void Connect(TimeSpan timeout);
+        void Connect();
 
-        void Disconnect(TimeSpan timeout);
+        void Disconnect();
 
         void Publish<TEvent>(TEvent @event, byte hookId, UdpMode udpMode);
 

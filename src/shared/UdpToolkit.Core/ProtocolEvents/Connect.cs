@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Protocol
+namespace UdpToolkit.Core.ProtocolEvents
 {
     using System.Collections.Generic;
     using System.Linq;

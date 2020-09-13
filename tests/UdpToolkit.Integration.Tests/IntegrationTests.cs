@@ -30,7 +30,6 @@ namespace UdpToolkit.Integration.Tests
         public void ClientServer(UdpMode udpMode)
         {
             var expectedPayload = "pong";
-            var connectionTimeout = TimeSpan.FromSeconds(5);
             var waitCallBackTimeout = TimeSpan.FromSeconds(10);
 
             var serverInputPorts = Gen.GenerateUdpPorts(count: 2);
@@ -45,12 +44,11 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: serverInputPorts);
 
 #pragma warning disable 4014
-            Task.Run(() => serverHost.RunAsync());
-            Task.Run(() => clientHost.RunAsync());
+            Task.Run(() => serverHost.RunHostAsync());
+            Task.Run(() => clientHost.RunHostAsync());
 #pragma warning restore 4014
 
-            var client = clientHost.ServerHostClient;
-            client.Connect(connectionTimeout);
+            clientHost.ConnectInternal();
 
             var waitCallback = new ManualResetEvent(initialState: false);
 
@@ -63,7 +61,7 @@ namespace UdpToolkit.Integration.Tests
                 },
                 hookId: 0);
 
-            Task.Run(() => client.Publish(
+            Task.Run(() => clientHost.ServerHostClient.Publish(
                 @event: new Ping("ping"),
                 hookId: 0,
                 udpMode: udpMode));
@@ -95,11 +93,11 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: Array.Empty<int>());
 
 #pragma warning disable 4014
-            Task.Run(() => client1Host.RunAsync());
-            Task.Run(() => client2Host.RunAsync());
+            Task.Run(() => client1Host.RunHostAsync());
+            Task.Run(() => client2Host.RunHostAsync());
 #pragma warning restore 4014
 
-            client1Host.ServerHostClient.Connect(timeout);
+            client1Host.ServerHostClient.Connect();
 
             string actualPayload = null;
             client2Host.On<Ping>(
@@ -132,7 +130,7 @@ namespace UdpToolkit.Integration.Tests
                 outputPorts: serverOutputPorts);
 
             var host = serverHost;
-            Task.Run(() => host.RunAsync());
+            Task.Run(() => host.RunHostAsync());
 
             serverHost.Stop();
             serverHost.Dispose();

@@ -3,12 +3,9 @@ namespace UdpToolkit.Framework
     using System;
     using System.Linq;
     using System.Net;
-    using Serilog;
     using UdpToolkit.Core;
-    using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Protocol;
     using UdpToolkit.Network.Queues;
 
     public sealed class HostBuilder : IHostBuilder
@@ -41,7 +38,6 @@ namespace UdpToolkit.Framework
         public IHost Build()
         {
             var udpClientFactory = new UdpClientFactory();
-            var dateTimeProvider = new DateTimeProvider();
 
             var servers = _serverHostClientSettings.ServerPorts
                 .Select(port =>
@@ -96,7 +92,12 @@ namespace UdpToolkit.Framework
                 peerManager: peerManager,
                 roomManager: roomManager);
 
-            var host = new Host(
+            var protocolSubscriptionManager = new ProtocolSubscriptionManager(
+                peerManager: peerManager,
+                serializer: _hostSettings.Serializer);
+
+            return new Host(
+                protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,
                 serverHostClient: hostClient,
                 dataGramBuilder: dataGramBuilder,
@@ -108,30 +109,6 @@ namespace UdpToolkit.Framework
                 inputQueue: inputQueue,
                 senders: senders,
                 receivers: receivers);
-
-            host.OnProtocolInternal<Connect, Connected>(
-                handler: (peerId, connect, builder) =>
-                {
-                    Log.Logger.Information($"Connected with id - {peerId}");
-
-                    peerManager.Create(peerId: peerId, peerIps: connect.GetPeerIps());
-
-                    return builder.Caller(new Connected(), peerId, (byte)PacketType.Connect);
-                },
-                hookId: (byte)PacketType.Connect);
-
-            host.OnProtocolInternal<Disconnect, Disconnected>(
-                handler: (peerId, disconnect, builder) =>
-                {
-                    Log.Logger.Information($"Peer with id - {peerId} disconnected");
-
-                    peerManager.Remove(peerId: peerId);
-
-                    return builder.Caller(new Disconnected(), peerId, (byte)PacketType.Disconnect);
-                },
-                hookId: (byte)PacketType.Disconnect);
-
-            return host;
         }
     }
 }

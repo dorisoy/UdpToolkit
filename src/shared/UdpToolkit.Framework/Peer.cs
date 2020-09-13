@@ -12,33 +12,23 @@ namespace UdpToolkit.Framework
 
         private Peer(
             Guid peerId,
-            DateTimeOffset lastActivityAt,
-            DateTimeOffset createdAt,
             List<IPEndPoint> peerIps,
             IReadOnlyDictionary<ChannelType, IChannel> channels)
         {
             PeerId = peerId;
-            LastActivityAt = lastActivityAt;
-            CreatedAt = createdAt;
             _channels = channels;
             PeerIps = peerIps;
         }
 
         public Guid PeerId { get; }
 
-        public DateTimeOffset CreatedAt { get; }
-
         public List<IPEndPoint> PeerIps { get; }
-
-        public DateTimeOffset LastActivityAt { get; }
 
         public static Peer New(Guid peerId, List<IPEndPoint> peerIps)
         {
             return new Peer(
                 peerId: peerId,
                 peerIps: peerIps,
-                lastActivityAt: DateTimeOffset.UtcNow,
-                createdAt: DateTimeOffset.UtcNow,
                 channels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),
