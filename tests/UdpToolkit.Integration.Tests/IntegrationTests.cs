@@ -23,7 +23,7 @@ namespace UdpToolkit.Integration.Tests
                 .CreateLogger();
         }
 
-        [Theory]
+        [Theory(Timeout = 10_000)]
         [InlineData(UdpMode.Udp)]
         [InlineData(UdpMode.Sequenced)]
         [InlineData(UdpMode.ReliableUdp)]
@@ -44,8 +44,8 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: serverInputPorts);
 
 #pragma warning disable 4014
-            Task.Run(() => serverHost.RunHostAsync());
-            Task.Run(() => clientHost.RunHostAsync());
+            Task.Run(() => serverHost.RunAsync());
+            Task.Run(() => clientHost.RunAsync());
 #pragma warning restore 4014
 
             clientHost.ConnectInternal();
@@ -93,8 +93,8 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: Array.Empty<int>());
 
 #pragma warning disable 4014
-            Task.Run(() => client1Host.RunHostAsync());
-            Task.Run(() => client2Host.RunHostAsync());
+            Task.Run(() => client1Host.RunAsync());
+            Task.Run(() => client2Host.RunAsync());
 #pragma warning restore 4014
 
             client1Host.ServerHostClient.Connect();
@@ -130,7 +130,7 @@ namespace UdpToolkit.Integration.Tests
                 outputPorts: serverOutputPorts);
 
             var host = serverHost;
-            Task.Run(() => host.RunHostAsync());
+            Task.Run(() => host.RunAsync());
 
             serverHost.Stop();
             serverHost.Dispose();

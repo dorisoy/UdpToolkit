@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
+    using UdpToolkit.Core;
 
     public class RoomManager : IRoomManager
     {

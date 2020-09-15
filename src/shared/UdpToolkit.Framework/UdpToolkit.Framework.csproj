@@ -8,13 +8,4 @@
       <ProjectReference Include="..\UdpToolkit.Core\UdpToolkit.Core.csproj" />
       <ProjectReference Include="..\UdpToolkit.Network\UdpToolkit.Network.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-            <_Parameter1>UdpToolkit.Core.Tests</_Parameter1>
-        </AssemblyAttribute>
-        <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-            <_Parameter1>UdpToolkit.Integration.Tests</_Parameter1>
-        </AssemblyAttribute>
-    </ItemGroup>
 </Project>

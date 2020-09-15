@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit.Core
 {
     using System;
     using System.Collections.Generic;
@@ -13,8 +13,8 @@ namespace UdpToolkit.Framework
 
         void RemovePeer(Guid peerId);
 
-        Peer GetPeer(Guid peerId);
+        IPeer GetPeer(Guid peerId);
 
-        IEnumerable<Peer> GetPeers();
+        IEnumerable<IPeer> GetPeers();
     }
 }

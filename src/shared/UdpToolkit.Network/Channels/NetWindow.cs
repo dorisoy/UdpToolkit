@@ -8,7 +8,7 @@ namespace UdpToolkit.Network.Channels
         private readonly ushort?[] _ids;
         private readonly PacketData[] _networkPackets;
 
-        private ushort _next;
+        private ushort _maxId;
 
         public NetWindow(int windowSize)
         {
@@ -19,7 +19,7 @@ namespace UdpToolkit.Network.Channels
 
         public int Size => _windowSize;
 
-        public ushort Next() => ++_next;
+        public ushort Next() => ++_maxId;
 
         public bool CanSet(ushort id)
         {
@@ -61,6 +61,11 @@ namespace UdpToolkit.Network.Channels
             var index = (int)networkPacket.ChannelHeader.Id % _windowSize;
             _ids[index] = networkPacket.ChannelHeader.Id;
             _networkPackets[index] = new PacketData(networkPacket, false);
+
+            if (networkPacket.ChannelHeader.Id > _maxId)
+            {
+                _maxId = networkPacket.ChannelHeader.Id;
+            }
         }
     }
 }

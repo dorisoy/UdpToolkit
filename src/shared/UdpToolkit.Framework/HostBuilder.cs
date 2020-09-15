@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
@@ -37,16 +38,18 @@ namespace UdpToolkit.Framework
 
         public IHost Build()
         {
+            var me = Guid.NewGuid();
+            var peerManager = new PeerManager();
             var udpClientFactory = new UdpClientFactory();
 
-            var servers = _serverHostClientSettings.ServerPorts
+            var serverIps = _serverHostClientSettings.ServerPorts
                 .Select(port =>
                     new IPEndPoint(
                         address: IPAddress.Parse(ipString: _serverHostClientSettings.ServerHost),
                         port: port))
                 .ToArray();
 
-            var randomServerSelector = new RandomServerSelector(servers: servers);
+            var randomServerSelector = new RandomServerSelector(serverIps);
 
             var udpProtocol = new UdpProtocol();
 
@@ -74,13 +77,13 @@ namespace UdpToolkit.Framework
                 .Select(udpClient => new UdpReceiver(receiver: udpClient, udpProtocol: udpProtocol))
                 .ToList();
 
-            var peerManager = new PeerManager();
             var subscriptionManager = new SubscriptionManager();
 
-            var hostClient = new ServerHostClient(
-                subscriptionManager: subscriptionManager,
-                peerManager: peerManager,
-                peerIps: inputPorts,
+            peerManager.Create(me, inputPorts);
+
+            var serverHostClient = new ServerHostClient(
+                me: me,
+                ips: _hostSettings.InputPorts.ToList(),
                 outputQueue: outputQueue,
                 serverSelector: randomServerSelector,
                 serializer: _hostSettings.Serializer);
@@ -88,19 +91,22 @@ namespace UdpToolkit.Framework
             var roomManager = new RoomManager(
                 peerManager: peerManager);
 
-            var dataGramBuilder = new DataGramBuilder(
+            var dataGramBuilder = new DatagramBuilder(
+                me: me,
+                serverSelector: randomServerSelector,
                 peerManager: peerManager,
                 roomManager: roomManager);
 
             var protocolSubscriptionManager = new ProtocolSubscriptionManager(
+                datagramBuilder: dataGramBuilder,
                 peerManager: peerManager,
                 serializer: _hostSettings.Serializer);
 
             return new Host(
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,
-                serverHostClient: hostClient,
-                dataGramBuilder: dataGramBuilder,
+                serverHostClient: serverHostClient,
+                datagramBuilder: dataGramBuilder,
                 workers: _hostSettings.Workers,
                 peerManager: peerManager,
                 subscriptionManager: subscriptionManager,

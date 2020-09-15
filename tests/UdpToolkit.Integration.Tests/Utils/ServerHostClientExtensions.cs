@@ -14,13 +14,14 @@ namespace UdpToolkit.Integration.Tests.Utils
             serverHostClient.Connect();
             var manualResetEvent = new ManualResetEvent(initialState: false);
 
-            host.OnProtocolInternal<Connected>(
+            host.On<Connected>(
                 handler: (guid, @event) =>
                 {
                     manualResetEvent.Set();
                 },
-                hookId: (byte)PacketType.Connected);
-            manualResetEvent.WaitOne();
+                packetType: PacketType.Connected);
+
+            manualResetEvent.WaitOne(5000);
         }
     }
 }

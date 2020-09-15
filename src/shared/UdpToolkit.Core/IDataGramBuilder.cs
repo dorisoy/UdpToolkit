@@ -2,18 +2,20 @@ namespace UdpToolkit.Core
 {
     using System;
 
-    public interface IDataGramBuilder
+    public interface IDatagramBuilder
     {
-        DataGram<TResp> All<TResp>(TResp response, byte hookId);
+        Datagram<TEvent> ToServer<TEvent>(TEvent @event, byte hookId);
 
-        DataGram<TResp> AllExcept<TResp>(TResp response, Guid peerId, byte hookId);
+        Datagram<TEvent> All<TEvent>(TEvent @event, byte hookId);
 
-        DataGram<TResp> Room<TResp>(TResp response, byte roomId, byte hookId);
+        Datagram<TEvent> AllExcept<TEvent>(TEvent @event, Guid peerId, byte hookId);
 
-        DataGram<TResp> RoomExcept<TResp>(TResp response, byte roomId, Guid peerId, byte hookId);
+        Datagram<TEvent> Room<TEvent>(TEvent @event, byte roomId, byte hookId);
 
-        DataGram<TResp> Caller<TResp>(TResp response, byte roomId, Guid peerId, byte hookId);
+        Datagram<TEvent> RoomExcept<TEvent>(TEvent @event, byte roomId, Guid peerId, byte hookId);
 
-        DataGram<TResp> Caller<TResp>(TResp response, Guid peerId, byte hookId);
+        Datagram<TEvent> Caller<TEvent>(TEvent @event, byte roomId, Guid peerId, byte hookId);
+
+        Datagram<TEvent> Caller<TEvent>(TEvent @event, Guid peerId, byte hookId);
     }
 }

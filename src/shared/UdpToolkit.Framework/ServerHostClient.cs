@@ -15,44 +15,37 @@ namespace UdpToolkit.Framework
     {
         private readonly IAsyncQueue<NetworkPacket> _outputQueue;
         private readonly IServerSelector _serverSelector;
+        private readonly List<int> _ips;
         private readonly ISerializer _serializer;
-        private readonly List<IPEndPoint> _peerIps;
-        private readonly IPeerManager _peerManager;
-        private readonly ISubscriptionManager _subscriptionManager;
-
-        private readonly Guid _me;
 
         public ServerHostClient(
             IAsyncQueue<NetworkPacket> outputQueue,
             IServerSelector serverSelector,
+            List<int> ips,
             ISerializer serializer,
-            List<IPEndPoint> peerIps,
-            IPeerManager peerManager,
-            ISubscriptionManager subscriptionManager)
+            Guid me)
         {
             _outputQueue = outputQueue;
             _serverSelector = serverSelector;
+            _ips = ips;
             _serializer = serializer;
-            _peerIps = peerIps;
-            _peerManager = peerManager;
-            _subscriptionManager = subscriptionManager;
-
-            _me = Guid.NewGuid();
+            Me = me;
         }
+
+        public Guid Me { get; }
 
         public void Connect()
         {
-            _peerManager.Create(_me, _peerIps);
-
-            var inputPorts = _peerIps
-                .Select(x => x.Port)
-                .ToList();
-
-            var host = _peerIps.First().Address.ToString();
-            var @event = new Connect(host, inputPorts);
+            var host = _serverSelector.GetServer().Address.ToString();
+            var @event = new Connect(host, _ips);
             var serverIp = _serverSelector.GetServer();
 
-            PublishInternal(@event: @event, ipEndPoint: serverIp, hookId: (byte)PacketType.Connect, udpMode: UdpMode.ReliableUdp, serializer: _serializer.SerializeContractLess);
+            PublishInternal(
+                @event: @event,
+                ipEndPoint: serverIp,
+                hookId: (byte)PacketType.Connect,
+                udpMode: UdpMode.ReliableUdp,
+                serializer: _serializer.SerializeContractLess);
         }
 
         public void Disconnect()
@@ -60,26 +53,53 @@ namespace UdpToolkit.Framework
             var serverIp = _serverSelector.GetServer();
             var @event = new Disconnect();
 
-            PublishInternal(@event: @event, ipEndPoint: serverIp, hookId: (byte)PacketType.Disconnect, udpMode: UdpMode.ReliableUdp, serializer: _serializer.SerializeContractLess);
+            PublishInternal(
+                @event: @event,
+                ipEndPoint: serverIp,
+                hookId: (byte)PacketType.Disconnect,
+                udpMode: UdpMode.ReliableUdp,
+                serializer: _serializer.SerializeContractLess);
         }
 
-        public void Publish<TEvent>(TEvent @event, byte hookId, UdpMode udpMode)
+        public void Publish<TEvent>(
+            TEvent @event,
+            byte hookId,
+            UdpMode udpMode)
         {
             var serverIp = _serverSelector.GetServer();
 
-            PublishInternal(@event: @event, ipEndPoint: serverIp, hookId: hookId, udpMode: udpMode, _serializer.Serialize);
+            PublishInternal(
+                @event: @event,
+                ipEndPoint: serverIp,
+                hookId: hookId,
+                udpMode: udpMode,
+                _serializer.Serialize);
         }
 
-        public void PublishP2P<TEvent>(TEvent @event, IPEndPoint ipEndPoint, byte hookId, UdpMode udpMode)
+        public void PublishP2P<TEvent>(
+            TEvent @event,
+            IPEndPoint ipEndPoint,
+            byte hookId,
+            UdpMode udpMode)
         {
-            PublishInternal(@event: @event, ipEndPoint: ipEndPoint, hookId: hookId, udpMode: udpMode, _serializer.Serialize);
+            PublishInternal(
+                @event: @event,
+                ipEndPoint: ipEndPoint,
+                hookId: hookId,
+                udpMode: udpMode,
+                _serializer.Serialize);
         }
 
-        private void PublishInternal<TEvent>(TEvent @event, IPEndPoint ipEndPoint, byte hookId, UdpMode udpMode, Func<TEvent, byte[]> serializer)
+        private void PublishInternal<TEvent>(
+            TEvent @event,
+            IPEndPoint ipEndPoint,
+            byte hookId,
+            UdpMode udpMode,
+            Func<TEvent, byte[]> serializer)
         {
-            _outputQueue.Produce(new NetworkPacket(
+            _outputQueue.Produce(@event: new NetworkPacket(
                 channelType: udpMode.Map(),
-                peerId: _me,
+                peerId: Me,
                 channelHeader: default,
                 serializer: () => serializer(@event),
                 ipEndPoint: ipEndPoint,

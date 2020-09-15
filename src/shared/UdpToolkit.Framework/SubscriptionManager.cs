@@ -15,7 +15,8 @@ namespace UdpToolkit.Framework
 
         public Subscription GetSubscription(byte hookId)
         {
-            return _subscriptions[hookId];
+            _subscriptions.TryGetValue(hookId, out var value);
+            return value;
         }
     }
 }

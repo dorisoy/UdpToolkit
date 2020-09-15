@@ -1,7 +1,6 @@
 namespace UdpToolkit.Framework
 {
     using System;
-    using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
 
@@ -10,9 +9,10 @@ namespace UdpToolkit.Framework
         private static readonly Random Random = new Random();
         private readonly IPEndPoint[] _servers;
 
-        public RandomServerSelector(IPEndPoint[] servers)
+        public RandomServerSelector(
+            IPEndPoint[] servers)
         {
-            _servers = servers.ToArray();
+            _servers = servers;
         }
 
         public IPEndPoint GetServer()

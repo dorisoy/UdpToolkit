@@ -3,9 +3,10 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using UdpToolkit.Core;
     using UdpToolkit.Network.Channels;
 
-    public sealed class Peer
+    public sealed class Peer : IPeer
     {
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _channels;
         private readonly Random _random = new Random();

@@ -7,6 +7,7 @@ namespace UdpToolkit.Core
         byte[] bytes,
         Guid peerId,
         ISerializer serializer,
-        IDataGramBuilder dataGramBuilder,
+        IRoomManager roomManager,
+        IDatagramBuilder datagramBuilder,
         UdpMode udpMode);
 }

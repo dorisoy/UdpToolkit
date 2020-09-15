@@ -5,6 +5,7 @@ namespace UdpToolkit.Framework
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using UdpToolkit.Core;
 
     public class Room : IRoom
     {
@@ -34,12 +35,12 @@ namespace UdpToolkit.Framework
             _roomPeers.Remove(peerId, out _);
         }
 
-        public Peer GetPeer(Guid peerId)
+        public IPeer GetPeer(Guid peerId)
         {
             return _roomPeers[peerId];
         }
 
-        public IEnumerable<Peer> GetPeers()
+        public IEnumerable<IPeer> GetPeers()
         {
             return _roomPeers.Select(x => x.Value);
         }

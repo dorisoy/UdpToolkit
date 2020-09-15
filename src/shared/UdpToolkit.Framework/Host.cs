@@ -26,7 +26,7 @@ namespace UdpToolkit.Framework
         private readonly IEnumerable<IUdpReceiver> _receivers;
 
         private readonly IPeerManager _peerManager;
-        private readonly IDataGramBuilder _dataGramBuilder;
+        private readonly IDatagramBuilder _datagramBuilder;
 
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
@@ -42,7 +42,7 @@ namespace UdpToolkit.Framework
             IEnumerable<IUdpReceiver> receivers,
             ISubscriptionManager subscriptionManager,
             IPeerManager peerManager,
-            IDataGramBuilder dataGramBuilder,
+            IDatagramBuilder datagramBuilder,
             IServerHostClient serverHostClient,
             IRoomManager roomManager,
             IProtocolSubscriptionManager protocolSubscriptionManager)
@@ -54,7 +54,7 @@ namespace UdpToolkit.Framework
             _receivers = receivers;
             _subscriptionManager = subscriptionManager;
             _peerManager = peerManager;
-            _dataGramBuilder = dataGramBuilder;
+            _datagramBuilder = datagramBuilder;
             ServerHostClient = serverHostClient;
             _roomManager = roomManager;
             _protocolSubscriptionManager = protocolSubscriptionManager;
@@ -119,16 +119,36 @@ namespace UdpToolkit.Framework
             _subscriptionManager.Subscribe<TEvent>(hookId, subscription);
         }
 
-        public void PublishCore<TResponse>(DataGram<TResponse> dataGram, UdpMode udpMode, Func<TResponse, byte[]> serializer)
+        public void PublishCore<TEvent>(Func<IDatagramBuilder, Datagram<TEvent>> datagramFactory, UdpMode udpMode)
         {
-            foreach (var peer in dataGram.Peers)
+            var datagram = datagramFactory(_datagramBuilder);
+
+            foreach (var peer in datagram.Peers)
             {
                 _outputQueue.Produce(
                     @event: new NetworkPacket(
                         channelHeader: default,
-                        serializer: () => serializer(dataGram.Response),
+                        serializer: () => _serializer.Serialize(datagram.Event),
                         ipEndPoint: peer.IpEndPoint,
-                        hookId: dataGram.HookId,
+                        hookId: datagram.HookId,
+                        channelType: udpMode.Map(),
+                        peerId: peer.PeerId));
+            }
+        }
+
+        public void PublishInternal<TEvent>(
+            Datagram<TEvent> datagram,
+            UdpMode udpMode,
+            Func<TEvent, byte[]> serializer)
+        {
+            foreach (var peer in datagram.Peers)
+            {
+                _outputQueue.Produce(
+                    @event: new NetworkPacket(
+                        channelHeader: default,
+                        serializer: () => serializer(datagram.Event),
+                        ipEndPoint: peer.IpEndPoint,
+                        hookId: datagram.HookId,
                         channelType: udpMode.Map(),
                         peerId: peer.PeerId));
             }
@@ -199,7 +219,8 @@ namespace UdpToolkit.Framework
                 bytes: bytes,
                 peerId: networkPacket.PeerId,
                 serializer: _serializer,
-                dataGramBuilder: _dataGramBuilder,
+                roomManager: _roomManager,
+                datagramBuilder: _datagramBuilder,
                 udpMode: networkPacket.ChannelType.Map());
         }
 
@@ -272,7 +293,7 @@ namespace UdpToolkit.Framework
                 case PacketType.P2P:
                     break;
                 case PacketType.Connect:
-                    _protocolSubscriptionManager.OnConnect(networkPacket.PeerId, networkPacket.Serializer());
+                    _protocolSubscriptionManager.OnConnect(networkPacket.PeerId, networkPacket.Serializer(), this);
 
                     var connect = _peerManager
                         .Get(networkPacket.PeerId)
@@ -287,7 +308,8 @@ namespace UdpToolkit.Framework
                         onConnect?.Invoke(
                             bytes: networkPacket.Serializer(),
                             serializer: _serializer,
-                            dataGramBuilder: _dataGramBuilder,
+                            roomManager: _roomManager,
+                            datagramBuilder: _datagramBuilder,
                             peerId: networkPacket.PeerId,
                             udpMode: UdpMode.ReliableUdp);
                     }
@@ -308,10 +330,11 @@ namespace UdpToolkit.Framework
                             bytes: networkPacket.Serializer(),
                             peerId: networkPacket.PeerId,
                             serializer: _serializer,
-                            dataGramBuilder: _dataGramBuilder,
+                            roomManager: _roomManager,
+                            datagramBuilder: _datagramBuilder,
                             udpMode: UdpMode.ReliableUdp);
 
-                        _protocolSubscriptionManager.OnDisconnect(networkPacket.PeerId, networkPacket.Serializer());
+                        _protocolSubscriptionManager.OnDisconnect(networkPacket.PeerId, networkPacket.Serializer(), this);
                     }
 
                     break;
@@ -328,7 +351,8 @@ namespace UdpToolkit.Framework
 
                         onDisconnected?.Invoke(
                             serializer: _serializer,
-                            dataGramBuilder: _dataGramBuilder,
+                            roomManager: _roomManager,
+                            datagramBuilder: _datagramBuilder,
                             bytes: networkPacket.Serializer(),
                             peerId: networkPacket.PeerId,
                             udpMode: UdpMode.ReliableUdp);
@@ -352,7 +376,8 @@ namespace UdpToolkit.Framework
 
                         onConnected?.Invoke(
                             serializer: _serializer,
-                            dataGramBuilder: _dataGramBuilder,
+                            roomManager: _roomManager,
+                            datagramBuilder: _datagramBuilder,
                             bytes: networkPacket.Serializer(),
                             peerId: networkPacket.PeerId,
                             udpMode: UdpMode.ReliableUdp);

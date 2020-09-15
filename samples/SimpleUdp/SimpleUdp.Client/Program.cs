@@ -4,13 +4,16 @@
     using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
+    using SimpleUdp.Contracts;
     using UdpToolkit.Core;
+    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Framework;
+    using UdpToolkit.Network.Channels;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
-        public static void Main()
+        public static async Task Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
@@ -18,6 +21,20 @@
                 .CreateLogger();
 
             var host = BuildHost();
+
+            host.On<Connected>(
+                handler: (peerId, connected) =>
+                {
+                    Log.Logger.Information($"New peer connected - {peerId}");
+                },
+                packetType: PacketType.Connected);
+
+            host.On<JoinedEvent>(
+                handler: (peerId, joinedEvent) =>
+                {
+                    Log.Logger.Information($"{joinedEvent.Nickname} joined to room {peerId}!");
+                },
+                hookId: 1);
 
 #pragma warning disable
             Task.Run(() => host.RunAsync());
@@ -27,9 +44,11 @@
 
             serverHostClient.Connect();
 
-#pragma warning disable
-            // serverHostClient.Disconnect();
-#pragma warning restore
+            await Task.Delay(5000).ConfigureAwait(false);
+
+            host.Publish(
+                datagramFactory: (builder) => builder.ToServer(new JoinEvent(0, "keygen"), 0),
+                udpMode: UdpMode.ReliableUdp);
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();

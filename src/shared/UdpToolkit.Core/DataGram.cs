@@ -4,21 +4,21 @@ namespace UdpToolkit.Core
     using System.Collections.Generic;
     using System.Net;
 
-    public readonly struct DataGram<TResp>
+    public readonly struct Datagram<TEvent>
     {
-        public DataGram(
-            TResp response,
+        public Datagram(
+            TEvent @event,
             IEnumerable<ShortPeer> peers,
             byte hookId)
         {
-            Response = response;
+            Event = @event;
             Peers = peers;
             HookId = hookId;
         }
 
         public byte HookId { get; }
 
-        public TResp Response { get; }
+        public TEvent Event { get; }
 
         public IEnumerable<ShortPeer> Peers { get; }
     }

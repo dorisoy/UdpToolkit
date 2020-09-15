@@ -7,13 +7,4 @@
   <ItemGroup>
     <ProjectReference Include="..\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>UdpToolkit.Core.Tests</_Parameter1>
-    </AssemblyAttribute>
-    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
-      <_Parameter1>UdpToolkit.Integration.Tests</_Parameter1>
-    </AssemblyAttribute>
-  </ItemGroup>
 </Project>
