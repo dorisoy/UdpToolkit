@@ -2,7 +2,6 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
@@ -17,27 +16,26 @@ namespace UdpToolkit.Framework
         private readonly IServerSelector _serverSelector;
         private readonly List<int> _ips;
         private readonly ISerializer _serializer;
+        private readonly IPeer _me;
 
         public ServerHostClient(
             IAsyncQueue<NetworkPacket> outputQueue,
             IServerSelector serverSelector,
             List<int> ips,
             ISerializer serializer,
-            Guid me)
+            IPeer me)
         {
             _outputQueue = outputQueue;
             _serverSelector = serverSelector;
             _ips = ips;
             _serializer = serializer;
-            Me = me;
+            _me = me;
         }
-
-        public Guid Me { get; }
 
         public void Connect()
         {
-            var host = _serverSelector.GetServer().Address.ToString();
-            var @event = new Connect(host, _ips);
+            var hostAddress = _serverSelector.GetServer().Address.ToString();
+            var @event = new Connect(hostAddress, _ips);
             var serverIp = _serverSelector.GetServer();
 
             PublishInternal(
@@ -99,7 +97,7 @@ namespace UdpToolkit.Framework
         {
             _outputQueue.Produce(@event: new NetworkPacket(
                 channelType: udpMode.Map(),
-                peerId: Me,
+                peerId: _me.PeerId,
                 channelHeader: default,
                 serializer: () => serializer(@event),
                 ipEndPoint: ipEndPoint,

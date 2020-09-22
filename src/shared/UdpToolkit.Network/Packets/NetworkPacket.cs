@@ -33,5 +33,7 @@ namespace UdpToolkit.Network.Packets
         public Func<byte[]> Serializer { get; }
 
         public IPEndPoint IpEndPoint { get; }
+
+        public PacketType Type => (PacketType)HookId;
     }
 }

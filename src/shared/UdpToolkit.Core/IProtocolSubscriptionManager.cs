@@ -4,6 +4,10 @@ namespace UdpToolkit.Core
 
     public interface IProtocolSubscriptionManager
     {
+        void OnPong(Guid peerId, byte[] bytes, IHost host);
+
+        void OnPing(Guid peerId, byte[] bytes, IHost host);
+
         void OnConnect(Guid peerId, byte[] bytes, IHost host);
 
         void OnConnected(Guid peerId, byte[] bytes);

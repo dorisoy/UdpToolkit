@@ -13,15 +13,45 @@ namespace UdpToolkit.Framework
         private readonly IPeerManager _peerManager;
         private readonly ISerializer _serializer;
         private readonly IDatagramBuilder _datagramBuilder;
+        private readonly IDateTimeProvider _dateTimeProvider;
 
         public ProtocolSubscriptionManager(
             IPeerManager peerManager,
             ISerializer serializer,
-            IDatagramBuilder datagramBuilder)
+            IDatagramBuilder datagramBuilder,
+            IDateTimeProvider dateTimeProvider)
         {
             _peerManager = peerManager;
             _serializer = serializer;
             _datagramBuilder = datagramBuilder;
+            _dateTimeProvider = dateTimeProvider;
+        }
+
+        public void OnPong(Guid peerId, byte[] bytes, IHost host)
+        {
+            _logger.Debug($"{PacketType.Pong}");
+
+            var peer = _peerManager.Get(peerId);
+            peer.OnPong(_dateTimeProvider.UtcNow());
+            _logger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
+        }
+
+        public void OnPing(Guid peerId, byte[] bytes, IHost host)
+        {
+            _logger.Debug($"{PacketType.Ping}");
+
+            var peer = _peerManager.Get(peerId);
+            peer.OnPing(_dateTimeProvider.UtcNow());
+
+            var datagram = _datagramBuilder.Caller(
+                @event: new Pong(),
+                peerId: peerId,
+                hookId: (byte)PacketType.Pong);
+
+            host.PublishInternal(
+                datagram: datagram,
+                udpMode: UdpMode.ReliableUdp,
+                serializer: _serializer.SerializeContractLess);
         }
 
         public void OnConnect(Guid peerId, byte[] bytes, IHost host)
@@ -57,8 +87,6 @@ namespace UdpToolkit.Framework
         {
             _logger.Debug($"{PacketType.Disconnect}");
 
-            var disconnect = _serializer.DeserializeContractLess<Disconnect>(bytes);
-
             var datagram = _datagramBuilder.Caller(
                 @event: new Disconnected(peerId),
                 peerId: peerId,
@@ -76,8 +104,7 @@ namespace UdpToolkit.Framework
         {
             _logger.Debug($"{PacketType.Disconnected}");
 
-            var disconnected = _serializer.DeserializeContractLess<Disconnected>(bytes);
-            _peerManager.Remove(disconnected.PeerId);
+            _peerManager.Remove(peerId);
         }
     }
 }

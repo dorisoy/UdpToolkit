@@ -25,6 +25,10 @@ namespace UdpToolkit.Framework
 
         public List<IPEndPoint> PeerIps { get; }
 
+        public DateTimeOffset LastPing { get; private set; }
+
+        public DateTimeOffset LastPong { get; private set; }
+
         public static Peer New(Guid peerId, List<IPEndPoint> peerIps)
         {
             return new Peer(
@@ -43,6 +47,18 @@ namespace UdpToolkit.Framework
         {
             return PeerIps[_random.Next(0, PeerIps.Count - 1)];
         }
+
+        public void OnPing(DateTimeOffset dateTimeOffset)
+        {
+            LastPing = dateTimeOffset;
+        }
+
+        public void OnPong(DateTimeOffset dateTimeOffset)
+        {
+            LastPong = dateTimeOffset;
+        }
+
+        public TimeSpan GetRtt() => LastPong - LastPing;
 
         public IChannel GetChannel(ChannelType channelType) => _channels[channelType];
     }

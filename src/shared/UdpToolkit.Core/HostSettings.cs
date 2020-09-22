@@ -13,6 +13,8 @@ namespace UdpToolkit.Core
 
         public ISerializer Serializer { get; set; }
 
+        public int? PingDelayInMs { get; set; }
+
         public string Host { get; set; }
     }
 }

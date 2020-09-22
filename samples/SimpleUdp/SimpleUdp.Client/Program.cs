@@ -65,6 +65,7 @@
                     settings.InputPorts = new[] { 5000, 5001 };
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
+                    settings.PingDelayInMs = 2000;
                 })
                 .ConfigureServerHostClient((settings) =>
                 {

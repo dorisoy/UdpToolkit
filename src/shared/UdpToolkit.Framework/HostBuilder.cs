@@ -1,7 +1,6 @@
 namespace UdpToolkit.Framework
 {
     using System;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
@@ -40,6 +39,7 @@ namespace UdpToolkit.Framework
         {
             var me = Guid.NewGuid();
             var peerManager = new PeerManager();
+            var dateTimeProvider = new DateTimeProvider();
             var udpClientFactory = new UdpClientFactory();
 
             var serverIps = _serverHostClientSettings.ServerPorts
@@ -81,13 +81,6 @@ namespace UdpToolkit.Framework
 
             peerManager.Create(me, inputPorts);
 
-            var serverHostClient = new ServerHostClient(
-                me: me,
-                ips: _hostSettings.InputPorts.ToList(),
-                outputQueue: outputQueue,
-                serverSelector: randomServerSelector,
-                serializer: _hostSettings.Serializer);
-
             var roomManager = new RoomManager(
                 peerManager: peerManager);
 
@@ -98,14 +91,25 @@ namespace UdpToolkit.Framework
                 roomManager: roomManager);
 
             var protocolSubscriptionManager = new ProtocolSubscriptionManager(
+                dateTimeProvider: dateTimeProvider,
                 datagramBuilder: dataGramBuilder,
                 peerManager: peerManager,
                 serializer: _hostSettings.Serializer);
 
+            var serverHostClient = new ServerHostClient(
+                me: peerManager.Get(me),
+                ips: _hostSettings.InputPorts.ToList(),
+                outputQueue: outputQueue,
+                serverSelector: randomServerSelector,
+                serializer: _hostSettings.Serializer);
+
             return new Host(
+                pingDelayMs: _hostSettings.PingDelayInMs,
+                serverHostClient: serverHostClient,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,
-                serverHostClient: serverHostClient,
+                me: peerManager.Get(me),
+                serverSelector: randomServerSelector,
                 datagramBuilder: dataGramBuilder,
                 workers: _hostSettings.Workers,
                 peerManager: peerManager,

@@ -8,5 +8,11 @@ namespace UdpToolkit.Core
         Guid PeerId { get; }
 
         IPEndPoint GetRandomIp();
+
+        void OnPing(DateTimeOffset dateTimeOffset);
+
+        void OnPong(DateTimeOffset dateTimeOffset);
+
+        TimeSpan GetRtt();
     }
 }

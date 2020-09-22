@@ -1,6 +1,6 @@
 namespace UdpToolkit.Core.ProtocolEvents
 {
-    public class Pong
+    public sealed class Pong
     {
     }
 }

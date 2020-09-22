@@ -90,6 +90,26 @@ namespace UdpToolkit.Framework
 
         public static void On<TEvent, TResponse>(
             this IHost host,
+            Func<Guid, TEvent, IDatagramBuilder, Datagram<TResponse>> handler,
+            PacketType packetType)
+        {
+#pragma warning disable
+            if (host == null) throw new ArgumentNullException(nameof(host));
+#pragma warning restore
+
+            host.OnCore<TEvent>(
+                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
+                {
+                    var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
+                    var dataGram = handler(peerId, @event, builder);
+
+                    host.PublishInternal(datagram: dataGram, udpMode: udpMode, serializer.SerializeContractLess);
+                },
+                (byte)packetType);
+        }
+
+        public static void On<TEvent, TResponse>(
+            this IHost host,
             Func<Guid, TEvent, IRoomManager, IDatagramBuilder, Datagram<TResponse>> handler,
             byte hookId)
         {
