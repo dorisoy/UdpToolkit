@@ -1,4 +1,3 @@
-#pragma warning disable
 namespace UdpToolkit.Framework
 {
     using System;
@@ -107,14 +106,14 @@ namespace UdpToolkit.Framework
                         token: default))
                 .ToList();
 
-            // var ping = TaskUtils.RunWithRestartOnFail(
-            //     job: () => StartPingHost(),
-            //     logger: (exception) =>
-            //     {
-            //         _logger.Error("Exception on ping task: {@Exception}", exception);
-            //         _logger.Warning("Restart ping tak...");
-            //     },
-            //     token: default);
+            var ping = TaskUtils.RunWithRestartOnFail(
+                job: () => StartPingHost(),
+                logger: (exception) =>
+                {
+                    _logger.Error("Exception on ping task: {@Exception}", exception);
+                    _logger.Warning("Restart ping tak...");
+                },
+                token: default);
 
             var workers = Enumerable
                 .Range(0, _workers)
@@ -123,9 +122,8 @@ namespace UdpToolkit.Framework
 
             var tasks = senders
                 .Concat(receivers)
-                .Concat(workers);
-
-                // .Concat(new[] { ping });
+                .Concat(workers)
+                .Concat(new[] { ping });
 
             _logger.Information($"{nameof(Host)} running...");
 
@@ -208,13 +206,16 @@ namespace UdpToolkit.Framework
 
             while (!token.IsCancellationRequested)
             {
-                _outputQueue.Produce(@event: new NetworkPacket(
-                    channelType: ChannelType.ReliableUdp,
-                    peerId: _me.PeerId,
-                    channelHeader: default,
-                    serializer: () => _serializer.SerializeContractLess(@event: new Ping()),
-                    ipEndPoint: _serverSelector.GetServer(),
-                    hookId: (byte)PacketType.Ping));
+                if (_serverHostClient.IsConnected)
+                {
+                    _outputQueue.Produce(@event: new NetworkPacket(
+                        channelType: ChannelType.ReliableUdp,
+                        peerId: _me.PeerId,
+                        channelHeader: default,
+                        serializer: () => _serializer.SerializeContractLess(@event: new Ping()),
+                        ipEndPoint: _serverSelector.GetServer(),
+                        hookId: (byte)PacketType.Ping));
+                }
 
                 await Task.Delay(_pingDelayMs.Value, token).ConfigureAwait(false);
             }
