@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Packets
 
     public interface IUdpProtocol
     {
-        bool TryGetInputPacket(ArraySegment<byte> bytes, IPEndPoint ipEndPoint, out NetworkPacket networkPacket);
+        NetworkPacket GetNetworkPacket(ArraySegment<byte> bytes, IPEndPoint ipEndPoint);
 
         byte[] GetBytes(NetworkPacket networkPacket);
     }

@@ -2,7 +2,6 @@ namespace UdpToolkit.Core
 {
     using System;
     using System.Threading.Tasks;
-    using UdpToolkit.Serialization;
 
     public interface IHost : IDisposable
     {

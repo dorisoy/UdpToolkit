@@ -13,13 +13,13 @@ namespace UdpToolkit.Network.Channels
             return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
         }
 
-        public NetworkPacket? TryHandleOutputPacket(
+        public NetworkPacket TryHandleOutputPacket(
             NetworkPacket networkPacket)
         {
             return networkPacket;
         }
 
-        public NetworkPacket? HandleAck(
+        public NetworkPacket HandleAck(
             NetworkPacket networkPacket)
         {
             throw new NotImplementedException();

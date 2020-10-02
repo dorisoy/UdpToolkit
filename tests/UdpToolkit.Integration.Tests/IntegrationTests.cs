@@ -48,7 +48,7 @@ namespace UdpToolkit.Integration.Tests
             Task.Run(() => clientHost.RunAsync());
 #pragma warning restore 4014
 
-            clientHost.ConnectInternal();
+            clientHost.ServerHostClient.Connect();
 
             var waitCallback = new ManualResetEvent(initialState: false);
 

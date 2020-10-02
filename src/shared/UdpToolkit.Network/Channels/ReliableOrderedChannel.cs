@@ -13,12 +13,12 @@ namespace UdpToolkit.Network.Channels
             throw new System.NotImplementedException();
         }
 
-        public NetworkPacket? TryHandleOutputPacket(NetworkPacket networkPacket)
+        public NetworkPacket TryHandleOutputPacket(NetworkPacket networkPacket)
         {
             throw new System.NotImplementedException();
         }
 
-        public NetworkPacket? HandleAck(
+        public NetworkPacket HandleAck(
             NetworkPacket networkPacket)
         {
             throw new System.NotImplementedException();

@@ -5,7 +5,9 @@ namespace UdpToolkit.Core
 
     public interface IServerHostClient
     {
-        void Connect();
+        bool IsConnected { get; }
+
+        bool Connect();
 
         void Disconnect();
 

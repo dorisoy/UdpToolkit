@@ -4,7 +4,7 @@ namespace UdpToolkit.Network.Packets
     using System.Net;
     using UdpToolkit.Network.Channels;
 
-    public readonly struct NetworkPacket
+    public class NetworkPacket
     {
         public NetworkPacket(
             ChannelHeader channelHeader,

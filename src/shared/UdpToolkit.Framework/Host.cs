@@ -1,3 +1,4 @@
+#pragma warning disable
 namespace UdpToolkit.Framework
 {
     using System;
@@ -37,6 +38,7 @@ namespace UdpToolkit.Framework
         private readonly IRoomManager _roomManager;
         private readonly IPeer _me;
         private readonly IServerSelector _serverSelector;
+        private readonly ServerHostClient _serverHostClient;
 
         public Host(
             int workers,
@@ -53,7 +55,7 @@ namespace UdpToolkit.Framework
             IPeer me,
             IServerSelector serverSelector,
             IProtocolSubscriptionManager protocolSubscriptionManager,
-            IServerHostClient serverHostClient)
+            ServerHostClient serverHostClient)
         {
             _workers = workers;
             _pingDelayMs = pingDelayMs;
@@ -64,7 +66,7 @@ namespace UdpToolkit.Framework
             _subscriptionManager = subscriptionManager;
             _peerManager = peerManager;
             _datagramBuilder = datagramBuilder;
-            ServerHostClient = serverHostClient;
+            _serverHostClient = serverHostClient;
             _roomManager = roomManager;
             _me = me;
             _serverSelector = serverSelector;
@@ -77,7 +79,7 @@ namespace UdpToolkit.Framework
             }
         }
 
-        public IServerHostClient ServerHostClient { get; }
+        public IServerHostClient ServerHostClient => _serverHostClient;
 
         public async Task RunAsync()
         {
@@ -105,14 +107,14 @@ namespace UdpToolkit.Framework
                         token: default))
                 .ToList();
 
-            var ping = TaskUtils.RunWithRestartOnFail(
-                job: () => StartPingHost(),
-                logger: (exception) =>
-                {
-                    _logger.Error("Exception on ping task: {@Exception}", exception);
-                    _logger.Warning("Restart ping tak...");
-                },
-                token: default);
+            // var ping = TaskUtils.RunWithRestartOnFail(
+            //     job: () => StartPingHost(),
+            //     logger: (exception) =>
+            //     {
+            //         _logger.Error("Exception on ping task: {@Exception}", exception);
+            //         _logger.Warning("Restart ping tak...");
+            //     },
+            //     token: default);
 
             var workers = Enumerable
                 .Range(0, _workers)
@@ -121,8 +123,9 @@ namespace UdpToolkit.Framework
 
             var tasks = senders
                 .Concat(receivers)
-                .Concat(workers)
-                .Concat(new[] { ping });
+                .Concat(workers);
+
+                // .Concat(new[] { ping });
 
             _logger.Information($"{nameof(Host)} running...");
 
@@ -257,10 +260,10 @@ namespace UdpToolkit.Framework
                     .GetChannel(networkPacket.ChannelType)
                     .TryHandleOutputPacket(networkPacket: networkPacket);
 
-                if (packet.HasValue)
+                if (packet != null)
                 {
                     await udpSender
-                        .SendAsync(packet.Value)
+                        .SendAsync(packet)
                         .ConfigureAwait(false);
                 }
             }
@@ -336,9 +339,9 @@ namespace UdpToolkit.Framework
             {
                 var result = channel.HandleAck(networkPacket: networkPacket);
 
-                if (result.HasValue)
+                if (result != null)
                 {
-                    _inputQueue.Produce(result.Value);
+                    _inputQueue.Produce(result);
                 }
                 else
                 {
@@ -380,7 +383,7 @@ namespace UdpToolkit.Framework
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (ping.HasValue)
+                    if (ping != null)
                     {
                         var onPing = _subscriptionManager
                             .GetSubscription(hookId: networkPacket.HookId);
@@ -403,7 +406,7 @@ namespace UdpToolkit.Framework
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (pong.HasValue)
+                    if (pong != null)
                     {
                         var onPong = _subscriptionManager
                             .GetSubscription(hookId: networkPacket.HookId);
@@ -430,7 +433,7 @@ namespace UdpToolkit.Framework
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (connect.HasValue)
+                    if (connect != null)
                     {
                         var onConnect = _subscriptionManager
                             .GetSubscription(hookId: networkPacket.HookId);
@@ -446,6 +449,7 @@ namespace UdpToolkit.Framework
 
                     break;
                 case PacketType.Connected:
+                    _serverHostClient.IsConnected = true;
                     _protocolSubscriptionManager.OnConnected(networkPacket.PeerId, networkPacket.Serializer());
 
                     var connected = _peerManager
@@ -453,7 +457,7 @@ namespace UdpToolkit.Framework
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (connected.HasValue)
+                    if (connected != null)
                     {
                         var onConnected = _subscriptionManager
                             .GetSubscription(networkPacket.HookId);
@@ -474,7 +478,7 @@ namespace UdpToolkit.Framework
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (disconnect.HasValue)
+                    if (disconnect != null)
                     {
                         var onDisconnect = _subscriptionManager
                             .GetSubscription(networkPacket.HookId);
@@ -492,12 +496,13 @@ namespace UdpToolkit.Framework
 
                     break;
                 case PacketType.Disconnected:
+                    _serverHostClient.IsConnected = false;
                     var disconnected = _peerManager
                         .Get(networkPacket.PeerId)
                         .GetChannel(ChannelType.ReliableUdp)
                         .HandleAck(networkPacket);
 
-                    if (disconnected.HasValue)
+                    if (disconnected != null)
                     {
                         var onDisconnected = _subscriptionManager
                             .GetSubscription(networkPacket.HookId);

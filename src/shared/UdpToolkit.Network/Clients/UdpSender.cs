@@ -7,6 +7,7 @@ namespace UdpToolkit.Network.Clients
 
     public sealed class UdpSender : IUdpSender
     {
+        private const int MtuSizeLimit = 3000;
         private readonly ILogger _logger = Log.Logger.ForContext<UdpSender>();
         private readonly IUdpProtocol _udpProtocol;
         private readonly UdpClient _sender;
@@ -29,7 +30,7 @@ namespace UdpToolkit.Network.Clients
         {
             var bytes = _udpProtocol.GetBytes(networkPacket: networkPacket);
 
-            if (bytes.Length > Consts.Mtu)
+            if (bytes.Length > MtuSizeLimit)
             {
                 _logger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
 

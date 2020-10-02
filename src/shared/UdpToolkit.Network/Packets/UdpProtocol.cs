@@ -8,33 +8,20 @@ namespace UdpToolkit.Network.Packets
 
     public sealed class UdpProtocol : IUdpProtocol
     {
-        private readonly ILogger _logger = Log.ForContext<UdpProtocol>();
+        private const int PayloadOffset = 24;
+        private const int PacketTypeIndex = 0;
+        private const int ChannelTypeIndex = 1;
 
-        public UdpProtocol()
+        public NetworkPacket GetNetworkPacket(ArraySegment<byte> bytes, IPEndPoint ipEndPoint)
         {
-        }
+            var hookId = bytes.Array[PacketTypeIndex];
+            var channelType = (ChannelType)bytes.Array[ChannelTypeIndex];
 
-        public bool TryGetInputPacket(
-            ArraySegment<byte> bytes,
-            IPEndPoint ipEndPoint,
-            out NetworkPacket networkPacket)
-        {
-            networkPacket = default;
+            var idBuffer = new byte[16];
+            Buffer.BlockCopy(src: bytes.Array, srcOffset: 2, dst: idBuffer, dstOffset: 0, count: 16);
+            var peerId = new Guid(idBuffer);
 
-#pragma warning disable
-            var hookId = bytes.Array[Consts.PacketTypeIndex];
-            var channelType = (ChannelType)bytes.Array[Consts.ChannelTypeIndex];
-            var peerId = new Guid(new ArraySegment<byte>(bytes.Array,2,16).ToArray());
-#pragma warning restore
-
-            ChannelHeader channelHeader = default;
-
-            var offset = channelType >= ChannelType.ReliableUdp
-                ? 24
-                : 18;
-            if (channelType >= ChannelType.ReliableUdp)
-            {
-                channelHeader = new ChannelHeader(
+            var channelHeader = new ChannelHeader(
                     id: BitConverter.ToUInt16(
                         value: new[]
                         {
@@ -51,23 +38,18 @@ namespace UdpToolkit.Network.Packets
                             bytes.Array[23],
                         },
                         startIndex: 0));
-            }
 
-            var payload = new ArraySegment<byte>(
-                    array: bytes.Array,
-                    offset: offset,
-                    count: bytes.Array.Length - offset)
-                .ToArray();
+            var payloadLength = bytes.Array.Length - PayloadOffset;
+            var payloadBuffer = new byte[payloadLength];
+            Buffer.BlockCopy(src: bytes.Array, srcOffset: PayloadOffset, dst: payloadBuffer, dstOffset: 0, count: payloadLength);
 
-            networkPacket = new NetworkPacket(
+            return new NetworkPacket(
                 channelType: channelType,
                 peerId: peerId,
                 ipEndPoint: ipEndPoint,
                 channelHeader: channelHeader,
-                serializer: () => payload,
+                serializer: () => payloadBuffer,
                 hookId: hookId);
-
-            return true;
         }
 
         public byte[] GetBytes(
@@ -75,25 +57,20 @@ namespace UdpToolkit.Network.Packets
         {
             var protocolHeader = new byte[2];
 
-            protocolHeader[Consts.PacketTypeIndex] = (byte)networkPacket.HookId;
-            protocolHeader[Consts.ChannelTypeIndex] = (byte)networkPacket.ChannelType;
+            protocolHeader[PacketTypeIndex] = (byte)networkPacket.HookId;
+            protocolHeader[ChannelTypeIndex] = (byte)networkPacket.ChannelType;
 
             var peerId = networkPacket.PeerId.ToByteArray();
 
-            var channelHeader = Array.Empty<byte>();
-            if (networkPacket.ChannelType >= ChannelType.ReliableUdp)
-            {
-                var idBytes = BitConverter.GetBytes(networkPacket.ChannelHeader.Id);
-                var acksBytes = BitConverter.GetBytes(networkPacket.ChannelHeader.Acks);
-
-                channelHeader = idBytes.Concat(acksBytes).ToArray();
-            }
+            var idBytes = BitConverter.GetBytes(networkPacket.ChannelHeader.Id);
+            var acksBytes = BitConverter.GetBytes(networkPacket.ChannelHeader.Acks);
 
             var data = networkPacket.Serializer();
 
             return protocolHeader
                 .Concat(peerId)
-                .Concat(channelHeader)
+                .Concat(idBytes)
+                .Concat(acksBytes)
                 .Concat(data)
                 .ToArray();
         }

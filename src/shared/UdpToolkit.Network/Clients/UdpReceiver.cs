@@ -34,18 +34,9 @@ namespace UdpToolkit.Network.Clients
 
                 _logger.Debug($"Packet from - {result.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
 
-                var parseResult = _udpProtocol
-                    .TryGetInputPacket(
+                var networkPacket = _udpProtocol.GetNetworkPacket(
                         bytes: new ArraySegment<byte>(result.Buffer),
-                        ipEndPoint: result.RemoteEndPoint,
-                        out var networkPacket);
-
-                if (!parseResult)
-                {
-                    _logger.Warning("Can't parse received udp packet!");
-
-                    continue;
-                }
+                        ipEndPoint: result.RemoteEndPoint);
 
                 UdpPacketReceived?.Invoke(networkPacket);
             }

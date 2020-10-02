@@ -31,7 +31,7 @@ namespace UdpToolkit.Network.Channels
             return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
         }
 
-        public NetworkPacket? TryHandleOutputPacket(
+        public NetworkPacket TryHandleOutputPacket(
             NetworkPacket networkPacket)
         {
             _sequenceNumber++;
@@ -47,7 +47,7 @@ namespace UdpToolkit.Network.Channels
                 hookId: networkPacket.HookId);
         }
 
-        public NetworkPacket? HandleAck(NetworkPacket networkPacket)
+        public NetworkPacket HandleAck(NetworkPacket networkPacket)
         {
             throw new NotImplementedException();
         }

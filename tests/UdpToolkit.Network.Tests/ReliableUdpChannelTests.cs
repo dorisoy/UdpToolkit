@@ -135,9 +135,9 @@ namespace UdpToolkit.Network.Tests
 
             var result = channel.TryHandleOutputPacket(networkPacket: packet);
 
-            Assert.True(result.HasValue);
-            Assert.Equal(ChannelType.ReliableUdp, result.Value.ChannelType);
-            Assert.Equal(1u, result.Value.ChannelHeader.Id);
+            Assert.NotNull(result);
+            Assert.Equal(ChannelType.ReliableUdp, result.ChannelType);
+            Assert.Equal(1u, result.ChannelHeader.Id);
         }
 
         [Fact]
@@ -153,7 +153,7 @@ namespace UdpToolkit.Network.Tests
                     .GetPendingPackets()
                     .Single();
 
-            Assert.False(results[0].HasValue);
+            Assert.Null(results[0]);
             Assert.Equal(ChannelType.ReliableUdp, pendingPacket.ChannelType);
             Assert.Equal(1u, pendingPacket.ChannelHeader.Id);
         }
@@ -172,9 +172,9 @@ namespace UdpToolkit.Network.Tests
             var firstAckResult = channel.HandleAck(networkPacket: firstAck);
             var secondAckResult = channel.HandleAck(networkPacket: secondAck);
 
-            Assert.True(outputPacketResult.HasValue);
-            Assert.True(firstAckResult.HasValue);
-            Assert.False(secondAckResult.HasValue);
+            Assert.NotNull(outputPacketResult);
+            Assert.NotNull(firstAckResult);
+            Assert.Null(secondAckResult);
         }
     }
 }

@@ -9,10 +9,10 @@ namespace UdpToolkit.Network.Channels
         ChannelResult TryHandleInputPacket(
             NetworkPacket networkPacket);
 
-        NetworkPacket? TryHandleOutputPacket(
+        NetworkPacket TryHandleOutputPacket(
             NetworkPacket networkPacket);
 
-        NetworkPacket? HandleAck(
+        NetworkPacket HandleAck(
             NetworkPacket networkPacket);
 
         IEnumerable<NetworkPacket> GetPendingPackets();

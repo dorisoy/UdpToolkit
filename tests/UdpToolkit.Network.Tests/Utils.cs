@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Tests
                 .ToList();
         }
 
-        public static List<NetworkPacket?> ProcessOutputPackets(
+        public static List<NetworkPacket> ProcessOutputPackets(
             IChannel channel,
             IEnumerable<NetworkPacket> packets)
         {

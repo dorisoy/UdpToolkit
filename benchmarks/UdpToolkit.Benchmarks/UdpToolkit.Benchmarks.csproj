@@ -12,7 +12,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\server\UdpToolkit.Framework.Server\UdpToolkit.Framework.Server.csproj" />
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
     </ItemGroup>
 

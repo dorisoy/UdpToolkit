@@ -13,7 +13,7 @@
 
     public static class Program
     {
-        public static async Task Main()
+        public static void Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
@@ -40,11 +40,8 @@
             Task.Run(() => host.RunAsync());
 #pragma warning restore
 
-            var serverHostClient = host.ServerHostClient;
-
-            serverHostClient.Connect();
-
-            await Task.Delay(5000).ConfigureAwait(false);
+            var isConnected = host.ServerHostClient.Connect();
+            Console.WriteLine($"IsConnected - {isConnected}");
 
             host.Publish(
                 datagramFactory: (builder) => builder.ToServer(new JoinEvent(0, "keygen"), 0),

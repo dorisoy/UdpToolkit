@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network.Channels;
@@ -32,7 +33,9 @@ namespace UdpToolkit.Framework
             _me = me;
         }
 
-        public void Connect()
+        public bool IsConnected { get; internal set; }
+
+        public bool Connect()
         {
             var hostAddress = _serverSelector.GetServer().Address.ToString();
             var @event = new Connect(hostAddress, _ips);
@@ -44,6 +47,8 @@ namespace UdpToolkit.Framework
                 hookId: (byte)PacketType.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: _serializer.SerializeContractLess);
+
+            return SpinWait.SpinUntil(() => IsConnected, TimeSpan.FromSeconds(15)); // TODO move timeout to config
         }
 
         public void Disconnect()

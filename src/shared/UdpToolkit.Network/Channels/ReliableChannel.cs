@@ -36,7 +36,7 @@ namespace UdpToolkit.Network.Channels
             return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
         }
 
-        public NetworkPacket? TryHandleOutputPacket(
+        public NetworkPacket TryHandleOutputPacket(
             NetworkPacket networkPacket)
         {
             var isAck = (PacketType)networkPacket.HookId == PacketType.Ack;
@@ -82,7 +82,7 @@ namespace UdpToolkit.Network.Channels
             }
         }
 
-        public NetworkPacket? HandleAck(NetworkPacket networkPacket)
+        public NetworkPacket HandleAck(NetworkPacket networkPacket)
         {
             if (!_netWindow.IsAcked(networkPacket.ChannelHeader.Id))
             {
