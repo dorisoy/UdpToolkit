@@ -28,7 +28,7 @@ namespace UdpToolkit.Network.Clients
 
         public async Task SendAsync(NetworkPacket networkPacket)
         {
-            var bytes = _udpProtocol.GetBytes(networkPacket: networkPacket);
+            var bytes = _udpProtocol.Serialize(networkPacket: networkPacket);
 
             if (bytes.Length > MtuSizeLimit)
             {

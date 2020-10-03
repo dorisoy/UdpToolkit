@@ -17,7 +17,7 @@ namespace UdpToolkit.Network.Channels
 
         IEnumerable<NetworkPacket> GetPendingPackets();
 
-        void Resend(IAsyncQueue<NetworkPacket> outputQueue);
+        IEnumerable<NetworkPacket> ToResend();
 
         void Flush();
     }

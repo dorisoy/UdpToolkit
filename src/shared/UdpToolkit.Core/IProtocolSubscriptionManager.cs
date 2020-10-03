@@ -4,16 +4,12 @@ namespace UdpToolkit.Core
 
     public interface IProtocolSubscriptionManager
     {
-        void OnPong(Guid peerId, byte[] bytes, IHost host);
+        void SubscribeOnInputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription);
 
-        void OnPing(Guid peerId, byte[] bytes, IHost host);
+        void SubscribeOnOutputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription);
 
-        void OnConnect(Guid peerId, byte[] bytes, IHost host);
+        ProtocolSubscription GetInputSubscription(byte hookId);
 
-        void OnConnected(Guid peerId, byte[] bytes);
-
-        void OnDisconnect(Guid peerId, byte[] bytes, IHost host);
-
-        void OnDisconnected(Guid peerId, byte[] bytes);
+        ProtocolSubscription GetOutputSubscription(byte hookId);
     }
 }

@@ -1,8 +1,10 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Linq;
     using System.Net;
+    using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
@@ -37,10 +39,19 @@ namespace UdpToolkit.Framework
 
         public IHost Build()
         {
-            var me = Guid.NewGuid();
-            var peerManager = new PeerManager();
+            var outputQueue = new BlockingAsyncQueue<NetworkPacket>(
+                boundedCapacity: int.MaxValue);
+
+            var inputQueue = new BlockingAsyncQueue<NetworkPacket>(
+                boundedCapacity: int.MaxValue);
+
+            var peerManager = new PeerManager(outputQueue: outputQueue);
             var dateTimeProvider = new DateTimeProvider();
             var udpClientFactory = new UdpClientFactory();
+
+            var timersPool = new TimersPool(
+                timers: new ConcurrentDictionary<Guid, Lazy<Timer>>(),
+                outputQueue: outputQueue);
 
             var serverIps = _serverHostClientSettings.ServerPorts
                 .Select(port =>
@@ -52,12 +63,6 @@ namespace UdpToolkit.Framework
             var randomServerSelector = new RandomServerSelector(serverIps);
 
             var udpProtocol = new UdpProtocol();
-
-            var outputQueue = new BlockingAsyncQueue<NetworkPacket>(
-                boundedCapacity: int.MaxValue);
-
-            var inputQueue = new BlockingAsyncQueue<NetworkPacket>(
-                boundedCapacity: int.MaxValue);
 
             var outputPorts = _hostSettings.OutputPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
@@ -79,36 +84,38 @@ namespace UdpToolkit.Framework
 
             var subscriptionManager = new SubscriptionManager();
 
-            peerManager.Create(me, inputPorts);
-
             var roomManager = new RoomManager(
                 peerManager: peerManager);
 
-            var dataGramBuilder = new DatagramBuilder(
-                me: me,
-                serverSelector: randomServerSelector,
-                peerManager: peerManager,
-                roomManager: roomManager);
-
-            var protocolSubscriptionManager = new ProtocolSubscriptionManager(
-                dateTimeProvider: dateTimeProvider,
-                datagramBuilder: dataGramBuilder,
-                peerManager: peerManager,
-                serializer: _hostSettings.Serializer);
-
             var serverHostClient = new ServerHostClient(
-                me: peerManager.Get(me),
+                resendPacketsTimeout: _serverHostClientSettings.ResendPacketsTimeout,
+                connectionTimeout: _serverHostClientSettings.ConnectionTimeout,
+                timersPool: timersPool,
+                dateTimeProvider: dateTimeProvider,
                 ips: _hostSettings.InputPorts.ToList(),
                 outputQueue: outputQueue,
                 serverSelector: randomServerSelector,
                 serializer: _hostSettings.Serializer);
 
+            var dataGramBuilder = new DatagramBuilder(
+                serverHostClient: serverHostClient,
+                serverSelector: randomServerSelector,
+                peerManager: peerManager,
+                roomManager: roomManager);
+
+            var protocolSubscriptionManager = new ProtocolSubscriptionManager();
+
+            protocolSubscriptionManager.BootstrapSubscriptions();
+
             return new Host(
+                resendPacketsTimeout: _hostSettings.ResendPacketsTimeout,
+                dateTimeProvider: dateTimeProvider,
+                timersPool: timersPool,
+                rawPeerManager: peerManager,
                 pingDelayMs: _hostSettings.PingDelayInMs,
                 serverHostClient: serverHostClient,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,
-                me: peerManager.Get(me),
                 serverSelector: randomServerSelector,
                 datagramBuilder: dataGramBuilder,
                 workers: _hostSettings.Workers,

@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Clients
 
                 _logger.Debug($"Packet from - {result.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
 
-                var networkPacket = _udpProtocol.GetNetworkPacket(
+                var networkPacket = _udpProtocol.Deserialize(
                         bytes: new ArraySegment<byte>(result.Buffer),
                         ipEndPoint: result.RemoteEndPoint);
 

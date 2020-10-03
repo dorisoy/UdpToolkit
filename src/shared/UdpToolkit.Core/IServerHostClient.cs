@@ -7,9 +7,9 @@ namespace UdpToolkit.Core
     {
         bool IsConnected { get; }
 
-        bool Connect();
+        bool Connect(TimeSpan? connectionTimeout = null);
 
-        void Disconnect();
+        bool Disconnect();
 
         void Publish<TEvent>(TEvent @event, byte hookId, UdpMode udpMode);
 

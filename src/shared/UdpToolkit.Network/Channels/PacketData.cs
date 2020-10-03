@@ -1,5 +1,6 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using UdpToolkit.Network.Packets;
 
     public readonly struct PacketData

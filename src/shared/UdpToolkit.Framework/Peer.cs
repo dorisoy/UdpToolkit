@@ -2,9 +2,13 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
+    using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Queues;
 
     public sealed class Peer : IPeer
     {
@@ -29,7 +33,10 @@ namespace UdpToolkit.Framework
 
         public DateTimeOffset LastPong { get; private set; }
 
-        public static Peer New(Guid peerId, List<IPEndPoint> peerIps)
+        public static Peer New(
+            Guid peerId,
+            List<IPEndPoint> peerIps,
+            IAsyncQueue<NetworkPacket> outputQueue)
         {
             return new Peer(
                 peerId: peerId,
@@ -60,6 +67,13 @@ namespace UdpToolkit.Framework
 
         public TimeSpan GetRtt() => LastPong - LastPing;
 
+        public bool CanBeHandled()
+        {
+            throw new NotImplementedException();
+        }
+
         public IChannel GetChannel(ChannelType channelType) => _channels[channelType];
+
+        public IEnumerable<IChannel> GetChannels() => _channels.Values;
     }
 }

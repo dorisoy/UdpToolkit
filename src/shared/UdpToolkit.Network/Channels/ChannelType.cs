@@ -1,6 +1,6 @@
 namespace UdpToolkit.Network.Channels
 {
-    public enum ChannelType
+    public enum ChannelType : byte
     {
         Udp = 1,
         Sequenced = 2,

@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Channels
 {
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
@@ -29,10 +30,9 @@ namespace UdpToolkit.Network.Channels
             throw new System.NotImplementedException();
         }
 
-        public void Resend(
-            IAsyncQueue<NetworkPacket> outputQueue)
+        public IEnumerable<NetworkPacket> ToResend()
         {
-            throw new System.NotImplementedException();
+            return Enumerable.Empty<NetworkPacket>();
         }
 
         public void Flush()

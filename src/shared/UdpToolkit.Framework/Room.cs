@@ -9,7 +9,7 @@ namespace UdpToolkit.Framework
 
     public class Room : IRoom
     {
-        private readonly ConcurrentDictionary<Guid, Peer> _roomPeers = new ConcurrentDictionary<Guid, Peer>();
+        private readonly ConcurrentDictionary<Guid, IPeer> _roomPeers = new ConcurrentDictionary<Guid, IPeer>();
         private readonly IPeerManager _peerManager;
 
         public Room(
@@ -26,7 +26,12 @@ namespace UdpToolkit.Framework
 
         public void AddPeer(Guid peerId)
         {
-            var peer = _peerManager.Get(peerId: peerId);
+            var exists = _peerManager.TryGetPeer(peerId: peerId, out var peer);
+            if (!exists)
+            {
+                return;
+            }
+
             _roomPeers[peerId] = peer;
         }
 

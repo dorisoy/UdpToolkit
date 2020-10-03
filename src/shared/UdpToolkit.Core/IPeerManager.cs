@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit.Core
 {
     using System;
     using System.Collections.Generic;
@@ -7,14 +7,14 @@ namespace UdpToolkit.Framework
 
     public interface IPeerManager
     {
-        void Create(Guid peerId, List<IPEndPoint> peerIps);
+        IPeer Create(Guid peerId, List<IPEndPoint> peerIps);
 
         void Remove(Guid peerId);
 
         bool Exist(Guid peerId);
 
-        Peer Get(Guid peerId);
+        bool TryGetPeer(Guid peerId, out IPeer peer);
 
-        IEnumerable<Peer> GetAll();
+        IEnumerable<IPeer> GetAll();
     }
 }

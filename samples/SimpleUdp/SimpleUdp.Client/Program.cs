@@ -27,7 +27,7 @@
                 {
                     Log.Logger.Information($"New peer connected - {peerId}");
                 },
-                packetType: PacketType.Connected);
+                protocolHookId: ProtocolHookId.Connected);
 
             host.On<JoinedEvent>(
                 handler: (peerId, joinedEvent) =>
@@ -63,9 +63,12 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.PingDelayInMs = 2000;
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(5);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
                 })

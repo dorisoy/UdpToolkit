@@ -16,7 +16,11 @@ namespace UdpToolkit.Framework
 
         public void JoinOrCreate(ushort roomId, Guid peerId)
         {
-            var peer = _peerManager.Get(peerId);
+            var exists = _peerManager.TryGetPeer(peerId, out var peer);
+            if (!exists)
+            {
+                return;
+            }
 
             _rooms.AddOrUpdate(
                 key: roomId,
@@ -36,7 +40,11 @@ namespace UdpToolkit.Framework
 
         public void JoinOrCreate(ushort roomId, Guid peerId, int limit)
         {
-            var peer = _peerManager.Get(peerId);
+            var exists = _peerManager.TryGetPeer(peerId, out var peer);
+            if (!exists)
+            {
+                return;
+            }
 
             _rooms.AddOrUpdate(
                 key: roomId,
@@ -60,7 +68,11 @@ namespace UdpToolkit.Framework
 
         public void Leave(ushort roomId, Guid peerId)
         {
-            var peer = _peerManager.Get(peerId: peerId);
+            var exists = _peerManager.TryGetPeer(peerId, out var peer);
+            if (!exists)
+            {
+                return;
+            }
 
             _rooms[roomId].RemovePeer(peerId: peer.PeerId);
         }

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Core.ProtocolEvents
 {
     using System;
+    using System.Collections.Generic;
 
     public class Connected
     {

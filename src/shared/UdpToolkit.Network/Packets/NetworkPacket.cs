@@ -12,13 +12,19 @@ namespace UdpToolkit.Network.Packets
             IPEndPoint ipEndPoint,
             byte hookId,
             ChannelType channelType,
-            Guid peerId)
+            Guid peerId,
+            TimeSpan resendTimeout,
+            DateTimeOffset createdAt,
+            Action noAckCallback)
         {
             Serializer = serializer;
             IpEndPoint = ipEndPoint;
             HookId = hookId;
             ChannelType = channelType;
             PeerId = peerId;
+            ResendTimeout = resendTimeout;
+            CreatedAt = createdAt;
+            NoAckCallback = noAckCallback;
             ChannelHeader = channelHeader;
         }
 
@@ -30,10 +36,18 @@ namespace UdpToolkit.Network.Packets
 
         public ChannelHeader ChannelHeader { get; }
 
+        public TimeSpan ResendTimeout { get; }
+
+        public DateTimeOffset CreatedAt { get; }
+
+        public Action NoAckCallback { get; }
+
         public Func<byte[]> Serializer { get; }
 
         public IPEndPoint IpEndPoint { get; }
 
-        public PacketType Type => (PacketType)HookId;
+        public ProtocolHookId ProtocolHookId => (ProtocolHookId)HookId;
+
+        public bool IsExpired() => DateTimeOffset.UtcNow - CreatedAt > ResendTimeout;
     }
 }

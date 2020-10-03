@@ -10,6 +10,9 @@ namespace UdpToolkit.Network.Tests
     public static class Utils
     {
         public static NetworkPacket CreatePacket(byte hookId, ChannelType channelType, ushort id) => new NetworkPacket(
+            createdAt: DateTimeOffset.UtcNow,
+            noAckCallback: () => { },
+            resendTimeout: TimeSpan.FromSeconds(10),
             peerId: Guid.NewGuid(),
             channelHeader: new ChannelHeader(
                 id: id,

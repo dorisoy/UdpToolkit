@@ -36,7 +36,7 @@ namespace UdpToolkit.Integration.Tests
                     receivedPeerId = guid;
                     waitCallback.Set();
                 },
-                packetType: PacketType.Connected);
+                protocolHookId: ProtocolHookId.Connected);
 
 #pragma warning disable 4014
             Task.Run(() => serverHost.RunAsync());
@@ -44,7 +44,7 @@ namespace UdpToolkit.Integration.Tests
 #pragma warning restore 4014
 
             var client = clientHost.ServerHostClient;
-            client.Connect();
+            client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
             waitCallback.WaitOne(timeout: waitCallBackTimeout);
 
@@ -77,7 +77,7 @@ namespace UdpToolkit.Integration.Tests
                     connectedId = guid;
                     waitCallback1.Set();
                 },
-                packetType: PacketType.Connected);
+                protocolHookId: ProtocolHookId.Connected);
 
             Guid? disconnectedId = null;
             clientHost.On<Disconnected>(
@@ -86,7 +86,7 @@ namespace UdpToolkit.Integration.Tests
                     disconnectedId = guid;
                     waitCallback2.Set();
                 },
-                packetType: PacketType.Disconnected);
+                protocolHookId: ProtocolHookId.Disconnected);
 
 #pragma warning disable 4014
             Task.Run(() => serverHost.RunAsync());
@@ -94,7 +94,7 @@ namespace UdpToolkit.Integration.Tests
 #pragma warning restore 4014
 
             var client = clientHost.ServerHostClient;
-            client.Connect();
+            client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
             waitCallback1.WaitOne(timeout: waitCallBackTimeout);
 

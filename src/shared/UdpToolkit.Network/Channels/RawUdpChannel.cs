@@ -30,8 +30,9 @@ namespace UdpToolkit.Network.Channels
             return Enumerable.Empty<NetworkPacket>();
         }
 
-        public void Resend(IAsyncQueue<NetworkPacket> outputQueue)
+        public IEnumerable<NetworkPacket> ToResend()
         {
+            return Enumerable.Empty<NetworkPacket>();
         }
 
         public void Flush()

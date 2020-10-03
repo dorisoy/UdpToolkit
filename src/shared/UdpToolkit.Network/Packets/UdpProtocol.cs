@@ -12,7 +12,7 @@ namespace UdpToolkit.Network.Packets
         private const int PacketTypeIndex = 0;
         private const int ChannelTypeIndex = 1;
 
-        public NetworkPacket GetNetworkPacket(ArraySegment<byte> bytes, IPEndPoint ipEndPoint)
+        public NetworkPacket Deserialize(ArraySegment<byte> bytes, IPEndPoint ipEndPoint)
         {
             var hookId = bytes.Array[PacketTypeIndex];
             var channelType = (ChannelType)bytes.Array[ChannelTypeIndex];
@@ -44,6 +44,9 @@ namespace UdpToolkit.Network.Packets
             Buffer.BlockCopy(src: bytes.Array, srcOffset: PayloadOffset, dst: payloadBuffer, dstOffset: 0, count: payloadLength);
 
             return new NetworkPacket(
+                createdAt: DateTimeOffset.UtcNow,
+                noAckCallback: () => { },
+                resendTimeout: TimeSpan.Zero, // TODO check this value
                 channelType: channelType,
                 peerId: peerId,
                 ipEndPoint: ipEndPoint,
@@ -52,7 +55,7 @@ namespace UdpToolkit.Network.Packets
                 hookId: hookId);
         }
 
-        public byte[] GetBytes(
+        public byte[] Serialize(
             NetworkPacket networkPacket)
         {
             var protocolHeader = new byte[2];

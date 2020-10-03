@@ -37,6 +37,9 @@ namespace UdpToolkit.Network.Channels
             _sequenceNumber++;
 
             return new NetworkPacket(
+                createdAt: networkPacket.CreatedAt,
+                noAckCallback: networkPacket.NoAckCallback,
+                resendTimeout: networkPacket.ResendTimeout,
                 peerId: networkPacket.PeerId,
                 channelHeader: new ChannelHeader(
                     id: _sequenceNumber,
@@ -57,8 +60,9 @@ namespace UdpToolkit.Network.Channels
             return Enumerable.Empty<NetworkPacket>();
         }
 
-        public void Resend(IAsyncQueue<NetworkPacket> outputQueue)
+        public IEnumerable<NetworkPacket> ToResend()
         {
+            return Enumerable.Empty<NetworkPacket>();
         }
 
         public void Flush()

@@ -1,5 +1,6 @@
 namespace UdpToolkit.Core
 {
+    using System;
     using System.Collections.Generic;
     using UdpToolkit.Serialization;
 
@@ -14,6 +15,8 @@ namespace UdpToolkit.Core
         public ISerializer Serializer { get; set; }
 
         public int? PingDelayInMs { get; set; }
+
+        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
         public string Host { get; set; }
     }

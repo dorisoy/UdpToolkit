@@ -39,10 +39,13 @@ namespace UdpToolkit.Network.Channels
         public NetworkPacket TryHandleOutputPacket(
             NetworkPacket networkPacket)
         {
-            var isAck = (PacketType)networkPacket.HookId == PacketType.Ack;
-            if (isAck)
+            if (networkPacket.ProtocolHookId == ProtocolHookId.Ack)
             {
+                // TODO remove new NetworkPacket at here, only update channelHeader
                 var newPacket = new NetworkPacket(
+                    createdAt: networkPacket.CreatedAt,
+                    noAckCallback: networkPacket.NoAckCallback,
+                    resendTimeout: networkPacket.ResendTimeout,
                     peerId: networkPacket.PeerId,
                     channelHeader: new ChannelHeader(
                         id: networkPacket.ChannelHeader.Id,
@@ -56,9 +59,15 @@ namespace UdpToolkit.Network.Channels
 
                 return newPacket;
             }
-            else
-            {
-                var newPacket = new NetworkPacket(
+
+            var exists = _netWindow.TryGetNetworkPacket(networkPacket.ChannelHeader.Id, out var packet);
+
+            var sendingPacket = exists
+                ? packet
+                : new NetworkPacket(
+                    createdAt: networkPacket.CreatedAt,
+                    noAckCallback: networkPacket.NoAckCallback,
+                    resendTimeout: networkPacket.ResendTimeout,
                     peerId: networkPacket.PeerId,
                     channelHeader: new ChannelHeader(
                         id: _netWindow.Next(),
@@ -68,18 +77,20 @@ namespace UdpToolkit.Network.Channels
                     hookId: networkPacket.HookId,
                     channelType: networkPacket.ChannelType);
 
-                if (!_netWindow.CanSet(newPacket.ChannelHeader.Id) && newPacket.HookId < (byte)PacketType.Ping)
-                {
-                    _logger.Warning("Outgoing packet window is exhausted. Expect delays");
-                    _pendingSends.Enqueue(item: newPacket);
+            if (!exists && !_netWindow.CanSet(sendingPacket.ChannelHeader.Id) && sendingPacket.ProtocolHookId < ProtocolHookId.Ping)
+            {
+                _logger.Warning("Outgoing packet window is exhausted. Expect delays");
+                _pendingSends.Enqueue(item: sendingPacket);
 
-                    return null;
-                }
-
-                _netWindow.InsertPacketData(newPacket);
-
-                return newPacket;
+                return null;
             }
+
+            if (!exists)
+            {
+                _netWindow.InsertPacketData(sendingPacket);
+            }
+
+            return sendingPacket;
         }
 
         public NetworkPacket HandleAck(NetworkPacket networkPacket)
@@ -99,21 +110,9 @@ namespace UdpToolkit.Network.Channels
             return _pendingSends.AsEnumerable();
         }
 
-        public void Resend(IAsyncQueue<NetworkPacket> outputQueue)
+        public IEnumerable<NetworkPacket> ToResend()
         {
-            foreach (var pendingPacket in _pendingSends)
-            {
-                outputQueue.Produce(@event: pendingPacket);
-            }
-
-            for (ushort i = 0; i < _netWindow.Size; i++)
-            {
-                // TODO check timeouts and attempts
-                if (_netWindow.TryGetNetworkPacket(i, out var networkPacket))
-                {
-                    outputQueue.Produce(networkPacket);
-                }
-            }
+            return _netWindow.GetLostPackets();
         }
 
         public void Flush()

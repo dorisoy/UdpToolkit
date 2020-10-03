@@ -35,7 +35,7 @@ namespace UdpToolkit.Framework
         public static void On<TEvent>(
             this IHost host,
             Action<Guid, TEvent> handler,
-            PacketType packetType)
+            ProtocolHookId protocolHookId)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
@@ -47,7 +47,7 @@ namespace UdpToolkit.Framework
                     var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
                     handler(peerId, @event);
                 },
-                hookId: (byte)packetType);
+                hookId: (byte)protocolHookId);
         }
 
         public static void On<TEvent>(
@@ -91,7 +91,7 @@ namespace UdpToolkit.Framework
         public static void On<TEvent, TResponse>(
             this IHost host,
             Func<Guid, TEvent, IDatagramBuilder, Datagram<TResponse>> handler,
-            PacketType packetType)
+            ProtocolHookId protocolHookId)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
@@ -105,7 +105,7 @@ namespace UdpToolkit.Framework
 
                     host.PublishInternal(datagram: dataGram, udpMode: udpMode, serializer.SerializeContractLess);
                 },
-                (byte)packetType);
+                (byte)protocolHookId);
         }
 
         public static void On<TEvent, TResponse>(

@@ -9,25 +9,25 @@ namespace UdpToolkit.Framework
         private readonly IPeerManager _peerManager;
         private readonly IRoomManager _roomManager;
         private readonly IServerSelector _serverSelector;
-        private readonly Guid _me;
+        private readonly ServerHostClient _serverHostClient;
 
         public DatagramBuilder(
-            Guid me,
             IPeerManager peerManager,
             IRoomManager roomManager,
-            IServerSelector serverSelector)
+            IServerSelector serverSelector,
+            ServerHostClient serverHostClient)
         {
-            _me = me;
             _peerManager = peerManager;
             _roomManager = roomManager;
             _serverSelector = serverSelector;
+            _serverHostClient = serverHostClient;
         }
 
         public Datagram<TEvent> ToServer<TEvent>(TEvent @event, byte hookId)
         {
             var serverIp = _serverSelector.GetServer();
 
-            return new Datagram<TEvent>(@event, new[] { new ShortPeer(peerId: _me, ipEndPoint: serverIp),  }, hookId);
+            return new Datagram<TEvent>(@event, new[] { new ShortPeer(peerId: _serverHostClient.PeerId, ipEndPoint: serverIp),  }, hookId);
         }
 
         public Datagram<TEvent> All<TEvent>(TEvent @event, byte hookId)
@@ -81,7 +81,7 @@ namespace UdpToolkit.Framework
 
         public Datagram<TEvent> Caller<TEvent>(TEvent @event, Guid peerId, byte hookId)
         {
-            var peer = _peerManager.Get(peerId);
+            var exists = _peerManager.TryGetPeer(peerId, out var peer); // TODO
 
             return new Datagram<TEvent>(@event, new[] { new ShortPeer(peer.PeerId, peer.GetRandomIp()) }, hookId);
         }

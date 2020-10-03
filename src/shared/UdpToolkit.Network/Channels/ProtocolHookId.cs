@@ -2,7 +2,7 @@ namespace UdpToolkit.Network.Channels
 {
     using System;
 
-    public enum PacketType : byte
+    public enum ProtocolHookId : byte
     {
         P2P = 248,
         Ping = 249,
