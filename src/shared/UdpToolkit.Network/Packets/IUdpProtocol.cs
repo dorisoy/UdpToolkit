@@ -6,8 +6,12 @@ namespace UdpToolkit.Network.Packets
 
     public interface IUdpProtocol
     {
-        NetworkPacket Deserialize(ArraySegment<byte> bytes, IPEndPoint ipEndPoint);
+        NetworkPacket Deserialize(
+            ArraySegment<byte> bytes,
+            IPEndPoint ipEndPoint,
+            TimeSpan resendPacketTimeout);
 
-        byte[] Serialize(NetworkPacket networkPacket);
+        byte[] Serialize(
+            NetworkPacket networkPacket);
     }
 }

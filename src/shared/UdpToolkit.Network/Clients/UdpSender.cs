@@ -38,6 +38,7 @@ namespace UdpToolkit.Network.Clients
             }
 
             _logger.Debug($"Packet from - {_sender.Client.LocalEndPoint} to {networkPacket.IpEndPoint} sended");
+            _logger.Debug("Packet sends: {@packet}", networkPacket);
 
             await _sender
                 .SendAsync(bytes, bytes.Length, networkPacket.IpEndPoint)

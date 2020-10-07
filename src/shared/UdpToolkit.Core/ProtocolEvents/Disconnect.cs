@@ -2,7 +2,7 @@ namespace UdpToolkit.Core.ProtocolEvents
 {
     using System;
 
-    public class Disconnect
+    public class Disconnect : IProtocolEvent
     {
         public Disconnect(Guid peerId)
         {

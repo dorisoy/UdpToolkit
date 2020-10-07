@@ -8,7 +8,7 @@ namespace UdpToolkit.Framework
     {
         private readonly ConcurrentDictionary<byte, Subscription> _subscriptions = new ConcurrentDictionary<byte, Subscription>();
 
-        public void Subscribe<TEvent>(byte hookId, Subscription subscription)
+        public void Subscribe(byte hookId, Subscription subscription)
         {
             _subscriptions[hookId] = subscription;
         }

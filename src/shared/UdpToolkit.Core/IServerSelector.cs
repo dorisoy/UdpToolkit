@@ -4,6 +4,6 @@ namespace UdpToolkit.Core
 
     public interface IServerSelector
     {
-        IPEndPoint GetServer();
+        IPeer GetServer();
     }
 }

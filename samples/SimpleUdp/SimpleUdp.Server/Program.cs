@@ -1,5 +1,6 @@
 ﻿namespace SimpleUdp.Server
 {
+    using System;
     using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
@@ -19,14 +20,12 @@
 
             var host = BuildHost();
 
-            host.On<JoinEvent, JoinedEvent>(
-                handler: (peerId, joinEvent, roomManager, builder) =>
+            host.On<JoinEvent>(
+                onEvent: (peerId, joinEvent, roomManager) =>
                 {
                     roomManager.JoinOrCreate(joinEvent.RoomId, peerId);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
-
-                    return builder.Room(new JoinedEvent(joinEvent.Nickname), joinEvent.RoomId, 1);
                 },
                 hookId: 0);
 
@@ -41,13 +40,17 @@
                 .ConfigureHost(settings =>
                 {
                     settings.Host = "0.0.0.0";
+                    settings.Serializer = new Serializer();
                     settings.InputPorts = new[] { 7000, 7001 };
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
-                    settings.Serializer = new Serializer();
+                    settings.PingDelayInMs = null;
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(15);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
                 })

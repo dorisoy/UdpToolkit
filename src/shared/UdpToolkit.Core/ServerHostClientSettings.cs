@@ -12,6 +12,8 @@ namespace UdpToolkit.Core
 
         public string ServerHost { get; set; } = "0.0.0.0";
 
+        public string ClientHost { get; set; } = "0.0.0.0";
+
         public IEnumerable<int> ServerPorts { get; set; } = Enumerable.Empty<int>();
     }
 }

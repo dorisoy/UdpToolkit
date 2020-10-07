@@ -37,9 +37,9 @@ namespace UdpToolkit.Network.Tests
 
             for (ushort i = 0; i < windowSize; i++)
             {
-                var packet = CreatePacket(hookId: 0, channelType: ChannelType.ReliableUdp, id: i);
+                var packet = CreatePacket(hookId: 0, channelType: ChannelType.ReliableUdp, id: i, networkPacketType: NetworkPacketType.UserDefined);
 
-                netWindow.InsertPacketData(packet);
+                netWindow.InsertPacketData(packet, true);
             }
 
             for (ushort i = 0; i < windowSize; i++)
@@ -63,8 +63,8 @@ namespace UdpToolkit.Network.Tests
 
             for (ushort i = 0; i < windowSize * 2; i++)
             {
-                var packet = CreatePacket(hookId: 0, channelType: ChannelType.ReliableUdp, id: i);
-                netWindow.InsertPacketData(packet);
+                var packet = CreatePacket(hookId: 0, channelType: ChannelType.ReliableUdp, id: i, networkPacketType: NetworkPacketType.UserDefined);
+                netWindow.InsertPacketData(packet, true);
             }
 
             for (ushort i = 1024; i < windowSize * 2; i++)

@@ -2,130 +2,79 @@ namespace UdpToolkit.Framework
 {
     using System;
     using UdpToolkit.Core;
+    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network.Channels;
 
     public static class HostExtensions
     {
-        public static void Publish<TEvent>(
-            this IHost host,
-            Func<IDatagramBuilder, Datagram<TEvent>> datagramFactory,
-            UdpMode udpMode)
-        {
-            host.PublishCore(datagramFactory, udpMode);
-        }
-
         public static void On<TEvent>(
             this IHost host,
-            Action<Guid, TEvent> handler,
-            byte hookId)
+            Action<Guid, TEvent> onEvent,
+            byte hookId,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
 #pragma warning restore
 
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                    handler(peerId, @event);
-                },
+            host.OnCore(
+                subscription: new Subscription(
+                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    {
+                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                        onEvent?.Invoke(peerId, @event);
+                    },
+                    onAck: onAck,
+                    onTimeout: onTimeout),
                 hookId: hookId);
         }
 
-        public static void On<TEvent>(
+        public static void OnProtocol<TEvent>(
             this IHost host,
-            Action<Guid, TEvent> handler,
-            ProtocolHookId protocolHookId)
+            Action<Guid, TEvent> onEvent,
+            ProtocolHookId protocolHookId,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
+        where TEvent : IProtocolEvent
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
 #pragma warning restore
 
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
-                    handler(peerId, @event);
-                },
+            host.OnCore(
+                subscription: new Subscription(
+                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    {
+                        var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
+                        onEvent?.Invoke(peerId, @event);
+                    },
+                    onAck: onAck,
+                    onTimeout: onTimeout),
                 hookId: (byte)protocolHookId);
         }
 
         public static void On<TEvent>(
             this IHost host,
-            Action<Guid, TEvent, IRoomManager> handler,
-            byte hookId)
+            byte hookId,
+            Action<Guid, TEvent, IRoomManager> onEvent = null,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
 #pragma warning restore
 
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                    handler(peerId,  @event, roomManager);
-                },
+            host.OnCore(
+                subscription: new Subscription(
+                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    {
+                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                        onEvent?.Invoke(peerId, @event, roomManager);
+                    },
+                    onAck: onAck,
+                    onTimeout: onTimeout),
                 hookId: hookId);
-        }
-
-        public static void On<TEvent, TResponse>(
-            this IHost host,
-            Func<Guid, TEvent, IDatagramBuilder, Datagram<TResponse>> handler,
-            byte hookId)
-        {
-#pragma warning disable
-            if (host == null) throw new ArgumentNullException(nameof(host));
-#pragma warning restore
-
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                    var dataGram = handler(peerId, @event, builder);
-
-                    host.PublishInternal(datagram: dataGram, udpMode: udpMode, serializer.Serialize);
-                },
-                hookId);
-        }
-
-        public static void On<TEvent, TResponse>(
-            this IHost host,
-            Func<Guid, TEvent, IDatagramBuilder, Datagram<TResponse>> handler,
-            ProtocolHookId protocolHookId)
-        {
-#pragma warning disable
-            if (host == null) throw new ArgumentNullException(nameof(host));
-#pragma warning restore
-
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
-                    var dataGram = handler(peerId, @event, builder);
-
-                    host.PublishInternal(datagram: dataGram, udpMode: udpMode, serializer.SerializeContractLess);
-                },
-                (byte)protocolHookId);
-        }
-
-        public static void On<TEvent, TResponse>(
-            this IHost host,
-            Func<Guid, TEvent, IRoomManager, IDatagramBuilder, Datagram<TResponse>> handler,
-            byte hookId)
-        {
-#pragma warning disable
-            if (host == null) throw new ArgumentNullException(nameof(host));
-#pragma warning restore
-
-            host.OnCore<TEvent>(
-                subscription: (bytes, peerId, serializer, roomManager, builder, udpMode) =>
-                {
-                    var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                    var dataGram = handler(peerId, @event, roomManager, builder);
-
-                    host.PublishInternal(datagram: dataGram, udpMode: udpMode, serializer.Serialize);
-                },
-                hookId);
         }
     }
 }

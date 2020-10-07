@@ -1,16 +1,14 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
+    using System.Net;
     using Serilog;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
 
     public sealed class ReliableChannel : IChannel
     {
         private readonly ILogger _logger = Log.Logger.ForContext<ReliableChannel>();
-
-        private readonly Queue<NetworkPacket> _pendingSends = new Queue<NetworkPacket>();
         private readonly NetWindow _netWindow;
 
         public ReliableChannel(int windowSize)
@@ -18,106 +16,68 @@ namespace UdpToolkit.Network.Channels
             _netWindow = new NetWindow(windowSize);
         }
 
-        public ChannelResult TryHandleInputPacket(
+        public bool HandleInputPacket(
             NetworkPacket networkPacket)
         {
             var id = networkPacket.ChannelHeader.Id;
-
             if (!_netWindow.CanSet(id))
             {
-                // ack again
-                _netWindow.TryGetNetworkPacket(id, out var toResend);
-
-                return new ChannelResult(channelState: ChannelState.Resend, networkPacket: toResend);
+                return false;
             }
 
-            _netWindow.InsertPacketData(networkPacket);
+            _netWindow.InsertPacketData(networkPacket: networkPacket, acked: true);
 
-            return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
+            return true;
         }
 
-        public NetworkPacket TryHandleOutputPacket(
+        public NetworkPacket GetAck(
+            NetworkPacket networkPacket,
+            IPEndPoint ipEndPoint)
+        {
+            return new NetworkPacket(
+                channelHeader: new ChannelHeader(
+                    id: networkPacket.ChannelHeader.Id,
+                    acks: networkPacket.ChannelHeader.Acks),
+                serializer: () => Array.Empty<byte>(),
+                ipEndPoint: ipEndPoint,
+                hookId: networkPacket.HookId,
+                channelType: networkPacket.ChannelType,
+                peerId: networkPacket.PeerId,
+                resendTimeout: networkPacket.ResendTimeout,
+                createdAt: networkPacket.CreatedAt,
+                networkPacketType: NetworkPacketType.Ack);
+        }
+
+        public void HandleOutputPacket(
             NetworkPacket networkPacket)
         {
-            if (networkPacket.ProtocolHookId == ProtocolHookId.Ack)
-            {
-                // TODO remove new NetworkPacket at here, only update channelHeader
-                var newPacket = new NetworkPacket(
-                    createdAt: networkPacket.CreatedAt,
-                    noAckCallback: networkPacket.NoAckCallback,
-                    resendTimeout: networkPacket.ResendTimeout,
-                    peerId: networkPacket.PeerId,
-                    channelHeader: new ChannelHeader(
-                        id: networkPacket.ChannelHeader.Id,
-                        acks: FillAcks()),
-                    serializer: networkPacket.Serializer,
-                    ipEndPoint: networkPacket.IpEndPoint,
-                    hookId: networkPacket.HookId,
-                    channelType: networkPacket.ChannelType);
-
-                _netWindow.Ack(newPacket.ChannelHeader.Id);
-
-                return newPacket;
-            }
-
             var exists = _netWindow.TryGetNetworkPacket(networkPacket.ChannelHeader.Id, out var packet);
 
             var sendingPacket = exists
                 ? packet
-                : new NetworkPacket(
-                    createdAt: networkPacket.CreatedAt,
-                    noAckCallback: networkPacket.NoAckCallback,
-                    resendTimeout: networkPacket.ResendTimeout,
-                    peerId: networkPacket.PeerId,
-                    channelHeader: new ChannelHeader(
-                        id: _netWindow.Next(),
-                        acks: FillAcks()),
-                    serializer: networkPacket.Serializer,
-                    ipEndPoint: networkPacket.IpEndPoint,
-                    hookId: networkPacket.HookId,
-                    channelType: networkPacket.ChannelType);
-
-            if (!exists && !_netWindow.CanSet(sendingPacket.ChannelHeader.Id) && sendingPacket.ProtocolHookId < ProtocolHookId.Ping)
-            {
-                _logger.Warning("Outgoing packet window is exhausted. Expect delays");
-                _pendingSends.Enqueue(item: sendingPacket);
-
-                return null;
-            }
+                : networkPacket.SetChannelHeader(new ChannelHeader(
+                    id: _netWindow.Next(),
+                    acks: FillAcks()));
 
             if (!exists)
             {
-                _netWindow.InsertPacketData(sendingPacket);
+                _netWindow.InsertPacketData(networkPacket: sendingPacket, acked: false);
             }
-
-            return sendingPacket;
         }
 
-        public NetworkPacket HandleAck(NetworkPacket networkPacket)
+        public bool HandleAck(NetworkPacket networkPacket)
         {
             if (!_netWindow.IsAcked(networkPacket.ChannelHeader.Id))
             {
-                _netWindow.Ack(networkPacket.ChannelHeader.Id);
-
-                return networkPacket;
+                return _netWindow.AcceptAck(networkPacket.ChannelHeader.Id) != null;
             }
 
-            return null;
-        }
-
-        public IEnumerable<NetworkPacket> GetPendingPackets()
-        {
-            return _pendingSends.AsEnumerable();
+            return false;
         }
 
         public IEnumerable<NetworkPacket> ToResend()
         {
             return _netWindow.GetLostPackets();
-        }
-
-        public void Flush()
-        {
-            _pendingSends.Clear();
         }
 
         private uint FillAcks()

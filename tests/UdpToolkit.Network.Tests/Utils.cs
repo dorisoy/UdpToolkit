@@ -9,9 +9,9 @@ namespace UdpToolkit.Network.Tests
 
     public static class Utils
     {
-        public static NetworkPacket CreatePacket(byte hookId, ChannelType channelType, ushort id) => new NetworkPacket(
+        public static NetworkPacket CreatePacket(byte hookId, ChannelType channelType, NetworkPacketType networkPacketType, ushort id) => new NetworkPacket(
+            networkPacketType: networkPacketType,
             createdAt: DateTimeOffset.UtcNow,
-            noAckCallback: () => { },
             resendTimeout: TimeSpan.FromSeconds(10),
             peerId: Guid.NewGuid(),
             channelHeader: new ChannelHeader(
@@ -24,26 +24,23 @@ namespace UdpToolkit.Network.Tests
             channelType: channelType,
             hookId: hookId);
 
-        public static IEnumerable<NetworkPacket> CreatePackets(byte hookId, int count, ChannelType channelType) => Enumerable
+        public static IEnumerable<NetworkPacket> CreatePackets(byte hookId, int count, ChannelType channelType, NetworkPacketType networkPacketType) => Enumerable
             .Range(1, count)
-            .Select(_ => CreatePacket(hookId, channelType, (ushort)_));
+            .Select(_ => CreatePacket(hookId, channelType, networkPacketType, (ushort)_));
 
-        public static List<ChannelResult> ProcessInputPackets(
+        public static List<bool> ProcessInputPackets(
             IChannel channel,
             IEnumerable<NetworkPacket> packets)
         {
             return packets
-                .Select(channel.TryHandleInputPacket)
+                .Select(channel.HandleInputPacket)
                 .ToList();
         }
 
-        public static List<NetworkPacket> ProcessOutputPackets(
+        public static void ProcessOutputPackets(
             IChannel channel,
             IEnumerable<NetworkPacket> packets)
         {
-            return packets
-                .Select(channel.TryHandleOutputPacket)
-                .ToList();
         }
     }
 }

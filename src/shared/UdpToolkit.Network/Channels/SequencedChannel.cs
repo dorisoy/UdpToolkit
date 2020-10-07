@@ -3,8 +3,8 @@ namespace UdpToolkit.Network.Channels
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
 
     public sealed class SequencedChannel : IChannel
     {
@@ -16,58 +16,46 @@ namespace UdpToolkit.Network.Channels
             _sequenceNumber = 0;
         }
 
-        public ChannelResult TryHandleInputPacket(
+        public bool HandleInputPacket(
             NetworkPacket networkPacket)
         {
             var packetId = networkPacket.ChannelHeader.Id;
             if (packetId <= _sequenceNumber && _received.Contains(item: packetId))
             {
-                // drop packet
-                return new ChannelResult(channelState: ChannelState.Drop, networkPacket: networkPacket);
+                return false;
             }
 
             _received.Add(item: packetId);
 
-            return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
+            return true;
         }
 
-        public NetworkPacket TryHandleOutputPacket(
-            NetworkPacket networkPacket)
-        {
-            _sequenceNumber++;
-
-            return new NetworkPacket(
-                createdAt: networkPacket.CreatedAt,
-                noAckCallback: networkPacket.NoAckCallback,
-                resendTimeout: networkPacket.ResendTimeout,
-                peerId: networkPacket.PeerId,
-                channelHeader: new ChannelHeader(
-                    id: _sequenceNumber,
-                    acks: 0),
-                channelType: networkPacket.ChannelType,
-                serializer: networkPacket.Serializer,
-                ipEndPoint: networkPacket.IpEndPoint,
-                hookId: networkPacket.HookId);
-        }
-
-        public NetworkPacket HandleAck(NetworkPacket networkPacket)
+        public NetworkPacket GetAck(
+            NetworkPacket networkPacket,
+            IPEndPoint ipEndPoint)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<NetworkPacket> GetPendingPackets()
+        public void HandleOutputPacket(
+            NetworkPacket networkPacket)
         {
-            return Enumerable.Empty<NetworkPacket>();
+            _sequenceNumber++;
+
+            networkPacket.SetChannelHeader(new ChannelHeader(
+                id: _sequenceNumber,
+                acks: 0));
+        }
+
+        public bool HandleAck(
+            NetworkPacket networkPacket)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<NetworkPacket> ToResend()
         {
             return Enumerable.Empty<NetworkPacket>();
-        }
-
-        public void Flush()
-        {
-            throw new NotImplementedException();
         }
     }
 }

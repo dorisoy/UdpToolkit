@@ -21,31 +21,44 @@
                 .CreateLogger();
 
             var host = BuildHost();
+            var client = host.ServerHostClient;
+            var nickname = "keygen";
 
-            host.On<Connected>(
-                handler: (peerId, connected) =>
+            host.OnProtocol<Connect>(
+                onEvent: (peerId, connected) =>
                 {
-                    Log.Logger.Information($"New peer connected - {peerId}");
+                    Log.Logger.Information($"Must be raised only on server side");
                 },
-                protocolHookId: ProtocolHookId.Connected);
+                onAck: (peerId) =>
+                {
+                    Log.Logger.Information($"{nickname} connected with peerId - {peerId}");
+                },
+                onTimeout: (peerId) =>
+                {
+                    Log.Logger.Information($"Connection timeout - {peerId}");
+                },
+                protocolHookId: ProtocolHookId.Connect);
 
-            host.On<JoinedEvent>(
-                handler: (peerId, joinedEvent) =>
+            host.On<JoinEvent>(
+                onAck: (peerId) =>
                 {
-                    Log.Logger.Information($"{joinedEvent.Nickname} joined to room {peerId}!");
+                    Log.Logger.Information($"{nickname} joined to room!");
                 },
-                hookId: 1);
+                hookId: 0);
 
 #pragma warning disable
             Task.Run(() => host.RunAsync());
 #pragma warning restore
 
-            var isConnected = host.ServerHostClient.Connect();
-            Console.WriteLine($"IsConnected - {isConnected}");
+            var isConnected = client
+                .Connect();
 
-            host.Publish(
-                datagramFactory: (builder) => builder.ToServer(new JoinEvent(0, "keygen"), 0),
+            client.Publish(
+                @event: new JoinEvent(roomId: 0, nickname: "keygen"),
+                hookId: 0,
                 udpMode: UdpMode.ReliableUdp);
+
+            Console.WriteLine($"IsConnected - {isConnected}");
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -62,13 +75,13 @@
                     settings.InputPorts = new[] { 5000, 5001 };
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
-                    settings.PingDelayInMs = 2000;
+                    settings.PingDelayInMs = null; // 2000
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
-                    settings.ConnectionTimeout = TimeSpan.FromSeconds(5);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
                 })

@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Threading;
     using Serilog;
     using UdpToolkit.Core;
@@ -14,13 +15,18 @@ namespace UdpToolkit.Framework
         private readonly ILogger _logger = Log.ForContext<Host>();
         private readonly ConcurrentDictionary<Guid, Lazy<Timer>> _timers;
         private readonly IAsyncQueue<NetworkPacket> _outputQueue;
+        private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
+        private readonly ISubscriptionManager _subscriptionManager;
 
         public TimersPool(
-            ConcurrentDictionary<Guid, Lazy<Timer>> timers,
-            IAsyncQueue<NetworkPacket> outputQueue)
+            IAsyncQueue<NetworkPacket> outputQueue,
+            IProtocolSubscriptionManager protocolSubscriptionManager,
+            ISubscriptionManager subscriptionManager)
         {
-            _timers = timers;
+            _timers = new ConcurrentDictionary<Guid, Lazy<Timer>>();
             _outputQueue = outputQueue;
+            _protocolSubscriptionManager = protocolSubscriptionManager;
+            _subscriptionManager = subscriptionManager;
         }
 
         public void EnableResend(
@@ -34,7 +40,7 @@ namespace UdpToolkit.Framework
                     valueFactory: () => new Timer(
                     callback: (state) => ResendLostPackets(peer as Peer),
                     state: null,
-                    dueTime: TimeSpan.FromMilliseconds(0),
+                    dueTime: TimeSpan.FromMilliseconds(2000),
                     period: TimeSpan.FromMilliseconds(2000))));
 
             _ = lazyTimer.Value;
@@ -72,9 +78,28 @@ namespace UdpToolkit.Framework
                 var packets = channel
                     .ToResend();
 
-                foreach (var packet in packets)
+                var ps = packets.ToArray();
+                foreach (var packet in ps)
                 {
-                    _outputQueue.Produce(packet);
+                    if (packet.IsExpired())
+                    {
+                        if (packet.IsProtocolEvent)
+                        {
+                            _protocolSubscriptionManager
+                                .GetProtocolSubscription(packet.HookId)
+                                ?.OnTimeout(packet.PeerId);
+                        }
+                        else
+                        {
+                            _subscriptionManager
+                                .GetSubscription(packet.HookId)
+                                ?.OnTimeout(peer.PeerId);
+                        }
+                    }
+                    else
+                    {
+                        _outputQueue.Produce(packet);
+                    }
                 }
             }
         }

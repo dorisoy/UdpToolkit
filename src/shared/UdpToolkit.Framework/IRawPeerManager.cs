@@ -6,8 +6,8 @@ namespace UdpToolkit.Framework
 
     public interface IRawPeerManager
     {
-        bool TryGetPeer(Guid peerId, out Peer peer);
+        Peer GetPeer(Guid peerId);
 
-        Peer Create(Guid peerId, List<IPEndPoint> peerIps);
+        Peer AddOrUpdate(Guid peerId, List<IPEndPoint> ips);
     }
 }

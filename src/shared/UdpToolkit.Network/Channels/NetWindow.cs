@@ -9,7 +9,7 @@ namespace UdpToolkit.Network.Channels
         private readonly int _windowSize;
         private readonly ushort?[] _ids;
         private readonly PacketData?[] _networkPackets;
-        private ushort _minAckedPacket = 0;
+        private ushort _minAckedPacket = 1;
 
         private ushort _maxId;
 
@@ -64,10 +64,13 @@ namespace UdpToolkit.Network.Channels
             for (var i = _minAckedPacket; i < _networkPackets.Length; i++)
             {
                 var packet = _networkPackets[i];
+
                 if (!packet.HasValue)
                 {
                     continue;
                 }
+#pragma warning disable
+                Console.WriteLine($"Packet - {packet.HasValue}|Ack - {packet?.Acked}|Id - {packet?.NetworkPacket.ChannelHeader.Id}|minAck - {_minAckedPacket}");
 
                 var isExpired = packet.Value.NetworkPacket.IsExpired();
                 if ((packet.Value.Acked && i == _minAckedPacket) || isExpired)
@@ -75,8 +78,7 @@ namespace UdpToolkit.Network.Channels
                     _minAckedPacket++;
                     if (isExpired)
                     {
-                        Console.WriteLine("NoAckCallback");
-                        packet.Value.NetworkPacket.NoAckCallback();
+                        yield return packet.Value.NetworkPacket;
                     }
                 }
                 else
@@ -84,31 +86,31 @@ namespace UdpToolkit.Network.Channels
                     yield return packet.Value.NetworkPacket;
                 }
             }
-
-            Console.WriteLine($"Min packet {_minAckedPacket}");
         }
 
-        public void Ack(ushort id)
+        public NetworkPacket AcceptAck(ushort id)
         {
             var packet = _networkPackets[id];
             if (!packet.HasValue)
             {
-                return;
+                return null;
             }
-
+        
             _networkPackets[id] = new PacketData(
                 networkPacket: packet.Value.NetworkPacket,
                 acked: true);
+        
+            return packet.Value.NetworkPacket;
         }
 
-        public void InsertPacketData(NetworkPacket networkPacket)
+        public void InsertPacketData(NetworkPacket networkPacket, bool acked)
         {
             var index = (int)networkPacket.ChannelHeader.Id % _windowSize;
             _ids[index] = networkPacket.ChannelHeader.Id;
 
             _networkPackets[index] = new PacketData(
                 networkPacket,
-                acked: false);
+                acked: acked);
 
             if (networkPacket.ChannelHeader.Id > _maxId)
             {

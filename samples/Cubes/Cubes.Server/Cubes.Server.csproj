@@ -18,9 +18,5 @@
     <ItemGroup>
         <Compile Include="..\Cubes.Client\Assets\Shared\**\*.cs" LinkBase="Shared" />
     </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Hubs" />
-    </ItemGroup>
     
 </Project>

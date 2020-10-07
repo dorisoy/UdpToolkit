@@ -1,28 +1,24 @@
 namespace UdpToolkit.Core.ProtocolEvents
 {
+    using System;
     using System.Collections.Generic;
-    using System.Linq;
-    using System.Net;
 
-    public sealed class Connect
+    public sealed class Connect : IProtocolEvent
     {
         public Connect(
+            Guid peerId,
             string clientHost,
-            List<int> clientInputPorts)
+            List<int> clientIps)
         {
+            PeerId = peerId;
             ClientHost = clientHost;
-            ClientInputPorts = clientInputPorts;
+            ClientIps = clientIps;
         }
+
+        public List<int> ClientIps { get; }
+
+        public Guid PeerId { get; }
 
         public string ClientHost { get; }
-
-        public List<int> ClientInputPorts { get; }
-
-        public List<IPEndPoint> GetPeerIps()
-        {
-            return ClientInputPorts
-                .Select((port) => new IPEndPoint(IPAddress.Parse(ClientHost), port))
-                .ToList();
-        }
     }
 }

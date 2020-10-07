@@ -10,15 +10,18 @@ namespace UdpToolkit.Network.Clients
     {
         private readonly UdpClient _receiver;
         private readonly IUdpProtocol _udpProtocol;
+        private readonly TimeSpan _resendPacketTimeout;
 
         private readonly ILogger _logger = Log.ForContext<UdpReceiver>();
 
         public UdpReceiver(
             UdpClient receiver,
-            IUdpProtocol udpProtocol)
+            IUdpProtocol udpProtocol,
+            TimeSpan resendPacketTimeout)
         {
             _receiver = receiver;
             _udpProtocol = udpProtocol;
+            _resendPacketTimeout = resendPacketTimeout;
             _logger.Debug($"{nameof(UdpReceiver)} - {receiver.Client.LocalEndPoint} created");
         }
 
@@ -32,11 +35,13 @@ namespace UdpToolkit.Network.Clients
                     .ReceiveAsync()
                     .ConfigureAwait(false);
 
-                _logger.Debug($"Packet from - {result.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
-
                 var networkPacket = _udpProtocol.Deserialize(
                         bytes: new ArraySegment<byte>(result.Buffer),
-                        ipEndPoint: result.RemoteEndPoint);
+                        ipEndPoint: result.RemoteEndPoint,
+                        resendPacketTimeout: _resendPacketTimeout);
+
+                _logger.Debug($"Packet from - {result.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
+                _logger.Debug("Packet received: {@packet}", networkPacket);
 
                 UdpPacketReceived?.Invoke(networkPacket);
             }

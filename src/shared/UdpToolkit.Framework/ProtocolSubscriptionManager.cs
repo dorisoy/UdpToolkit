@@ -1,37 +1,35 @@
 namespace UdpToolkit.Framework
 {
+    using System;
     using System.Collections.Generic;
     using UdpToolkit.Core;
 
     public sealed class ProtocolSubscriptionManager : IProtocolSubscriptionManager
     {
-        private readonly Dictionary<byte, ProtocolSubscription> _inputSubscriptions;
-        private readonly Dictionary<byte, ProtocolSubscription> _outputSubscriptions;
+        private readonly Dictionary<byte, ProtocolSubscription> _protocolSubscriptions;
 
         public ProtocolSubscriptionManager()
         {
-            _inputSubscriptions = new Dictionary<byte, ProtocolSubscription>();
-            _outputSubscriptions = new Dictionary<byte, ProtocolSubscription>();
+            _protocolSubscriptions = new Dictionary<byte, ProtocolSubscription>();
         }
 
-        public void SubscribeOnInputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription)
+        public void SubscribeOnProtocolEvent<TEvent>(
+            byte hookId,
+            Action<byte[], Guid> onInputEvent,
+            Action<byte[], Guid> onOutputEvent,
+            Action<Guid> onAck,
+            Action<Guid> onAckTimeout)
         {
-            _inputSubscriptions[hookId] = protocolSubscription;
+            _protocolSubscriptions[hookId] = new ProtocolSubscription(
+                onOutputEvent: onOutputEvent,
+                onInputEvent: onInputEvent,
+                onAck: onAck,
+                onTimeout: onAckTimeout);
         }
 
-        public void SubscribeOnOutputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription)
+        public ProtocolSubscription GetProtocolSubscription(byte hookId)
         {
-            _outputSubscriptions[hookId] = protocolSubscription;
-        }
-
-        public ProtocolSubscription GetInputSubscription(byte hookId)
-        {
-            return _inputSubscriptions[hookId];
-        }
-
-        public ProtocolSubscription GetOutputSubscription(byte hookId)
-        {
-            return _outputSubscriptions[hookId];
+            return _protocolSubscriptions[hookId];
         }
     }
 }

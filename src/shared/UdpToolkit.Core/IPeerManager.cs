@@ -7,9 +7,13 @@ namespace UdpToolkit.Core
 
     public interface IPeerManager
     {
+        IPeer Create(Guid peerId, IPEndPoint peerIp);
+
         IPeer Create(Guid peerId, List<IPEndPoint> peerIps);
 
-        void Remove(Guid peerId);
+        bool TryRemove(Guid peerId, out IPeer peer);
+
+        IPeer AddOrUpdate(Guid peerId, List<IPEndPoint> ips);
 
         bool Exist(Guid peerId);
 

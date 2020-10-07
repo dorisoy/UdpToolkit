@@ -54,11 +54,13 @@ namespace UdpToolkit.Integration.Tests
 
             string actualPayload = null;
             serverHost.On<Ping>(
-                handler: (peerId, ping) =>
+                onEvent: (peerId, ping) =>
                 {
                     actualPayload = "pong";
                     waitCallback.Set();
                 },
+                onAck: (id) => { },
+                onTimeout: (id) => { },
                 hookId: 0);
 
             Task.Run(() => clientHost.ServerHostClient.Publish(
@@ -101,11 +103,13 @@ namespace UdpToolkit.Integration.Tests
 
             string actualPayload = null;
             client2Host.On<Ping>(
-                handler: (peerId, ping) =>
+                onEvent: (peerId, ping) =>
                 {
                     actualPayload = "pong";
                     waitCallback.Set();
                 },
+                onAck: (id) => { },
+                onTimeout: (id) => { },
                 hookId: 0);
 
             client1Host.ServerHostClient.PublishP2P(

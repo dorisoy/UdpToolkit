@@ -1,167 +1,110 @@
 namespace UdpToolkit.Framework
 {
-    using System;
+    using System.Linq;
+    using System.Net;
     using Serilog;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Serialization;
 
     public static class ProtocolSubscriptionManagerExtension
     {
         private static readonly ILogger Logger = Log.ForContext<Host>();
 
         public static void BootstrapSubscriptions(
-            this IProtocolSubscriptionManager protocolSubscriptionManager)
+            this IProtocolSubscriptionManager protocolSubscriptionManager,
+            ITimersPool timersPool,
+            ISerializer serializer,
+            IPeerManager peerManager,
+            IDateTimeProvider dateTimeProvider)
         {
             protocolSubscriptionManager
-                .SubscribeOnInputEvent<Connect>(
+                .SubscribeOnProtocolEvent<Connect>(
                     hookId: (byte)ProtocolHookId.Connect,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    onInputEvent: (bytes, peerId) =>
                     {
-                        var connect = serializer.DeserializeContractLess<Connect>(bytes);
-                        var peer = peerManager.Create(peerId: Guid.NewGuid(), peerIps: connect.GetPeerIps());
-                        timersPool.EnableResend(peer);
+                        var @event = serializer.DeserializeContractLess<Connect>(bytes);
+                        var ips = @event.ClientIps
+                            .Select(ip => new IPEndPoint(IPAddress.Parse(@event.ClientHost), ip))
+                            .ToList();
 
-                        var datagram = datagramBuilder.Caller(
-                            @event: new Connected(peerId),
+                        var peer = peerManager.AddOrUpdate(
                             peerId: peerId,
-                            hookId: (byte)ProtocolHookId.Connected);
+                            ips: ips);
 
-                        host.PublishInternal(
-                            datagram: datagram,
-                            udpMode: UdpMode.ReliableUdp,
-                            serializer: serializer.SerializeContractLess);
-                    });
-
-            protocolSubscriptionManager
-                .SubscribeOnOutputEvent<Connect>(
-                    hookId: (byte)ProtocolHookId.Connect,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                        timersPool.EnableResend(peer);
+                        Logger.Debug($"Input - {nameof(Connect)}");
+                    },
+                    onOutputEvent: (bytes, peerId) =>
                     {
-                        var connect = serializer.DeserializeContractLess<Connect>(bytes);
-                        var peer = peerManager.Create(peerId: Guid.Empty, peerIps: connect.GetPeerIps());
+                        peerManager.TryGetPeer(peerId, out var peer);
                         timersPool.EnableResend(peer);
                         Logger.Debug($"Output - {nameof(Connect)}");
-                    });
-
-            protocolSubscriptionManager
-                .SubscribeOnOutputEvent<Connected>(
-                    hookId: (byte)ProtocolHookId.Connected,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    },
+                    onAck: (peerId) =>
                     {
-                        var connected = serializer.DeserializeContractLess<Connected>(bytes);
-                        peerManager.TryGetPeer(Guid.Empty, out var tmpPeer);
-
-                        var peer = peerManager.Create(peerId: connected.PeerId, peerIps: tmpPeer.PeerIps);
-                        timersPool.EnableResend(peer);
+                        Logger.Debug($"Peer - {peerId}");
+                    },
+                    onAckTimeout: (peerId) =>
+                    {
+                        timersPool.DisableResend(peerId);
                     });
 
             protocolSubscriptionManager
-                .SubscribeOnInputEvent<Disconnect>(
+                .SubscribeOnProtocolEvent<Disconnect>(
                     hookId: (byte)ProtocolHookId.Disconnect,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    onInputEvent: (bytes, peerId) =>
                     {
                         var disconnect = serializer.DeserializeContractLess<Disconnect>(bytes);
-                        var exists = peerManager.TryGetPeer(disconnect.PeerId, out var peer);
-                        if (!exists)
-                        {
-                            return;
-                        }
+                        peerManager.TryGetPeer(disconnect.PeerId, out var peer);
 
                         timersPool.DisableResend(peer.PeerId);
-
-                        var datagram = datagramBuilder.Caller(
-                            @event: new Disconnected(peerId),
-                            peerId: peerId,
-                            hookId: (byte)ProtocolHookId.Disconnected);
-
-                        host.PublishInternal(
-                            datagram: datagram,
-                            udpMode: UdpMode.ReliableUdp,
-                            serializer: serializer.SerializeContractLess);
-                    });
-
-            protocolSubscriptionManager
-                .SubscribeOnInputEvent<Ping>(
-                    hookId: (byte)ProtocolHookId.Ping,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    },
+                    onOutputEvent: (bytes, peerId) =>
                     {
-                        var exists = peerManager.TryGetPeer(peerId, out var peer);
-                        if (!exists)
-                        {
-                            return;
-                        }
+                        peerManager.TryGetPeer(peerId, out var peer);
 
                         peer.OnPing(dateTimeProvider.UtcNow());
-
-                        var datagram = datagramBuilder.Caller(
-                            @event: new Pong(),
-                            peerId: peerId,
-                            hookId: (byte)ProtocolHookId.Pong);
-
-                        host.PublishInternal(
-                            datagram: datagram,
-                            udpMode: UdpMode.ReliableUdp,
-                            serializer: serializer.SerializeContractLess);
-                    });
+                    },
+                    onAck: (peerId) => { },
+                    onAckTimeout: (peerId) => { });
 
             protocolSubscriptionManager
-                .SubscribeOnOutputEvent<Ping>(
+                .SubscribeOnProtocolEvent<Ping>(
                     hookId: (byte)ProtocolHookId.Ping,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    onInputEvent: (bytes, peerId) => { },
+                    onOutputEvent: (bytes, peerId) =>
                     {
-                        var exists = peerManager.TryGetPeer(peerId, out var peer);
-                        if (!exists)
-                        {
-                            return;
-                        }
+                        peerManager.TryGetPeer(peerId, out var peer);
 
                         peer.OnPing(dateTimeProvider.UtcNow());
-
-                        var datagram = datagramBuilder.Caller(
-                            @event: new Pong(),
-                            peerId: peerId,
-                            hookId: (byte)ProtocolHookId.Pong);
-
-                        host.PublishInternal(
-                            datagram: datagram,
-                            udpMode: UdpMode.ReliableUdp,
-                            serializer: serializer.SerializeContractLess);
-                    });
+                    },
+                    onAck: (peerId) => { },
+                    onAckTimeout: (peerId) => { });
 
             protocolSubscriptionManager
-                .SubscribeOnInputEvent<Pong>(
+                .SubscribeOnProtocolEvent<Pong>(
                     hookId: (byte)ProtocolHookId.Pong,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    onInputEvent: (bytes, peerId) =>
                     {
-                        var exists = peerManager.TryGetPeer(peerId, out var peer);
-                        if (!exists)
-                        {
-                            return;
-                        }
+                        peerManager.TryGetPeer(peerId, out var peer);
 
                         Logger.Debug($"{ProtocolHookId.Pong}");
 
                         peer.OnPong(dateTimeProvider.UtcNow());
                         Logger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
-                    });
-
-            protocolSubscriptionManager
-                .SubscribeOnInputEvent<Pong>(
-                    hookId: (byte)ProtocolHookId.Pong,
-                    protocolSubscription: (bytes, peerId, host, peerManager, serializer, timersPool, datagramBuilder, dateTimeProvider) =>
+                    },
+                    onOutputEvent: (bytes, peerId) =>
                     {
-                        var exists = peerManager.TryGetPeer(peerId, out var peer);
-                        if (!exists)
-                        {
-                            return;
-                        }
-
+                        peerManager.TryGetPeer(peerId, out var peer);
                         Logger.Debug($"{ProtocolHookId.Pong}");
 
                         peer.OnPong(dateTimeProvider.UtcNow());
                         Logger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
-                    });
+                    },
+                    onAck: (peerId) => { },
+                    onAckTimeout: (peerId) => { });
         }
     }
 }

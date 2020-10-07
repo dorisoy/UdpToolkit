@@ -30,13 +30,15 @@ namespace UdpToolkit.Integration.Tests
 
             Guid? receivedPeerId = null;
 
-            clientHost.On<Connected>(
-                handler: (guid, @event) =>
+            clientHost.OnProtocol<Connect>(
+                onEvent: (guid, @event) =>
                 {
                     receivedPeerId = guid;
                     waitCallback.Set();
                 },
-                protocolHookId: ProtocolHookId.Connected);
+                onAck: (id) => { },
+                onTimeout: (id) => { },
+                protocolHookId: ProtocolHookId.Connect);
 
 #pragma warning disable 4014
             Task.Run(() => serverHost.RunAsync());
@@ -71,22 +73,26 @@ namespace UdpToolkit.Integration.Tests
             var waitCallback2 = new ManualResetEvent(initialState: false);
 
             Guid? connectedId = null;
-            clientHost.On<Connected>(
-                handler: (guid, @event) =>
+            clientHost.OnProtocol<Connect>(
+                onEvent: (guid, @event) =>
                 {
                     connectedId = guid;
                     waitCallback1.Set();
                 },
-                protocolHookId: ProtocolHookId.Connected);
+                onAck: (id) => { },
+                onTimeout: (id) => { },
+                protocolHookId: ProtocolHookId.Connect);
 
             Guid? disconnectedId = null;
-            clientHost.On<Disconnected>(
-                handler: (guid, @event) =>
+            clientHost.OnProtocol<Disconnect>(
+                onEvent: (guid, @event) =>
                 {
                     disconnectedId = guid;
                     waitCallback2.Set();
                 },
-                protocolHookId: ProtocolHookId.Disconnected);
+                onAck: (id) => { },
+                onTimeout: (id) => { },
+                protocolHookId: ProtocolHookId.Disconnect);
 
 #pragma warning disable 4014
             Task.Run(() => serverHost.RunAsync());

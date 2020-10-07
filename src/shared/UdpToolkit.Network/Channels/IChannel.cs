@@ -1,24 +1,25 @@
 namespace UdpToolkit.Network.Channels
 {
     using System.Collections.Generic;
+    using System.Net;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public interface IChannel
     {
-        ChannelResult TryHandleInputPacket(
+        bool HandleInputPacket(
             NetworkPacket networkPacket);
 
-        NetworkPacket TryHandleOutputPacket(
+        void HandleOutputPacket(
             NetworkPacket networkPacket);
 
-        NetworkPacket HandleAck(
+        bool HandleAck(
             NetworkPacket networkPacket);
 
-        IEnumerable<NetworkPacket> GetPendingPackets();
+        NetworkPacket GetAck(
+            NetworkPacket networkPacket,
+            IPEndPoint ipEndPoint);
 
         IEnumerable<NetworkPacket> ToResend();
-
-        void Flush();
     }
 }

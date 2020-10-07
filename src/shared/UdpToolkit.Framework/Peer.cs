@@ -35,8 +35,7 @@ namespace UdpToolkit.Framework
 
         public static Peer New(
             Guid peerId,
-            List<IPEndPoint> peerIps,
-            IAsyncQueue<NetworkPacket> outputQueue)
+            List<IPEndPoint> peerIps)
         {
             return new Peer(
                 peerId: peerId,

@@ -6,35 +6,57 @@ namespace UdpToolkit.Framework
     using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
 
     public class PeerManager : IPeerManager, IRawPeerManager
     {
-        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
         private readonly ConcurrentDictionary<Guid, Peer> _peers = new ConcurrentDictionary<Guid, Peer>();
 
-        public PeerManager(
-            IAsyncQueue<NetworkPacket> outputQueue)
-        {
-            _outputQueue = outputQueue;
-        }
-
-        public IPeer Create(Guid peerId, List<IPEndPoint> peerIps)
+        public IPeer Create(Guid peerId, IPEndPoint peerIp)
         {
             var peer = Peer.New(
                 peerId: peerId,
-                peerIps: peerIps,
-                outputQueue: _outputQueue);
+                peerIps: new List<IPEndPoint>
+                {
+                    peerIp,
+                });
 
             _peers[peerId] = peer;
 
             return peer;
         }
 
-        public void Remove(Guid peerId)
+        public IPeer Create(Guid peerId, List<IPEndPoint> peerIps)
         {
-            _peers.TryRemove(peerId, out _);
+            var peer = Peer.New(
+                peerId: peerId,
+                peerIps: peerIps);
+
+            _peers[peerId] = peer;
+
+            return peer;
+        }
+
+        public bool TryRemove(Guid peerId, out IPeer peer)
+        {
+            peer = null;
+            var removed = _peers.TryRemove(peerId, out var rawPeer);
+            if (!removed)
+            {
+                return false;
+            }
+
+            peer = rawPeer;
+            return true;
+        }
+
+        public Peer GetPeer(Guid peerId)
+        {
+            return _peers[peerId];
+        }
+
+        IPeer IPeerManager.AddOrUpdate(Guid peerId, List<IPEndPoint> ips)
+        {
+            return AddOrUpdate(peerId, ips);
         }
 
         public bool Exist(Guid peerId)
@@ -61,21 +83,25 @@ namespace UdpToolkit.Framework
             return _peers.Select(x => x.Value);
         }
 
-        public bool TryGetPeer(Guid peerId, out Peer peer)
+        public Peer AddOrUpdate(Guid peerId, List<IPEndPoint> ips)
         {
-            return _peers.TryGetValue(peerId, out peer);
-        }
+            return _peers.AddOrUpdate(
+                key: peerId,
+                addValueFactory: (key) => Peer.New(
+                    peerId: peerId,
+                    peerIps: ips),
+                updateValueFactory: (key, peer) =>
+                {
+                    foreach (var ip in ips)
+                    {
+                        if (!peer.PeerIps.Contains(ip))
+                        {
+                            peer.PeerIps.Add(ip);
+                        }
+                    }
 
-        Peer IRawPeerManager.Create(Guid peerId, List<IPEndPoint> peerIps)
-        {
-            var peer = Peer.New(
-                peerId: peerId,
-                peerIps: peerIps,
-                outputQueue: _outputQueue);
-
-            _peers[peerId] = peer;
-
-            return peer;
+                    return peer;
+                });
         }
     }
 }

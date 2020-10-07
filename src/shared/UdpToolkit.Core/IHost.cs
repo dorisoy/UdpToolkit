@@ -11,10 +11,6 @@ namespace UdpToolkit.Core
 
         void Stop();
 
-        void OnCore<TEvent>(Subscription subscription, byte hookId);
-
-        void PublishCore<TEvent>(Func<IDatagramBuilder, Datagram<TEvent>> datagramFactory, UdpMode udpMode);
-
-        void PublishInternal<TEvent>(Datagram<TEvent> datagram, UdpMode udpMode, Func<TEvent, byte[]> serializer);
+        void OnCore(Subscription subscription, byte hookId);
     }
 }

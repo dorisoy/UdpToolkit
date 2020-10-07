@@ -3,41 +3,37 @@ namespace UdpToolkit.Network.Channels
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Net;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
 
     public sealed class RawUdpChannel : IChannel
     {
-        public ChannelResult TryHandleInputPacket(NetworkPacket networkPacket)
+        public bool HandleInputPacket(NetworkPacket networkPacket)
         {
-            return new ChannelResult(channelState: ChannelState.Accepted, networkPacket: networkPacket);
+            return true;
         }
 
-        public NetworkPacket TryHandleOutputPacket(
-            NetworkPacket networkPacket)
-        {
-            return networkPacket;
-        }
-
-        public NetworkPacket HandleAck(
-            NetworkPacket networkPacket)
+        public NetworkPacket GetAck(
+            NetworkPacket networkPacket,
+            IPEndPoint ipEndPoint)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<NetworkPacket> GetPendingPackets()
+        public void HandleOutputPacket(
+            NetworkPacket networkPacket)
         {
-            return Enumerable.Empty<NetworkPacket>();
+        }
+
+        public bool HandleAck(
+            NetworkPacket networkPacket)
+        {
+            throw new NotImplementedException();
         }
 
         public IEnumerable<NetworkPacket> ToResend()
         {
             return Enumerable.Empty<NetworkPacket>();
-        }
-
-        public void Flush()
-        {
-            throw new NotImplementedException();
         }
     }
 }

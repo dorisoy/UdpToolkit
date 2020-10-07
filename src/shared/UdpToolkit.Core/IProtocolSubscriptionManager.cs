@@ -4,12 +4,13 @@ namespace UdpToolkit.Core
 
     public interface IProtocolSubscriptionManager
     {
-        void SubscribeOnInputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription);
+        void SubscribeOnProtocolEvent<TEvent>(
+            byte hookId,
+            Action<byte[], Guid> onInputEvent,
+            Action<byte[], Guid> onOutputEvent,
+            Action<Guid> onAck,
+            Action<Guid> onAckTimeout);
 
-        void SubscribeOnOutputEvent<TEvent>(byte hookId, ProtocolSubscription protocolSubscription);
-
-        ProtocolSubscription GetInputSubscription(byte hookId);
-
-        ProtocolSubscription GetOutputSubscription(byte hookId);
+        ProtocolSubscription GetProtocolSubscription(byte hookId);
     }
 }
