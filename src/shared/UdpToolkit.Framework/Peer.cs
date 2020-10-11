@@ -13,16 +13,19 @@ namespace UdpToolkit.Framework
     public sealed class Peer : IPeer
     {
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _channels;
+        private readonly TimeSpan _inactivityTimeout;
         private readonly Random _random = new Random();
         private ushort _roomId;
 
         private Peer(
             Guid peerId,
             List<IPEndPoint> peerIps,
-            IReadOnlyDictionary<ChannelType, IChannel> channels)
+            IReadOnlyDictionary<ChannelType, IChannel> channels,
+            TimeSpan inactivityTimeout)
         {
             PeerId = peerId;
             _channels = channels;
+            _inactivityTimeout = inactivityTimeout;
             PeerIps = peerIps;
         }
 
@@ -34,13 +37,17 @@ namespace UdpToolkit.Framework
 
         public DateTimeOffset LastPong { get; private set; }
 
+        public DateTimeOffset LastActivityAt { get; private set; }
+
         public static Peer New(
             Guid peerId,
-            List<IPEndPoint> peerIps)
+            List<IPEndPoint> peerIps,
+            TimeSpan inactivityTimeout)
         {
             return new Peer(
                 peerId: peerId,
                 peerIps: peerIps,
+                inactivityTimeout: inactivityTimeout,
                 channels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),
@@ -63,22 +70,27 @@ namespace UdpToolkit.Framework
             _roomId = roomId;
         }
 
-        public void OnPing(DateTimeOffset dateTimeOffset)
+        public void OnPing(
+            DateTimeOffset onPingReceive)
         {
-            LastPing = dateTimeOffset;
+            LastPing = onPingReceive;
         }
 
-        public void OnPong(DateTimeOffset dateTimeOffset)
+        public void OnPong(
+            DateTimeOffset onPongReceive)
         {
-            LastPong = dateTimeOffset;
+            LastPong = onPongReceive;
         }
+
+        public void OnActivity(
+            DateTimeOffset lastActivityAt)
+        {
+            LastActivityAt = lastActivityAt;
+        }
+
+        public bool IsExpired() => DateTimeOffset.UtcNow - LastActivityAt > _inactivityTimeout;
 
         public TimeSpan GetRtt() => LastPong - LastPing;
-
-        public bool CanBeHandled()
-        {
-            throw new NotImplementedException();
-        }
 
         public IChannel GetChannel(ChannelType channelType) => _channels[channelType];
 

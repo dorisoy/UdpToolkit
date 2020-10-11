@@ -77,6 +77,7 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
+                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(15);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
@@ -84,7 +85,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
-                    settings.PingDelayInMs = 2000;
+                    settings.PingDelayInMs = 2000; // pass null for disable pings
                 })
                 .Build();
         }

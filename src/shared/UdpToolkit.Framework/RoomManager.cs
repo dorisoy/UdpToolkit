@@ -46,6 +46,18 @@ namespace UdpToolkit.Framework
             return _rooms[roomId];
         }
 
+        public void Remove(
+            ushort roomId,
+            Peer peer)
+        {
+            if (!_rooms.TryGetValue(roomId, out var room))
+            {
+                return;
+            }
+
+            room.RemovePeer(peer.PeerId);
+        }
+
         public void Apply(
             ushort roomId,
             Func<Peer, bool> condition,

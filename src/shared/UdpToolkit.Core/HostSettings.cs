@@ -16,6 +16,8 @@ namespace UdpToolkit.Core
 
         public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(5);
 
+        public TimeSpan PeerInactivityTimeout { get; set; } = TimeSpan.FromSeconds(5);
+
         public string Host { get; set; }
     }
 }

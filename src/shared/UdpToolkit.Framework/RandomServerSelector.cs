@@ -14,7 +14,10 @@ namespace UdpToolkit.Framework
             IPEndPoint[] servers)
         {
             _servers = servers
-                .Select(ip => Peer.New(peerId: Guid.NewGuid(), peerIps: servers.ToList()))
+                .Select(ip => Peer.New(
+                    inactivityTimeout: TimeSpan.MaxValue,
+                    peerId: Guid.NewGuid(),
+                    peerIps: servers.ToList()))
                 .ToArray();
         }
 

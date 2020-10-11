@@ -4,6 +4,10 @@ namespace UdpToolkit.Framework
 
     public interface IRawRoomManager
     {
+        void Remove(
+            ushort roomId,
+            Peer peer);
+
         void Apply(
             ushort roomId,
             Func<Peer, bool> condition,

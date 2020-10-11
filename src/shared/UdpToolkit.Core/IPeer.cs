@@ -8,20 +8,22 @@ namespace UdpToolkit.Core
     {
         Guid PeerId { get; }
 
-        List<IPEndPoint> PeerIps { get; }
-
         IPEndPoint GetRandomIp();
 
         ushort GetRoomId();
 
-        void SetRoomId(ushort roomId);
+        void SetRoomId(
+            ushort roomId);
 
-        void OnPing(DateTimeOffset dateTimeOffset);
+        void OnPing(
+            DateTimeOffset onPingReceived);
 
-        void OnPong(DateTimeOffset dateTimeOffset);
+        void OnPong(
+            DateTimeOffset onPongReceived);
+
+        void OnActivity(
+            DateTimeOffset lastActivityAt);
 
         TimeSpan GetRtt();
-
-        bool CanBeHandled();
     }
 }

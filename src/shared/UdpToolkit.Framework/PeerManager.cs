@@ -10,43 +10,18 @@ namespace UdpToolkit.Framework
     public class PeerManager : IPeerManager, IRawPeerManager
     {
         private readonly ConcurrentDictionary<Guid, Peer> _peers = new ConcurrentDictionary<Guid, Peer>();
+        private readonly IDateTimeProvider _dateTimeProvider;
 
-        public IPeer Create(Guid peerId, IPEndPoint peerIp)
+        public PeerManager(
+            IDateTimeProvider dateTimeProvider)
         {
-            var peer = Peer.New(
-                peerId: peerId,
-                peerIps: new List<IPEndPoint>
-                {
-                    peerIp,
-                });
-
-            _peers[peerId] = peer;
-
-            return peer;
+            _dateTimeProvider = dateTimeProvider;
         }
 
-        public IPeer Create(Guid peerId, List<IPEndPoint> peerIps)
+        public void Remove(
+            Peer peer)
         {
-            var peer = Peer.New(
-                peerId: peerId,
-                peerIps: peerIps);
-
-            _peers[peerId] = peer;
-
-            return peer;
-        }
-
-        public bool TryRemove(Guid peerId, out IPeer peer)
-        {
-            peer = null;
-            var removed = _peers.TryRemove(peerId, out var rawPeer);
-            if (!removed)
-            {
-                return false;
-            }
-
-            peer = rawPeer;
-            return true;
+            _peers.Remove(peer.PeerId, out _);
         }
 
         public Peer GetPeer(Guid peerId)
@@ -54,14 +29,12 @@ namespace UdpToolkit.Framework
             return _peers[peerId];
         }
 
-        IPeer IPeerManager.AddOrUpdate(Guid peerId, List<IPEndPoint> ips)
+        IPeer IPeerManager.AddOrUpdate(
+            Guid peerId,
+            List<IPEndPoint> ips,
+            TimeSpan inactivityTimeout)
         {
-            return AddOrUpdate(peerId, ips);
-        }
-
-        public bool Exist(Guid peerId)
-        {
-            return _peers.ContainsKey(peerId);
+            return AddOrUpdate(peerId, ips, inactivityTimeout);
         }
 
         public bool TryGetPeer(Guid peerId, out IPeer peer)
@@ -78,20 +51,22 @@ namespace UdpToolkit.Framework
             return true;
         }
 
-        public IEnumerable<IPeer> GetAll()
-        {
-            return _peers.Select(x => x.Value);
-        }
-
-        public Peer AddOrUpdate(Guid peerId, List<IPEndPoint> ips)
+        public Peer AddOrUpdate(
+            Guid peerId,
+            List<IPEndPoint> ips,
+            TimeSpan inactivityTimeout)
         {
             return _peers.AddOrUpdate(
                 key: peerId,
                 addValueFactory: (key) => Peer.New(
+                    inactivityTimeout: inactivityTimeout,
                     peerId: peerId,
                     peerIps: ips),
                 updateValueFactory: (key, peer) =>
                 {
+                    peer
+                        .OnActivity(lastActivityAt: _dateTimeProvider.UtcNow());
+
                     foreach (var ip in ips)
                     {
                         if (!peer.PeerIps.Contains(ip))

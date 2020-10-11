@@ -4,12 +4,9 @@ namespace UdpToolkit.Framework
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
-    using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Core;
-    using UdpToolkit.Core.ProtocolEvents;
-    using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
@@ -20,9 +17,7 @@ namespace UdpToolkit.Framework
     {
         private readonly ILogger _logger = Log.ForContext<Host>();
 
-        private readonly int _workers;
-
-        private readonly ISerializer _serializer;
+        private readonly HostSettings _hostSettings;
 
         private readonly IAsyncQueue<NetworkPacket> _outputQueue;
         private readonly IAsyncQueue<NetworkPacket> _inputQueue;
@@ -36,15 +31,11 @@ namespace UdpToolkit.Framework
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
 
         private readonly IRoomManager _roomManager;
-        private readonly IServerSelector _serverSelector;
         private readonly ServerHostClient _serverHostClient;
-
-        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IBroadcastStrategyResolver _broadcastStrategyResolver;
 
         public Host(
-            int workers,
-            ISerializer serializer,
+            HostSettings hostSettings,
             IAsyncQueue<NetworkPacket> outputQueue,
             IAsyncQueue<NetworkPacket> inputQueue,
             IEnumerable<IUdpSender> senders,
@@ -52,24 +43,19 @@ namespace UdpToolkit.Framework
             ISubscriptionManager subscriptionManager,
             IRawPeerManager rawPeerManager,
             IRoomManager roomManager,
-            IServerSelector serverSelector,
             IProtocolSubscriptionManager protocolSubscriptionManager,
             ServerHostClient serverHostClient,
-            IDateTimeProvider dateTimeProvider,
             IBroadcastStrategyResolver broadcastStrategyResolver)
         {
-            _workers = workers;
-            _serializer = serializer;
+            _hostSettings = hostSettings;
             _outputQueue = outputQueue;
             _senders = senders;
             _receivers = receivers;
             _subscriptionManager = subscriptionManager;
             _serverHostClient = serverHostClient;
-            _dateTimeProvider = dateTimeProvider;
             _broadcastStrategyResolver = broadcastStrategyResolver;
             _rawPeerManager = rawPeerManager;
             _roomManager = roomManager;
-            _serverSelector = serverSelector;
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _inputQueue = inputQueue;
 
@@ -108,7 +94,7 @@ namespace UdpToolkit.Framework
                 .ToList();
 
             var workers = Enumerable
-                .Range(0, _workers)
+                .Range(0, _hostSettings.Workers)
                 .Select(_ => Task.Run(StartWorkerAsync))
                 .ToList();
 
@@ -225,6 +211,7 @@ namespace UdpToolkit.Framework
                 .GetSubscription((byte)protocolHookId);
 
             var peer = _rawPeerManager.AddOrUpdate(
+                inactivityTimeout: _hostSettings.PeerInactivityTimeout,
                 peerId: networkPacket.PeerId,
                 ips: new List<IPEndPoint>());
 
@@ -252,7 +239,7 @@ namespace UdpToolkit.Framework
                     userDefinedSubscription?.OnEvent(
                         networkPacket.Serializer(),
                         networkPacket.PeerId,
-                        _serializer,
+                        _hostSettings.Serializer,
                         _roomManager);
 
                     _broadcastStrategyResolver
@@ -291,7 +278,7 @@ namespace UdpToolkit.Framework
             userDefinedSubscription?.OnEvent(
                 networkPacket.Serializer(),
                 networkPacket.PeerId,
-                _serializer,
+                _hostSettings.Serializer,
                 _roomManager);
 
             var ackPacket = channel
@@ -337,6 +324,7 @@ namespace UdpToolkit.Framework
                 .GetProtocolSubscription((byte)protocolHookId);
 
             var peer = _rawPeerManager.AddOrUpdate(
+                inactivityTimeout: _hostSettings.PeerInactivityTimeout,
                 peerId: networkPacket.PeerId,
                 ips: new List<IPEndPoint>());
 

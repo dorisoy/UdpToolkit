@@ -37,15 +37,17 @@ namespace UdpToolkit.Framework
 
         public IHost Build()
         {
+            var dateTimeProvider = new DateTimeProvider();
+            var udpClientFactory = new UdpClientFactory();
+
             var outputQueue = new BlockingAsyncQueue<NetworkPacket>(
                 boundedCapacity: int.MaxValue);
 
             var inputQueue = new BlockingAsyncQueue<NetworkPacket>(
                 boundedCapacity: int.MaxValue);
 
-            var peerManager = new PeerManager();
-            var dateTimeProvider = new DateTimeProvider();
-            var udpClientFactory = new UdpClientFactory();
+            var peerManager = new PeerManager(
+                dateTimeProvider: dateTimeProvider);
 
             var serverIps = _serverHostClientSettings.ServerPorts
                 .Select(port =>
@@ -87,6 +89,8 @@ namespace UdpToolkit.Framework
             var protocolSubscriptionManager = new ProtocolSubscriptionManager();
 
             var timersPool = new TimersPool(
+                peerManager: peerManager,
+                roomManager: roomManager,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 subscriptionManager: subscriptionManager,
                 outputQueue: outputQueue);
@@ -95,7 +99,8 @@ namespace UdpToolkit.Framework
                 timersPool: timersPool,
                 serializer: _hostSettings.Serializer,
                 peerManager: peerManager,
-                dateTimeProvider: dateTimeProvider);
+                dateTimeProvider: dateTimeProvider,
+                inactivityTimeout: _hostSettings.PeerInactivityTimeout);
 
             var broadcastStrategyResolver = new BroadcastStrategyResolver(
                 broadcastStrategies: new IBroadcastStrategy[]
@@ -122,6 +127,7 @@ namespace UdpToolkit.Framework
                 });
 
             var serverHostClient = new ServerHostClient(
+                peerInactivityTimeout: _hostSettings.PeerInactivityTimeout,
                 pingDelayMs: _serverHostClientSettings.PingDelayInMs,
                 broadcastStrategyResolver: broadcastStrategyResolver,
                 peerManager: peerManager,
@@ -135,15 +141,12 @@ namespace UdpToolkit.Framework
 
             return new Host(
                 broadcastStrategyResolver: broadcastStrategyResolver,
-                dateTimeProvider: dateTimeProvider,
                 rawPeerManager: peerManager,
                 serverHostClient: serverHostClient,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,
-                serverSelector: randomServerSelector,
-                workers: _hostSettings.Workers,
+                hostSettings: _hostSettings,
                 subscriptionManager: subscriptionManager,
-                serializer: _hostSettings.Serializer,
                 outputQueue: outputQueue,
                 inputQueue: inputQueue,
                 senders: senders,

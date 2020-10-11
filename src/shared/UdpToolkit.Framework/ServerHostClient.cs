@@ -20,6 +20,7 @@ namespace UdpToolkit.Framework
 
         private readonly int? _pingDelayMs;
         private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TimeSpan _peerInactivityTimeout;
         private readonly string _clientHost;
         private readonly List<int> _inputPorts;
         private readonly IServerSelector _serverSelector;
@@ -35,6 +36,7 @@ namespace UdpToolkit.Framework
             IServerSelector serverSelector,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
+            TimeSpan peerInactivityTimeout,
             TimeSpan connectionTimeout,
             TimeSpan resendPacketsTimeout,
             IPeerManager peerManager,
@@ -46,6 +48,7 @@ namespace UdpToolkit.Framework
             _serverSelector = serverSelector;
             _serializer = serializer;
             _dateTimeProvider = dateTimeProvider;
+            _peerInactivityTimeout = peerInactivityTimeout;
             _connectionTimeoutFromSettings = connectionTimeout;
             _resendPacketsTimeout = resendPacketsTimeout;
             _peerManager = peerManager;
@@ -66,7 +69,8 @@ namespace UdpToolkit.Framework
             var @event = new Connect(PeerId, _clientHost, _inputPorts);
             var serverIp = _serverSelector.GetServer();
             var ips = _inputPorts.Select(port => new IPEndPoint(IPAddress.Parse(_clientHost), port)).ToList();
-            var peer = _peerManager.AddOrUpdate(
+            _ = _peerManager.AddOrUpdate(
+                inactivityTimeout: _peerInactivityTimeout,
                 peerId: PeerId,
                 ips: ips);
 

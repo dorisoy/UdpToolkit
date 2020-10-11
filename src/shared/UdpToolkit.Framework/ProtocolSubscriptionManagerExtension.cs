@@ -1,5 +1,6 @@
 namespace UdpToolkit.Framework
 {
+    using System;
     using System.Linq;
     using System.Net;
     using Serilog;
@@ -14,6 +15,7 @@ namespace UdpToolkit.Framework
 
         public static void BootstrapSubscriptions(
             this IProtocolSubscriptionManager protocolSubscriptionManager,
+            TimeSpan inactivityTimeout,
             ITimersPool timersPool,
             ISerializer serializer,
             IPeerManager peerManager,
@@ -30,6 +32,7 @@ namespace UdpToolkit.Framework
                             .ToList();
 
                         var peer = peerManager.AddOrUpdate(
+                            inactivityTimeout: inactivityTimeout,
                             peerId: peerId,
                             ips: ips);
 

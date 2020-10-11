@@ -17,16 +17,22 @@ namespace UdpToolkit.Framework
         private readonly IAsyncQueue<NetworkPacket> _outputQueue;
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
         private readonly ISubscriptionManager _subscriptionManager;
+        private readonly IRawPeerManager _rawPeerManager;
+        private readonly IRawRoomManager _rawRoomManager;
 
         public TimersPool(
             IAsyncQueue<NetworkPacket> outputQueue,
             IProtocolSubscriptionManager protocolSubscriptionManager,
-            ISubscriptionManager subscriptionManager)
+            ISubscriptionManager subscriptionManager,
+            IRawPeerManager peerManager,
+            IRawRoomManager roomManager)
         {
             _timers = new ConcurrentDictionary<Guid, Lazy<Timer>>();
             _outputQueue = outputQueue;
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _subscriptionManager = subscriptionManager;
+            _rawPeerManager = peerManager;
+            _rawRoomManager = roomManager;
         }
 
         public void EnableResend(
@@ -73,6 +79,26 @@ namespace UdpToolkit.Framework
         private void ResendLostPackets(Peer peer)
         {
             _logger.Information(nameof(ResendLostPackets));
+
+            if (peer.IsExpired())
+            {
+                _logger.Debug($"Peer {peer.PeerId} - removed by inactivity timeout!");
+
+                _rawRoomManager.Remove(
+                    roomId: peer.GetRoomId(),
+                    peer: peer);
+
+                _rawPeerManager.Remove(peer);
+
+                if (_timers.Remove(peer.PeerId, out var timer))
+                {
+                    timer.Value.Change(Timeout.Infinite, Timeout.Infinite);
+                    timer.Value.Dispose();
+                }
+
+                return;
+            }
+
             foreach (var channel in peer.GetChannels())
             {
                 var packets = channel

@@ -6,8 +6,15 @@ namespace UdpToolkit.Framework
 
     public interface IRawPeerManager
     {
-        Peer GetPeer(Guid peerId);
+        void Remove(
+            Peer peer);
 
-        Peer AddOrUpdate(Guid peerId, List<IPEndPoint> ips);
+        Peer GetPeer(
+            Guid peerId);
+
+        Peer AddOrUpdate(
+            Guid peerId,
+            List<IPEndPoint> ips,
+            TimeSpan inactivityTimeout);
     }
 }
