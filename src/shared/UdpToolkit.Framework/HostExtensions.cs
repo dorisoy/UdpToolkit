@@ -11,6 +11,7 @@ namespace UdpToolkit.Framework
             this IHost host,
             Action<Guid, TEvent> onEvent,
             byte hookId,
+            BroadcastMode broadcastMode,
             Action<Guid> onAck = null,
             Action<Guid> onTimeout = null)
         {
@@ -20,6 +21,7 @@ namespace UdpToolkit.Framework
 
             host.OnCore(
                 subscription: new Subscription(
+                    broadcastMode: broadcastMode,
                     onEvent: (bytes, peerId, serializer, roomManager) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
@@ -44,6 +46,7 @@ namespace UdpToolkit.Framework
 
             host.OnCore(
                 subscription: new Subscription(
+                    broadcastMode: BroadcastMode.Caller,
                     onEvent: (bytes, peerId, serializer, roomManager) =>
                     {
                         var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
@@ -57,6 +60,7 @@ namespace UdpToolkit.Framework
         public static void On<TEvent>(
             this IHost host,
             byte hookId,
+            BroadcastMode broadcastMode,
             Action<Guid, TEvent, IRoomManager> onEvent = null,
             Action<Guid> onAck = null,
             Action<Guid> onTimeout = null)
@@ -67,6 +71,7 @@ namespace UdpToolkit.Framework
 
             host.OnCore(
                 subscription: new Subscription(
+                    broadcastMode: broadcastMode,
                     onEvent: (bytes, peerId, serializer, roomManager) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));

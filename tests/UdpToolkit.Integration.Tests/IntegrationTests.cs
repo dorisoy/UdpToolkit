@@ -1,3 +1,4 @@
+#pragma warning disable
 namespace UdpToolkit.Integration.Tests
 {
     using System;
@@ -54,6 +55,7 @@ namespace UdpToolkit.Integration.Tests
 
             string actualPayload = null;
             serverHost.On<Ping>(
+                broadcastMode: BroadcastMode.Caller,
                 onEvent: (peerId, ping) =>
                 {
                     actualPayload = "pong";
@@ -103,6 +105,7 @@ namespace UdpToolkit.Integration.Tests
 
             string actualPayload = null;
             client2Host.On<Ping>(
+                broadcastMode: BroadcastMode.Caller,
                 onEvent: (peerId, ping) =>
                 {
                     actualPayload = "pong";
@@ -112,11 +115,11 @@ namespace UdpToolkit.Integration.Tests
                 onTimeout: (id) => { },
                 hookId: 0);
 
-            client1Host.ServerHostClient.PublishP2P(
-                @event: new Ping("ping"),
-                ipEndPoint: destinationIp,
-                hookId: 0,
-                udpMode: UdpMode.Udp);
+            // client1Host.ServerHostClient.PublishP2P(
+            //     @event: new Ping("ping"),
+            //     ipEndPoint: destinationIp,
+            //     hookId: 0,
+            //     udpMode: UdpMode.Udp);
 
             waitCallback.WaitOne(timeout: timeout);
 

@@ -51,7 +51,9 @@ namespace UdpToolkit.Network.Channels
         public void HandleOutputPacket(
             NetworkPacket networkPacket)
         {
-            var exists = _netWindow.TryGetNetworkPacket(networkPacket.ChannelHeader.Id, out var packet);
+            var exists = _netWindow.TryGetNetworkPacket(
+                id: networkPacket.ChannelHeader.Id,
+                networkPacket: out var packet);
 
             var sendingPacket = exists
                 ? packet
@@ -59,10 +61,14 @@ namespace UdpToolkit.Network.Channels
                     id: _netWindow.Next(),
                     acks: FillAcks()));
 
-            if (!exists)
+            if (exists)
             {
-                _netWindow.InsertPacketData(networkPacket: sendingPacket, acked: false);
+                return;
             }
+
+            _netWindow.InsertPacketData(
+                networkPacket: sendingPacket,
+                acked: false);
         }
 
         public bool HandleAck(NetworkPacket networkPacket)

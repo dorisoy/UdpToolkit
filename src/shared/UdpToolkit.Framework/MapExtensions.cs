@@ -6,7 +6,8 @@ namespace UdpToolkit.Framework
 
     public static class MapExtensions
     {
-        public static ChannelType Map(this UdpMode udpMode)
+        public static ChannelType Map(
+            this UdpMode udpMode)
         {
             switch (udpMode)
             {
@@ -23,20 +24,35 @@ namespace UdpToolkit.Framework
             }
         }
 
-        public static UdpMode Map(this ChannelType udpMode)
+        public static BroadcastType Map(
+            this BroadcastMode broadcastMode)
         {
-            switch (udpMode)
+            switch (broadcastMode)
             {
-                case ChannelType.Udp:
-                    return UdpMode.Udp;
-                case ChannelType.Sequenced:
-                    return UdpMode.Sequenced;
-                case ChannelType.ReliableUdp:
-                    return UdpMode.ReliableUdp;
-                case ChannelType.ReliableOrderedUdp:
-                    return UdpMode.ReliableOrderedUdp;
+                case BroadcastMode.Caller:
+                    return BroadcastType.Caller;
+                case BroadcastMode.Room:
+                    return BroadcastType.Room;
+                case BroadcastMode.ExceptCaller:
+                    return BroadcastType.ExceptCaller;
                 default:
-                    throw new ArgumentOutOfRangeException(nameof(udpMode), udpMode, null);
+                    throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
+            }
+        }
+
+        public static NetworkPacketType Map(
+            this PacketType packetType)
+        {
+            switch (packetType)
+            {
+                case PacketType.Ack:
+                    return NetworkPacketType.Ack;
+                case PacketType.Protocol:
+                    return NetworkPacketType.Protocol;
+                case PacketType.UserDefined:
+                    return NetworkPacketType.UserDefined;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(packetType), packetType, null);
             }
         }
     }

@@ -27,6 +27,7 @@
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                 },
+                broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
             await host
@@ -44,8 +45,7 @@
                     settings.InputPorts = new[] { 7000, 7001 };
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
-                    settings.PingDelayInMs = null;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
@@ -53,6 +53,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(15);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
+                    settings.PingDelayInMs = 2000;
                 })
                 .Build();
     }

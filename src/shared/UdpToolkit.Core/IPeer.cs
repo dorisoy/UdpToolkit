@@ -12,6 +12,10 @@ namespace UdpToolkit.Core
 
         IPEndPoint GetRandomIp();
 
+        ushort GetRoomId();
+
+        void SetRoomId(ushort roomId);
+
         void OnPing(DateTimeOffset dateTimeOffset);
 
         void OnPong(DateTimeOffset dateTimeOffset);

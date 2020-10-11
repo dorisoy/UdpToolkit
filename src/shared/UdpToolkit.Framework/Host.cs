@@ -21,7 +21,6 @@ namespace UdpToolkit.Framework
         private readonly ILogger _logger = Log.ForContext<Host>();
 
         private readonly int _workers;
-        private readonly int? _pingDelayMs;
 
         private readonly ISerializer _serializer;
 
@@ -41,10 +40,10 @@ namespace UdpToolkit.Framework
         private readonly ServerHostClient _serverHostClient;
 
         private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly IBroadcastStrategyResolver _broadcastStrategyResolver;
 
         public Host(
             int workers,
-            int? pingDelayMs,
             ISerializer serializer,
             IAsyncQueue<NetworkPacket> outputQueue,
             IAsyncQueue<NetworkPacket> inputQueue,
@@ -56,10 +55,10 @@ namespace UdpToolkit.Framework
             IServerSelector serverSelector,
             IProtocolSubscriptionManager protocolSubscriptionManager,
             ServerHostClient serverHostClient,
-            IDateTimeProvider dateTimeProvider)
+            IDateTimeProvider dateTimeProvider,
+            IBroadcastStrategyResolver broadcastStrategyResolver)
         {
             _workers = workers;
-            _pingDelayMs = pingDelayMs;
             _serializer = serializer;
             _outputQueue = outputQueue;
             _senders = senders;
@@ -67,6 +66,7 @@ namespace UdpToolkit.Framework
             _subscriptionManager = subscriptionManager;
             _serverHostClient = serverHostClient;
             _dateTimeProvider = dateTimeProvider;
+            _broadcastStrategyResolver = broadcastStrategyResolver;
             _rawPeerManager = rawPeerManager;
             _roomManager = roomManager;
             _serverSelector = serverSelector;
@@ -107,15 +107,6 @@ namespace UdpToolkit.Framework
                         token: default))
                 .ToList();
 
-            var ping = TaskUtils.RunWithRestartOnFail(
-                job: () => StartPingHost(),
-                logger: (exception) =>
-                {
-                    _logger.Error("Exception on ping task: {@Exception}", exception);
-                    _logger.Warning("Restart ping tak...");
-                },
-                token: default);
-
             var workers = Enumerable
                 .Range(0, _workers)
                 .Select(_ => Task.Run(StartWorkerAsync))
@@ -123,8 +114,7 @@ namespace UdpToolkit.Framework
 
             var tasks = senders
                 .Concat(receivers)
-                .Concat(workers)
-                .Concat(new[] { ping });
+                .Concat(workers);
 
             _logger.Information($"{nameof(Host)} running...");
 
@@ -158,35 +148,6 @@ namespace UdpToolkit.Framework
 
             _inputQueue.Dispose();
             _outputQueue.Dispose();
-        }
-
-        private async Task StartPingHost(
-            CancellationToken token = default)
-        {
-            if (!_pingDelayMs.HasValue)
-            {
-                return;
-            }
-
-            var pingDelay = _pingDelayMs.Value;
-            while (!token.IsCancellationRequested)
-            {
-                if (_serverHostClient.IsConnected)
-                {
-                    _outputQueue.Produce(@event: new NetworkPacket(
-                        networkPacketType: NetworkPacketType.Protocol,
-                        createdAt: _dateTimeProvider.UtcNow(),
-                        resendTimeout: TimeSpan.FromSeconds(pingDelay * 1.2),
-                        channelType: ChannelType.ReliableUdp,
-                        peerId: _serverHostClient.PeerId,
-                        channelHeader: default, // TODO header for pings
-                        serializer: () => _serializer.SerializeContractLess(@event: new Ping()),
-                        ipEndPoint: _serverSelector.GetServer().GetRandomIp(),
-                        hookId: (byte)ProtocolHookId.Ping));
-                }
-
-                await Task.Delay(pingDelay, token).ConfigureAwait(false);
-            }
         }
 
         private void StartWorkerAsync()
@@ -239,17 +200,9 @@ namespace UdpToolkit.Framework
                 switch (networkPacket.NetworkPacketType)
                 {
                     case NetworkPacketType.UserDefined:
-                        _rawPeerManager
-                            .GetPeer(peerId: networkPacket.PeerId)
-                            .GetChannel(networkPacket.ChannelType)
-                            .HandleOutputPacket(networkPacket: networkPacket);
                         break;
                     case NetworkPacketType.Protocol:
                         ProcessProtocolOutputEvent(networkPacket: networkPacket);
-                        _rawPeerManager
-                            .GetPeer(peerId: networkPacket.PeerId)
-                            .GetChannel(networkPacket.ChannelType)
-                            .HandleOutputPacket(networkPacket: networkPacket);
                         break;
                     case NetworkPacketType.Ack:
                         break;
@@ -302,11 +255,12 @@ namespace UdpToolkit.Framework
                         _serializer,
                         _roomManager);
 
-                    var ackPacket = peer
-                        .GetChannel(networkPacket.ChannelType)
-                        .GetAck(networkPacket, peer.GetRandomIp());
-
-                    _outputQueue.Produce(ackPacket);
+                    _broadcastStrategyResolver
+                        .Resolve(
+                            broadcastType: protocolSubscription?.BroadcastMode.Map() ?? BroadcastType.Caller)
+                        .Execute(
+                            roomId: ushort.MaxValue,
+                            networkPacket: networkPacket);
 
                     break;
             }

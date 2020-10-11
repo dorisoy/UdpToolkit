@@ -11,8 +11,9 @@ namespace UdpToolkit.Core
 
         bool Disconnect();
 
-        void Publish<TEvent>(TEvent @event, byte hookId, UdpMode udpMode);
-
-        void PublishP2P<TEvent>(TEvent @event, IPEndPoint ipEndPoint, byte hookId, UdpMode udpMode);
+        void Publish<TEvent>(
+            TEvent @event,
+            byte hookId,
+            UdpMode udpMode);
     }
 }

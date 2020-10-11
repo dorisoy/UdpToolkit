@@ -18,9 +18,11 @@ namespace UdpToolkit.Framework
             Action<byte[], Guid> onInputEvent,
             Action<byte[], Guid> onOutputEvent,
             Action<Guid> onAck,
-            Action<Guid> onAckTimeout)
+            Action<Guid> onAckTimeout,
+            BroadcastMode broadcastMode)
         {
             _protocolSubscriptions[hookId] = new ProtocolSubscription(
+                broadcastMode: broadcastMode,
                 onOutputEvent: onOutputEvent,
                 onInputEvent: onInputEvent,
                 onAck: onAck,

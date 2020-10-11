@@ -44,6 +44,7 @@
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
+                broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
 #pragma warning disable
@@ -75,8 +76,7 @@
                     settings.InputPorts = new[] { 5000, 5001 };
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
-                    settings.PingDelayInMs = null; // 2000
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(5);
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureServerHostClient((settings) =>
                 {
@@ -84,6 +84,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerPorts = new[] { 7000, 7001 };
+                    settings.PingDelayInMs = 2000;
                 })
                 .Build();
         }

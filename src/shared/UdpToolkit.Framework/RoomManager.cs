@@ -4,9 +4,9 @@ namespace UdpToolkit.Framework
     using System.Collections.Concurrent;
     using UdpToolkit.Core;
 
-    public class RoomManager : IRoomManager
+    public class RoomManager : IRoomManager, IRawRoomManager
     {
-        private readonly ConcurrentDictionary<ushort, IRoom> _rooms = new ConcurrentDictionary<ushort, IRoom>();
+        private readonly ConcurrentDictionary<ushort, IRawRoom> _rooms = new ConcurrentDictionary<ushort, IRawRoom>();
         private readonly IPeerManager _peerManager;
 
         public RoomManager(IPeerManager peerManager)
@@ -26,44 +26,35 @@ namespace UdpToolkit.Framework
                 key: roomId,
                 addValueFactory: (id) =>
                 {
-                    var room = new Room(roomId, _peerManager);
-                    room.AddPeer(peer.PeerId);
+                    var room = new Room(roomId);
+                    room.AddPeer(peer);
+                    peer.SetRoomId(roomId);
 
                     return room;
                 },
                 updateValueFactory: (id, room) =>
                 {
-                    room.AddPeer(peer.PeerId);
+                    peer.SetRoomId(roomId);
+                    room.AddPeer(peer);
                     return room;
                 });
         }
 
-        public void JoinOrCreate(ushort roomId, Guid peerId, int limit)
-        {
-            var exists = _peerManager.TryGetPeer(peerId, out var peer);
-            if (!exists)
-            {
-                return;
-            }
-
-            _rooms.AddOrUpdate(
-                key: roomId,
-                addValueFactory: (id) => new Room(roomId, _peerManager),
-                updateValueFactory: (id, room) =>
-                {
-                    if (room.Size < limit)
-                    {
-                        room.AddPeer(peer.PeerId);
-                        return room;
-                    }
-
-                    return room;
-                });
-        }
-
-        public IRoom GetRoom(ushort roomId)
+        public IRoom GetRoom(
+            ushort roomId)
         {
             return _rooms[roomId];
+        }
+
+        public void Apply(
+            ushort roomId,
+            Func<Peer, bool> condition,
+            Action<Peer> action)
+        {
+            _rooms[roomId]
+                .Apply(
+                    condition: condition,
+                    action: action);
         }
 
         public void Leave(ushort roomId, Guid peerId)

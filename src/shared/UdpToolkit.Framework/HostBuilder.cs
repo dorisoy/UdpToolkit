@@ -97,22 +97,46 @@ namespace UdpToolkit.Framework
                 peerManager: peerManager,
                 dateTimeProvider: dateTimeProvider);
 
+            var broadcastStrategyResolver = new BroadcastStrategyResolver(
+                broadcastStrategies: new IBroadcastStrategy[]
+                {
+                    new BroadcastCallerStrategy(
+                        type: BroadcastType.Caller,
+                        rawPeerManager: peerManager,
+                        outputQueue: outputQueue),
+
+                    new BroadcastRoomStrategy(
+                        type: BroadcastType.Room,
+                        rawRoomManager: roomManager,
+                        outputQueue: outputQueue),
+
+                    new BroadcastExceptCallerStrategy(
+                        type: BroadcastType.ExceptCaller,
+                        rawRoomManager: roomManager,
+                        outputQueue: outputQueue),
+
+                    new BroadcastServerStrategy(
+                        type: BroadcastType.Server,
+                        rawPeerManager: peerManager,
+                        outputQueue: outputQueue),
+                });
+
             var serverHostClient = new ServerHostClient(
+                pingDelayMs: _serverHostClientSettings.PingDelayInMs,
+                broadcastStrategyResolver: broadcastStrategyResolver,
                 peerManager: peerManager,
                 inputPorts: _hostSettings.InputPorts.ToList(),
                 clientHost: _serverHostClientSettings.ClientHost,
                 resendPacketsTimeout: _serverHostClientSettings.ResendPacketsTimeout,
                 connectionTimeout: _serverHostClientSettings.ConnectionTimeout,
-                timersPool: timersPool,
                 dateTimeProvider: dateTimeProvider,
-                outputQueue: outputQueue,
                 serverSelector: randomServerSelector,
                 serializer: _hostSettings.Serializer);
 
             return new Host(
+                broadcastStrategyResolver: broadcastStrategyResolver,
                 dateTimeProvider: dateTimeProvider,
                 rawPeerManager: peerManager,
-                pingDelayMs: _hostSettings.PingDelayInMs,
                 serverHostClient: serverHostClient,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 roomManager: roomManager,

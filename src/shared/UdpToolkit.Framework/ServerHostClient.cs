@@ -5,9 +5,9 @@ namespace UdpToolkit.Framework
     using System.Linq;
     using System.Net;
     using System.Threading;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
-    using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
@@ -18,37 +18,41 @@ namespace UdpToolkit.Framework
         private readonly TimeSpan _connectionTimeoutFromSettings;
         private readonly TimeSpan _resendPacketsTimeout;
 
-        private readonly ITimersPool _timersPool;
+        private readonly int? _pingDelayMs;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly string _clientHost;
         private readonly List<int> _inputPorts;
-        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
         private readonly IServerSelector _serverSelector;
         private readonly ISerializer _serializer;
         private readonly IPeerManager _peerManager;
+        private readonly IBroadcastStrategyResolver _broadcastStrategyResolver;
+        private readonly Task _ping;
+        private readonly CancellationTokenSource _cts;
 
         public ServerHostClient(
             string clientHost,
             List<int> inputPorts,
-            IAsyncQueue<NetworkPacket> outputQueue,
             IServerSelector serverSelector,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
-            ITimersPool timersPool,
             TimeSpan connectionTimeout,
             TimeSpan resendPacketsTimeout,
-            IPeerManager peerManager)
+            IPeerManager peerManager,
+            IBroadcastStrategyResolver broadcastStrategyResolver,
+            int? pingDelayMs)
         {
             _clientHost = clientHost;
             _inputPorts = inputPorts;
-            _outputQueue = outputQueue;
             _serverSelector = serverSelector;
             _serializer = serializer;
             _dateTimeProvider = dateTimeProvider;
-            _timersPool = timersPool;
             _connectionTimeoutFromSettings = connectionTimeout;
             _resendPacketsTimeout = resendPacketsTimeout;
             _peerManager = peerManager;
+            _broadcastStrategyResolver = broadcastStrategyResolver;
+            _pingDelayMs = pingDelayMs;
+            _cts = new CancellationTokenSource();
+            _ping = Task.Run(() => PingHost(_cts.Token));
         }
 
         public bool IsConnected { get; internal set; }
@@ -93,6 +97,8 @@ namespace UdpToolkit.Framework
                 udpMode: UdpMode.ReliableUdp,
                 serializer: _serializer.SerializeContractLess);
 
+            _cts.Cancel();
+
             return SpinWait.SpinUntil(() => !IsConnected, timeout * 1.2);
         }
 
@@ -113,22 +119,6 @@ namespace UdpToolkit.Framework
                 serializer: _serializer.Serialize);
         }
 
-        public void PublishP2P<TEvent>(
-            TEvent @event,
-            IPEndPoint ipEndPoint,
-            byte hookId,
-            UdpMode udpMode)
-        {
-            PublishInternal(
-                packetType: PacketType.UserDefined,
-                resendTimeout: _resendPacketsTimeout,
-                @event: @event,
-                ipEndPoint: ipEndPoint,
-                hookId: hookId,
-                udpMode: udpMode,
-                serializer: _serializer.Serialize);
-        }
-
         private void PublishInternal<TEvent>(
             TEvent @event,
             IPEndPoint ipEndPoint,
@@ -138,17 +128,51 @@ namespace UdpToolkit.Framework
             PacketType packetType,
             Func<TEvent, byte[]> serializer)
         {
-            _outputQueue.Produce(
-                @event: new NetworkPacket(
-                    networkPacketType: (NetworkPacketType)(byte)packetType,
-                    createdAt: _dateTimeProvider.UtcNow(),
-                    resendTimeout: resendTimeout,
-                    channelType: udpMode.Map(),
-                    peerId: PeerId,
-                    channelHeader: default,
-                    serializer: () => serializer(@event),
-                    ipEndPoint: ipEndPoint,
-                    hookId: hookId));
+            _broadcastStrategyResolver
+                .Resolve(
+                    broadcastType: BroadcastType.Server)
+                .Execute(
+                    roomId: ushort.MaxValue,
+                    networkPacket: new NetworkPacket(
+                        networkPacketType: packetType.Map(),
+                        createdAt: _dateTimeProvider.UtcNow(),
+                        resendTimeout: resendTimeout,
+                        channelType: udpMode.Map(),
+                        peerId: PeerId,
+                        channelHeader: default,
+                        serializer: () => serializer(@event),
+                        ipEndPoint: ipEndPoint,
+                        hookId: hookId));
+        }
+
+        private async Task PingHost(
+            CancellationToken token)
+        {
+            if (!_pingDelayMs.HasValue)
+            {
+                return;
+            }
+
+            var pingDelay = _pingDelayMs.Value;
+            while (!token.IsCancellationRequested)
+            {
+                if (IsConnected)
+                {
+                    var serverIp = _serverSelector.GetServer();
+                    var @event = new Ping();
+
+                    PublishInternal(
+                        resendTimeout: _resendPacketsTimeout,
+                        @event: @event,
+                        ipEndPoint: serverIp.GetRandomIp(),
+                        packetType: PacketType.Protocol,
+                        hookId: (byte)ProtocolHookId.Ping,
+                        udpMode: UdpMode.ReliableUdp,
+                        serializer: _serializer.SerializeContractLess);
+                }
+
+                await Task.Delay(pingDelay, token).ConfigureAwait(false);
+            }
         }
     }
 }

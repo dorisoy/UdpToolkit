@@ -8,12 +8,14 @@ namespace UdpToolkit.Core
             Action<byte[], Guid> onOutputEvent,
             Action<byte[], Guid> onInputEvent,
             Action<Guid> onAck,
-            Action<Guid> onTimeout)
+            Action<Guid> onTimeout,
+            BroadcastMode broadcastMode)
         {
             OnOutputEvent = onOutputEvent;
             OnInputEvent = onInputEvent;
             OnAck = onAck;
             OnTimeout = onTimeout;
+            BroadcastMode = broadcastMode;
         }
 
         public Action<byte[], Guid> OnOutputEvent { get; }
@@ -23,5 +25,7 @@ namespace UdpToolkit.Core
         public Action<Guid> OnAck { get; }
 
         public Action<Guid> OnTimeout { get; }
+
+        public BroadcastMode BroadcastMode { get; }
     }
 }

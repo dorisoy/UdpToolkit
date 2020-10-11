@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network
+namespace UdpToolkit
 {
     public enum NetworkPacketType : byte
     {

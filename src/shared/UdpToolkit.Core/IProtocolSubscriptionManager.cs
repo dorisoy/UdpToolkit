@@ -9,7 +9,8 @@ namespace UdpToolkit.Core
             Action<byte[], Guid> onInputEvent,
             Action<byte[], Guid> onOutputEvent,
             Action<Guid> onAck,
-            Action<Guid> onAckTimeout);
+            Action<Guid> onAckTimeout,
+            BroadcastMode broadcastMode);
 
         ProtocolSubscription GetProtocolSubscription(byte hookId);
     }

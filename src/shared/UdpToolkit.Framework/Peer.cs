@@ -14,6 +14,7 @@ namespace UdpToolkit.Framework
     {
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _channels;
         private readonly Random _random = new Random();
+        private ushort _roomId;
 
         private Peer(
             Guid peerId,
@@ -52,6 +53,14 @@ namespace UdpToolkit.Framework
         public IPEndPoint GetRandomIp()
         {
             return PeerIps[_random.Next(0, PeerIps.Count - 1)];
+        }
+
+        public ushort GetRoomId() => _roomId;
+
+        public void SetRoomId(
+            ushort roomId)
+        {
+            _roomId = roomId;
         }
 
         public void OnPing(DateTimeOffset dateTimeOffset)
