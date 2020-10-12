@@ -4,7 +4,7 @@ namespace UdpToolkit.Network.Packets
     using System.Net;
     using UdpToolkit.Network.Channels;
 
-    public class NetworkPacket
+    public class NetworkPacket : ICloneable
     {
         public NetworkPacket(
             ChannelHeader channelHeader,
@@ -32,7 +32,7 @@ namespace UdpToolkit.Network.Packets
 
         public ChannelType ChannelType { get; }
 
-        public Guid PeerId { get; }
+        public Guid PeerId { get; private set; }
 
         public ChannelHeader ChannelHeader { get; private set; }
 
@@ -40,7 +40,7 @@ namespace UdpToolkit.Network.Packets
 
         public Func<byte[]> Serializer { get; }
 
-        public IPEndPoint IpEndPoint { get; }
+        public IPEndPoint IpEndPoint { get; private set; }
 
         public TimeSpan ResendTimeout { get; }
 
@@ -55,6 +55,39 @@ namespace UdpToolkit.Network.Packets
         public NetworkPacket SetChannelHeader(ChannelHeader channelHeader)
         {
             ChannelHeader = channelHeader;
+            return this;
+        }
+
+        public NetworkPacket SetIpEndPoint(
+            IPEndPoint ipEndPoint)
+        {
+            IpEndPoint = ipEndPoint;
+            return this;
+        }
+
+        public NetworkPacket Clone()
+        {
+            return new NetworkPacket(
+                channelHeader: default,
+                serializer: this.Serializer,
+                ipEndPoint: this.IpEndPoint,
+                hookId: this.HookId,
+                channelType: this.ChannelType,
+                peerId: this.PeerId,
+                resendTimeout: this.ResendTimeout,
+                createdAt: this.CreatedAt,
+                networkPacketType: this.NetworkPacketType);
+        }
+
+        object ICloneable.Clone()
+        {
+            return Clone();
+        }
+
+        public NetworkPacket SetPeerId(
+            Guid peerId)
+        {
+            PeerId = peerId;
             return this;
         }
     }

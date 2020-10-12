@@ -33,6 +33,9 @@ namespace UdpToolkit.Framework
         private readonly IRoomManager _roomManager;
         private readonly ServerHostClient _serverHostClient;
         private readonly IBroadcastStrategyResolver _broadcastStrategyResolver;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly IScheduler _scheduler;
+        private readonly IServerSelector _serverSelector;
 
         public Host(
             HostSettings hostSettings,
@@ -45,7 +48,10 @@ namespace UdpToolkit.Framework
             IRoomManager roomManager,
             IProtocolSubscriptionManager protocolSubscriptionManager,
             ServerHostClient serverHostClient,
-            IBroadcastStrategyResolver broadcastStrategyResolver)
+            IBroadcastStrategyResolver broadcastStrategyResolver,
+            IDateTimeProvider dateTimeProvider,
+            IScheduler scheduler,
+            IServerSelector serverSelector)
         {
             _hostSettings = hostSettings;
             _outputQueue = outputQueue;
@@ -54,6 +60,9 @@ namespace UdpToolkit.Framework
             _subscriptionManager = subscriptionManager;
             _serverHostClient = serverHostClient;
             _broadcastStrategyResolver = broadcastStrategyResolver;
+            _dateTimeProvider = dateTimeProvider;
+            _scheduler = scheduler;
+            _serverSelector = serverSelector;
             _rawPeerManager = rawPeerManager;
             _roomManager = roomManager;
             _protocolSubscriptionManager = protocolSubscriptionManager;
@@ -118,6 +127,29 @@ namespace UdpToolkit.Framework
         public void OnCore(Subscription subscription, byte hookId)
         {
             _subscriptionManager.Subscribe(hookId, subscription);
+        }
+
+        public void Publish<TEvent>(
+            TEvent @event,
+            ushort roomId,
+            byte hookId,
+            UdpMode udpMode)
+        {
+            _broadcastStrategyResolver
+                .Resolve(
+                    broadcastType: BroadcastType.Room)
+                .Execute(
+                    roomId: roomId,
+                    networkPacket: new NetworkPacket(
+                        networkPacketType: NetworkPacketType.UserDefined,
+                        createdAt: _dateTimeProvider.UtcNow(),
+                        resendTimeout: _hostSettings.ResendPacketsTimeout,
+                        channelType: udpMode.Map(),
+                        peerId: default,
+                        channelHeader: default,
+                        serializer: () => _hostSettings.Serializer.Serialize(@event),
+                        ipEndPoint: null,
+                        hookId: hookId));
         }
 
         public void Dispose()
@@ -240,7 +272,8 @@ namespace UdpToolkit.Framework
                         networkPacket.Serializer(),
                         networkPacket.PeerId,
                         _hostSettings.Serializer,
-                        _roomManager);
+                        _roomManager,
+                        _scheduler);
 
                     _broadcastStrategyResolver
                         .Resolve(
@@ -279,10 +312,19 @@ namespace UdpToolkit.Framework
                 networkPacket.Serializer(),
                 networkPacket.PeerId,
                 _hostSettings.Serializer,
-                _roomManager);
+                _roomManager,
+                _scheduler);
+
+            var result = _serverSelector.IsServerIp(networkPacket.IpEndPoint);
+
+            var ip = result
+                ? _serverSelector
+                    .GetServer()
+                    .GetRandomIp()
+                : rawPeer.GetRandomIp();
 
             var ackPacket = channel
-                .GetAck(networkPacket, rawPeer.GetRandomIp());
+                .GetAck(networkPacket, ip);
 
             _outputQueue.Produce(ackPacket);
         }

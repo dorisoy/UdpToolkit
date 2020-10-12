@@ -11,6 +11,14 @@ namespace UdpToolkit.Core
 
         void Stop();
 
-        void OnCore(Subscription subscription, byte hookId);
+        void OnCore(
+            Subscription subscription,
+            byte hookId);
+
+        void Publish<TEvent>(
+            TEvent @event,
+            ushort roomId,
+            byte hookId,
+            UdpMode udpMode);
     }
 }

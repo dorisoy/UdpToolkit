@@ -5,14 +5,14 @@
 
     public sealed class UdpClientFactory : IUdpClientFactory
     {
-        public UdpClient Create(IPEndPoint endPoint)
+        public UdpClient Create(
+            IPEndPoint localEndPoint)
         {
             var udpClient = new UdpClient();
 
             udpClient.Client.Blocking = false;
             udpClient.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            udpClient.Client.Bind(endPoint);
-
+            udpClient.Client.Bind(localEndPoint);
             return udpClient;
         }
     }

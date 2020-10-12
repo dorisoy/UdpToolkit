@@ -5,6 +5,7 @@ namespace UdpToolkit.Network.Clients
 
     public interface IUdpClientFactory
     {
-        UdpClient Create(IPEndPoint endPoint);
+        UdpClient Create(
+            IPEndPoint localEndPoint);
     }
 }

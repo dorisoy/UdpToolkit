@@ -1,8 +1,5 @@
 namespace UdpToolkit.Framework
 {
-    using System;
-    using UdpToolkit.Core;
-    using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
@@ -32,23 +29,18 @@ namespace UdpToolkit.Framework
                 condition: (peer) => true,
                 action: (peer) =>
                 {
-                    var isCaller = peer.PeerId == networkPacket.PeerId;
-                    if (isCaller)
-                    {
-                        var ackPacket = peer
-                            .GetChannel(channelType: networkPacket.ChannelType)
-                            .GetAck(networkPacket, peer.GetRandomIp());
+                    var newPacket = networkPacket
+                        .Clone();
 
-                        _outputQueue.Produce(ackPacket);
-                    }
-                    else
-                    {
-                        peer
-                            .GetChannel(channelType: networkPacket.ChannelType)
-                            .HandleOutputPacket(networkPacket: networkPacket);
+                    peer
+                        .GetChannel(channelType: newPacket.ChannelType)
+                        .HandleOutputPacket(networkPacket: newPacket);
 
-                        _outputQueue.Produce(networkPacket);
-                    }
+                    var packet = newPacket
+                        .SetIpEndPoint(peer.GetRandomIp())
+                        .SetPeerId(peer.PeerId);
+
+                    _outputQueue.Produce(packet);
                 });
         }
     }

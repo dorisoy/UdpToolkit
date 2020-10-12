@@ -42,7 +42,7 @@ namespace UdpToolkit.Integration.Tests.Utils
                 .ConfigureServerHostClient((settings) =>
                 {
                     settings.ServerHost = "0.0.0.0";
-                    settings.ServerPorts = serverInputPorts;
+                    settings.ServerInputPorts = serverInputPorts;
                 })
                 .Build();
         }

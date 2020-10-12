@@ -22,7 +22,7 @@ namespace UdpToolkit.Framework
             host.OnCore(
                 subscription: new Subscription(
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
                         onEvent?.Invoke(peerId, @event);
@@ -47,7 +47,7 @@ namespace UdpToolkit.Framework
             host.OnCore(
                 subscription: new Subscription(
                     broadcastMode: BroadcastMode.Caller,
-                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.DeserializeContractLess<TEvent>(new ArraySegment<byte>(bytes));
                         onEvent?.Invoke(peerId, @event);
@@ -61,7 +61,7 @@ namespace UdpToolkit.Framework
             this IHost host,
             byte hookId,
             BroadcastMode broadcastMode,
-            Action<Guid, TEvent, IRoomManager> onEvent = null,
+            Action<Guid, TEvent, IRoomManager> onEvent,
             Action<Guid> onAck = null,
             Action<Guid> onTimeout = null)
         {
@@ -72,10 +72,35 @@ namespace UdpToolkit.Framework
             host.OnCore(
                 subscription: new Subscription(
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, peerId, serializer, roomManager) =>
+                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
                         onEvent?.Invoke(peerId, @event, roomManager);
+                    },
+                    onAck: onAck,
+                    onTimeout: onTimeout),
+                hookId: hookId);
+        }
+
+        public static void On<TEvent>(
+            this IHost host,
+            byte hookId,
+            BroadcastMode broadcastMode,
+            Action<Guid, TEvent, IRoomManager, IScheduler> onEvent,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
+        {
+#pragma warning disable
+            if (host == null) throw new ArgumentNullException(nameof(host));
+#pragma warning restore
+
+            host.OnCore(
+                subscription: new Subscription(
+                    broadcastMode: broadcastMode,
+                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
+                    {
+                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                        onEvent?.Invoke(peerId, @event, roomManager, scheduler);
                     },
                     onAck: onAck,
                     onTimeout: onTimeout),

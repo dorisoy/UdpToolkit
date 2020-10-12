@@ -14,7 +14,9 @@ namespace UdpToolkit.Core
 
         public string ClientHost { get; set; } = "0.0.0.0";
 
-        public IEnumerable<int> ServerPorts { get; set; } = Enumerable.Empty<int>();
+        public IEnumerable<int> ServerInputPorts { get; set; } = Enumerable.Empty<int>();
+
+        public IEnumerable<int> ServerOutputPorts { get; set; } = Enumerable.Empty<int>();
 
         public int? PingDelayInMs { get; set; } = 2000;
     }

@@ -49,14 +49,31 @@ namespace UdpToolkit.Framework
             var peerManager = new PeerManager(
                 dateTimeProvider: dateTimeProvider);
 
-            var serverIps = _serverHostClientSettings.ServerPorts
+            var inputIps = _serverHostClientSettings.ServerInputPorts
                 .Select(port =>
                     new IPEndPoint(
                         address: IPAddress.Parse(ipString: _serverHostClientSettings.ServerHost),
                         port: port))
                 .ToArray();
 
-            var randomServerSelector = new RandomServerSelector(serverIps);
+            var outputIps = _serverHostClientSettings.ServerOutputPorts
+                .Select(port =>
+                    new IPEndPoint(
+                        address: IPAddress.Parse(ipString: _serverHostClientSettings.ServerHost),
+                        port: port))
+                .ToArray();
+
+            // HACK packets from 0.0.0.0 received as 127.0.0.1 i have no idea about this behaviour
+            var outputIps2 = _serverHostClientSettings.ServerOutputPorts
+                .Select(port =>
+                    new IPEndPoint(
+                        address: IPAddress.Loopback,
+                        port: port))
+                .ToArray();
+
+            var randomServerSelector = new RandomServerSelector(
+                inputIps: inputIps,
+                outputIps: outputIps.Concat(outputIps2).ToArray());
 
             var udpProtocol = new UdpProtocol();
 
@@ -140,6 +157,9 @@ namespace UdpToolkit.Framework
                 serializer: _hostSettings.Serializer);
 
             return new Host(
+                serverSelector: randomServerSelector,
+                scheduler: new Scheduler(),
+                dateTimeProvider: dateTimeProvider,
                 broadcastStrategyResolver: broadcastStrategyResolver,
                 rawPeerManager: peerManager,
                 serverHostClient: serverHostClient,

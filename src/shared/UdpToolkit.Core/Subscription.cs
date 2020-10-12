@@ -6,7 +6,7 @@ namespace UdpToolkit.Core
     public class Subscription
     {
         public Subscription(
-            Action<byte[], Guid, ISerializer, IRoomManager> onEvent,
+            Action<byte[], Guid, ISerializer, IRoomManager, IScheduler> onEvent,
             Action<Guid> onAck,
             Action<Guid> onTimeout,
             BroadcastMode broadcastMode)
@@ -17,7 +17,7 @@ namespace UdpToolkit.Core
             BroadcastMode = broadcastMode;
         }
 
-        public Action<byte[], Guid, ISerializer, IRoomManager> OnEvent { get; }
+        public Action<byte[], Guid, ISerializer, IRoomManager, IScheduler> OnEvent { get; }
 
         public Action<Guid> OnAck { get; }
 
