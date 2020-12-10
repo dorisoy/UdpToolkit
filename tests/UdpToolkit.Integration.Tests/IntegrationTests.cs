@@ -44,10 +44,10 @@ namespace UdpToolkit.Integration.Tests
                 outputPorts: Gen.GenerateUdpPorts(count: 2),
                 serverInputPorts: serverInputPorts);
 
-#pragma warning disable 4014
+#pragma warning disable CS4014
             Task.Run(() => serverHost.RunAsync());
             Task.Run(() => clientHost.RunAsync());
-#pragma warning restore 4014
+#pragma warning restore CS4014
 
             clientHost.ServerHostClient.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
@@ -60,15 +60,19 @@ namespace UdpToolkit.Integration.Tests
                 {
                     actualPayload = "pong";
                     waitCallback.Set();
+
+                    return 0;
                 },
                 onAck: (id) => { },
                 onTimeout: (id) => { },
                 hookId: 0);
 
+#pragma warning disable CS4014
             Task.Run(() => clientHost.ServerHostClient.Publish(
                 @event: new Ping("ping"),
                 hookId: 0,
                 udpMode: udpMode));
+#pragma warning restore CS4014
 
             waitCallback.WaitOne(timeout: waitCallBackTimeout);
 
@@ -96,10 +100,10 @@ namespace UdpToolkit.Integration.Tests
                 outputPorts: Gen.GenerateUdpPorts(count: 1),
                 serverInputPorts: Array.Empty<int>());
 
-#pragma warning disable 4014
+#pragma warning disable CS4014
             Task.Run(() => client1Host.RunAsync());
             Task.Run(() => client2Host.RunAsync());
-#pragma warning restore 4014
+#pragma warning restore CS4014
 
             client1Host.ServerHostClient.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
@@ -110,6 +114,7 @@ namespace UdpToolkit.Integration.Tests
                 {
                     actualPayload = "pong";
                     waitCallback.Set();
+                    return 0;
                 },
                 onAck: (id) => { },
                 onTimeout: (id) => { },
@@ -137,7 +142,9 @@ namespace UdpToolkit.Integration.Tests
                 outputPorts: serverOutputPorts);
 
             var host = serverHost;
+#pragma warning disable CS4014
             Task.Run(() => host.RunAsync());
+#pragma warning restore CS4014
 
             serverHost.Stop();
             serverHost.Dispose();

@@ -5,18 +5,15 @@ namespace UdpToolkit.Framework
     using System.Net;
     using UdpToolkit.Core;
 
-    public class RandomServerSelector : IServerSelector
+    public class RandomServerSelector : IServerSelector, IRawServerSelector
     {
         private static readonly Random Random = new Random();
         private readonly Peer[] _servers;
-        private readonly IPEndPoint[] _outputIps;
 
         public RandomServerSelector(
-            IPEndPoint[] inputIps,
-            IPEndPoint[] outputIps)
+            IPEndPoint[] inputIps)
         {
             var serverId = Guid.NewGuid();
-            _outputIps = outputIps;
 
             _servers = inputIps
                 .Select(ip => Peer.New(
@@ -31,6 +28,9 @@ namespace UdpToolkit.Framework
             return _servers[Random.Next(0, _servers.Length - 1)];
         }
 
-        public bool IsServerIp(IPEndPoint ipEndPoint) => _outputIps.Contains(ipEndPoint);
+        Peer IRawServerSelector.GetServer()
+        {
+            return _servers[Random.Next(0, _servers.Length - 1)];
+        }
     }
 }

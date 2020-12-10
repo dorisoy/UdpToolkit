@@ -1,6 +1,4 @@
-﻿using Shared.Move;
-using UdpToolkit.Core;
-using UdpToolkit.Framework.Client.Core;
+﻿using UdpToolkit.Core;
 using UnityEngine;
 
 public class MovePlayer : MonoBehaviour
@@ -19,13 +17,13 @@ public class MovePlayer : MonoBehaviour
 
     private int totalJumps = 0;
 
-    public byte PlayerId { get; set; }
+    public int PlayerId { get; set; }
 
     private new Rigidbody rigidbody;
 
     private Vector3 prevPosition;
 
-    public IClientHost ClientHost { get; set; }
+    public IServerHostClient ClientHost { get; set; }
 
     void Start()
     {
@@ -83,16 +81,16 @@ public class MovePlayer : MonoBehaviour
     private void SendPosition()
     {
         // todo delta for jitter
-        if (prevPosition != transform.position)
-        {
-            var @event = new MoveEvent
-            {
-                PlayerId = PlayerId,
-                Rotation = transform.rotation,
-                Position = transform.position,
-            };
-
-            ClientHost.Publish(@event, hubId: 0,  rpcId: 2, UdpMode.Udp);
-        }
+        // if (prevPosition != transform.position)
+        // {
+        //     var @event = new MoveEvent
+        //     {
+        //         PlayerId = PlayerId,
+        //         Rotation = transform.rotation,
+        //         Position = transform.position,
+        //     };
+        //
+        //     ClientHost.Publish(@event, 0, UdpMode.Sequenced);
+        // }
     }
 }

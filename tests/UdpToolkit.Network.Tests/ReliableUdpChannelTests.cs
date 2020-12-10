@@ -21,8 +21,8 @@ namespace UdpToolkit.Network.Tests
             var result = channel.HandleInputPacket(networkPacket: networkPacket);
 
             Assert.True(result);
-            Assert.Equal(1, networkPacket.ChannelHeader.Id);
-            Assert.Equal(1, networkPacket.ChannelHeader.Id);
+            Assert.Equal(1, networkPacket.Id);
+            Assert.Equal(1, networkPacket.Id);
             Assert.Equal(ChannelType.ReliableUdp, networkPacket.ChannelType);
         }
 
@@ -40,8 +40,8 @@ namespace UdpToolkit.Network.Tests
             var result = channel.HandleInputPacket(networkPacket: networkPacket);
 
             Assert.False(false);
-            Assert.Equal(1, networkPacket.ChannelHeader.Id);
-            Assert.Equal(1, networkPacket.ChannelHeader.Id);
+            Assert.Equal(1, networkPacket.Id);
+            Assert.Equal(1, networkPacket.Id);
             Assert.Equal(ChannelType.ReliableUdp, networkPacket.ChannelType);
         }
 

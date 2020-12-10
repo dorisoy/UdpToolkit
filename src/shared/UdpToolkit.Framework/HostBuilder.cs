@@ -3,7 +3,9 @@ namespace UdpToolkit.Framework
     using System;
     using System.Linq;
     using System.Net;
+    using System.Threading;
     using UdpToolkit.Core;
+    using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
@@ -40,14 +42,26 @@ namespace UdpToolkit.Framework
             var dateTimeProvider = new DateTimeProvider();
             var udpClientFactory = new UdpClientFactory();
 
-            var outputQueue = new BlockingAsyncQueue<NetworkPacket>(
+            var outputQueue = new BlockingAsyncQueue<CallContext>(
                 boundedCapacity: int.MaxValue);
 
-            var inputQueue = new BlockingAsyncQueue<NetworkPacket>(
+            var inputQueue = new BlockingAsyncQueue<CallContext>(
+                boundedCapacity: int.MaxValue);
+
+            var resendQueue = new BlockingAsyncQueue<CallContext>(
                 boundedCapacity: int.MaxValue);
 
             var peerManager = new PeerManager(
                 dateTimeProvider: dateTimeProvider);
+
+            if (!_serverHostClientSettings.ServerInputPorts.Any())
+            {
+                _serverHostClientSettings.ServerInputPorts = new int[]
+                {
+                    NetworkUtils.GetAvailablePort(),
+                    NetworkUtils.GetAvailablePort(),
+                };
+            }
 
             var inputIps = _serverHostClientSettings.ServerInputPorts
                 .Select(port =>
@@ -56,26 +70,17 @@ namespace UdpToolkit.Framework
                         port: port))
                 .ToArray();
 
-            var outputIps = _serverHostClientSettings.ServerOutputPorts
-                .Select(port =>
-                    new IPEndPoint(
-                        address: IPAddress.Parse(ipString: _serverHostClientSettings.ServerHost),
-                        port: port))
-                .ToArray();
-
-            // HACK packets from 0.0.0.0 received as 127.0.0.1 i have no idea about this behaviour
-            var outputIps2 = _serverHostClientSettings.ServerOutputPorts
-                .Select(port =>
-                    new IPEndPoint(
-                        address: IPAddress.Loopback,
-                        port: port))
-                .ToArray();
-
             var randomServerSelector = new RandomServerSelector(
-                inputIps: inputIps,
-                outputIps: outputIps.Concat(outputIps2).ToArray());
+                inputIps: inputIps);
 
-            var udpProtocol = new UdpProtocol();
+            if (!_hostSettings.OutputPorts.Any())
+            {
+                _hostSettings.OutputPorts = new[]
+                {
+                    NetworkUtils.GetAvailablePort(),
+                    NetworkUtils.GetAvailablePort(),
+                };
+            }
 
             var outputPorts = _hostSettings.OutputPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
@@ -83,8 +88,22 @@ namespace UdpToolkit.Framework
 
             var senders = outputPorts
                 .Select(udpClientFactory.Create)
-                .Select(udpClient => new UdpSender(sender: udpClient, udpProtocol: udpProtocol))
+                .Select(udpClient => new UdpSender(sender: udpClient))
                 .ToList();
+
+            var resenders = outputPorts
+                .Select(udpClientFactory.Create)
+                .Select(udpClient => new UdpSender(sender: udpClient))
+                .ToList();
+
+            if (!_hostSettings.InputPorts.Any())
+            {
+                _hostSettings.InputPorts = new[]
+                {
+                    NetworkUtils.GetAvailablePort(),
+                    NetworkUtils.GetAvailablePort(),
+                };
+            }
 
             var inputPorts = _hostSettings.InputPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
@@ -92,10 +111,7 @@ namespace UdpToolkit.Framework
 
             var receivers = inputPorts
                 .Select(udpClientFactory.Create)
-                .Select(udpClient => new UdpReceiver(
-                    receiver: udpClient,
-                    udpProtocol: udpProtocol,
-                    resendPacketTimeout: _hostSettings.ResendPacketsTimeout))
+                .Select(udpClient => new UdpReceiver(receiver: udpClient))
                 .ToList();
 
             var subscriptionManager = new SubscriptionManager();
@@ -106,11 +122,13 @@ namespace UdpToolkit.Framework
             var protocolSubscriptionManager = new ProtocolSubscriptionManager();
 
             var timersPool = new TimersPool(
+                dateTimeProvider: dateTimeProvider,
+                resendTimeout: _hostSettings.ResendPacketsTimeout,
                 peerManager: peerManager,
                 roomManager: roomManager,
                 protocolSubscriptionManager: protocolSubscriptionManager,
                 subscriptionManager: subscriptionManager,
-                outputQueue: outputQueue);
+                resendQueue: resendQueue);
 
             protocolSubscriptionManager.BootstrapSubscriptions(
                 timersPool: timersPool,
@@ -119,48 +137,38 @@ namespace UdpToolkit.Framework
                 dateTimeProvider: dateTimeProvider,
                 inactivityTimeout: _hostSettings.PeerInactivityTimeout);
 
-            var broadcastStrategyResolver = new BroadcastStrategyResolver(
-                broadcastStrategies: new IBroadcastStrategy[]
-                {
-                    new BroadcastCallerStrategy(
-                        type: BroadcastType.Caller,
-                        rawPeerManager: peerManager,
-                        outputQueue: outputQueue),
+            var broadcastManager = new BroadcastManager(
+                rawPeerManager: peerManager,
+                rawRoomManager: roomManager,
+                serverSelector: randomServerSelector);
 
-                    new BroadcastRoomStrategy(
-                        type: BroadcastType.Room,
-                        rawRoomManager: roomManager,
-                        outputQueue: outputQueue),
+            var peerId = Guid.NewGuid();
 
-                    new BroadcastExceptCallerStrategy(
-                        type: BroadcastType.ExceptCaller,
-                        rawRoomManager: roomManager,
-                        outputQueue: outputQueue),
-
-                    new BroadcastServerStrategy(
-                        type: BroadcastType.Server,
-                        rawPeerManager: peerManager,
-                        outputQueue: outputQueue),
-                });
+            var clientIps = inputPorts
+                .Select(ip => new ClientIp(host: ip.Address.ToString(), port: ip.Port))
+                .ToList();
 
             var serverHostClient = new ServerHostClient(
-                peerInactivityTimeout: _hostSettings.PeerInactivityTimeout,
+                clientIps: clientIps,
+                peerId: peerId,
+                cancellationTokenSource: new CancellationTokenSource(),
+                outputQueue: outputQueue,
                 pingDelayMs: _serverHostClientSettings.PingDelayInMs,
-                broadcastStrategyResolver: broadcastStrategyResolver,
-                peerManager: peerManager,
-                inputPorts: _hostSettings.InputPorts.ToList(),
-                clientHost: _serverHostClientSettings.ClientHost,
                 resendPacketsTimeout: _serverHostClientSettings.ResendPacketsTimeout,
                 connectionTimeout: _serverHostClientSettings.ConnectionTimeout,
                 dateTimeProvider: dateTimeProvider,
-                serverSelector: randomServerSelector,
                 serializer: _hostSettings.Serializer);
 
+            _ = peerManager.AddOrUpdate(
+                inactivityTimeout: _hostSettings.PeerInactivityTimeout,
+                peerId: peerId,
+                ips: inputPorts);
+
             return new Host(
-                serverSelector: randomServerSelector,
+                broadcastManager: broadcastManager,
+                timersPool: timersPool,
                 scheduler: new Scheduler(),
                 dateTimeProvider: dateTimeProvider,
-                broadcastStrategyResolver: broadcastStrategyResolver,
                 rawPeerManager: peerManager,
                 serverHostClient: serverHostClient,
                 protocolSubscriptionManager: protocolSubscriptionManager,
@@ -169,8 +177,10 @@ namespace UdpToolkit.Framework
                 subscriptionManager: subscriptionManager,
                 outputQueue: outputQueue,
                 inputQueue: inputQueue,
+                resendQueue: resendQueue,
                 senders: senders,
-                receivers: receivers);
+                receivers: receivers,
+                resenders: resenders);
         }
     }
 }

@@ -8,7 +8,6 @@
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("qwe");
             Console.ReadKey();
         }
     }

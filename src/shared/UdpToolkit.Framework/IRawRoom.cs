@@ -1,12 +1,13 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
 
     public interface IRawRoom : IRoom
     {
-        void Apply(
+        Task Apply(
             Func<Peer, bool> condition,
-            Action<Peer> action);
+            Func<Peer, Task> func);
     }
 }

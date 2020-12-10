@@ -31,7 +31,7 @@ namespace UdpToolkit.Integration.Tests
             Guid? receivedPeerId = null;
 
             clientHost.OnProtocol<Connect>(
-                onEvent: (guid, @event) =>
+                onProtocolEvent: (guid, @event) =>
                 {
                     receivedPeerId = guid;
                     waitCallback.Set();
@@ -74,7 +74,7 @@ namespace UdpToolkit.Integration.Tests
 
             Guid? connectedId = null;
             clientHost.OnProtocol<Connect>(
-                onEvent: (guid, @event) =>
+                onProtocolEvent: (guid, @event) =>
                 {
                     connectedId = guid;
                     waitCallback1.Set();
@@ -85,7 +85,7 @@ namespace UdpToolkit.Integration.Tests
 
             Guid? disconnectedId = null;
             clientHost.OnProtocol<Disconnect>(
-                onEvent: (guid, @event) =>
+                onProtocolEvent: (guid, @event) =>
                 {
                     disconnectedId = guid;
                     waitCallback2.Set();

@@ -1,16 +1,19 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Threading.Tasks;
+    using UdpToolkit.Core;
 
     public interface IRawRoomManager
     {
         void Remove(
-            ushort roomId,
+            int roomId,
             Peer peer);
 
-        void Apply(
-            ushort roomId,
+        Task Apply(
+            int roomId,
+            Guid caller,
             Func<Peer, bool> condition,
-            Action<Peer> action);
+            Func<Peer, Task> func);
     }
 }

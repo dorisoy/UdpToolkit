@@ -3,14 +3,14 @@ namespace UdpToolkit.Core
     public readonly struct TimerKey
     {
         public TimerKey(
-            ushort roomId,
+            int roomId,
             short timerId)
         {
             RoomId = roomId;
             TimerId = timerId;
         }
 
-        public ushort RoomId { get; }
+        public int RoomId { get; }
 
         public short TimerId { get; }
     }

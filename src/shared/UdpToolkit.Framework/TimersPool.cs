@@ -2,7 +2,6 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Linq;
     using System.Threading;
     using Serilog;
@@ -14,25 +13,31 @@ namespace UdpToolkit.Framework
     {
         private readonly ILogger _logger = Log.ForContext<Host>();
         private readonly ConcurrentDictionary<Guid, Lazy<Timer>> _timers;
-        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
+        private readonly IAsyncQueue<CallContext> _resendQueue;
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRawPeerManager _rawPeerManager;
         private readonly IRawRoomManager _rawRoomManager;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TimeSpan _resendTimeout;
 
         public TimersPool(
-            IAsyncQueue<NetworkPacket> outputQueue,
+            IAsyncQueue<CallContext> resendQueue,
             IProtocolSubscriptionManager protocolSubscriptionManager,
             ISubscriptionManager subscriptionManager,
             IRawPeerManager peerManager,
-            IRawRoomManager roomManager)
+            IRawRoomManager roomManager,
+            TimeSpan resendTimeout,
+            IDateTimeProvider dateTimeProvider)
         {
             _timers = new ConcurrentDictionary<Guid, Lazy<Timer>>();
-            _outputQueue = outputQueue;
+            _resendQueue = resendQueue;
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _subscriptionManager = subscriptionManager;
             _rawPeerManager = peerManager;
             _rawRoomManager = roomManager;
+            _resendTimeout = resendTimeout;
+            _dateTimeProvider = dateTimeProvider;
         }
 
         public void EnableResend(
@@ -56,7 +61,7 @@ namespace UdpToolkit.Framework
             Guid peerId)
         {
             _logger.Information(nameof(DisableResend));
-            var timerRemoved = _timers.Remove(peerId, out var lazyTimer);
+            var timerRemoved = _timers.TryRemove(peerId, out var lazyTimer);
             if (!timerRemoved)
             {
                 return false;
@@ -73,7 +78,7 @@ namespace UdpToolkit.Framework
                 timer.Value?.Value.Dispose();
             }
 
-            _outputQueue?.Dispose();
+            _resendQueue?.Dispose();
         }
 
         private void ResendLostPackets(Peer peer)
@@ -90,7 +95,7 @@ namespace UdpToolkit.Framework
 
                 _rawPeerManager.Remove(peer);
 
-                if (_timers.Remove(peer.PeerId, out var timer))
+                if (_timers.TryRemove(peer.PeerId, out var timer))
                 {
                     timer.Value.Change(Timeout.Infinite, Timeout.Infinite);
                     timer.Value.Dispose();
@@ -102,12 +107,12 @@ namespace UdpToolkit.Framework
             foreach (var channel in peer.GetChannels())
             {
                 var packets = channel
-                    .ToResend();
+                    .ToResend(_resendTimeout);
 
                 var ps = packets.ToArray();
                 foreach (var packet in ps)
                 {
-                    if (packet.IsExpired())
+                    if (packet.IsExpired(_resendTimeout))
                     {
                         if (packet.IsProtocolEvent)
                         {
@@ -124,7 +129,12 @@ namespace UdpToolkit.Framework
                     }
                     else
                     {
-                        _outputQueue.Produce(packet);
+                        _resendQueue.Produce(new CallContext(
+                            roomId: null,
+                            broadcastMode: null,
+                            networkPacket: packet,
+                            resendTimeout: _resendTimeout,
+                            createdAt: _dateTimeProvider.UtcNow()));
                     }
                 }
             }

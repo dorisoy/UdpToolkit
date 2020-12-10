@@ -2,21 +2,13 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Linq;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
 
     public sealed class Room : IRoom, IRawRoom
     {
         private readonly ConcurrentDictionary<Guid, Peer> _roomPeers = new ConcurrentDictionary<Guid, Peer>();
-
-        public Room(
-            ushort roomId)
-        {
-            RoomId = roomId;
-        }
-
-        public ushort RoomId { get; }
 
         public void AddPeer(IPeer peer)
         {
@@ -25,12 +17,12 @@ namespace UdpToolkit.Framework
 
         public void RemovePeer(Guid peerId)
         {
-            _roomPeers.Remove(peerId, out _);
+            _roomPeers.TryRemove(peerId, out _);
         }
 
-        public void Apply(
+        public async Task Apply(
             Func<Peer, bool> condition,
-            Action<Peer> action)
+            Func<Peer, Task> func)
         {
             for (var i = 0; i < _roomPeers.Count; i++)
             {
@@ -41,7 +33,7 @@ namespace UdpToolkit.Framework
                     continue;
                 }
 
-                action(pair.Value);
+                await func(pair.Value).ConfigureAwait(false);
             }
         }
     }

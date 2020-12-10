@@ -1,13 +1,16 @@
 namespace UdpToolkit.Core
 {
     using System;
+    using System.Collections.Generic;
 
     public interface IRoomManager
     {
-        void JoinOrCreate(ushort roomId, Guid peerId);
+        void JoinOrCreate(
+            int roomId,
+            Guid peerId);
 
-        IRoom GetRoom(ushort roomId);
-
-        void Leave(ushort roomId, Guid peerId);
+        void Leave(
+            int roomId,
+            Guid peerId);
     }
 }

@@ -7,14 +7,9 @@ namespace UdpToolkit.Benchmarks.Hubs.CurrentSolution
     [MessagePackObject]
     public class BenchmarkEvent
     {
-        [Obsolete(message: "For deserialization only", error: true)]
-        public BenchmarkEvent()
-        {
-        }
-
         public BenchmarkEvent(
             byte playerId,
-            byte roomId,
+            int roomId,
             float distance,
             float angle,
             Quaternion rotation,
@@ -34,7 +29,7 @@ namespace UdpToolkit.Benchmarks.Hubs.CurrentSolution
         public byte PlayerId { get; set; }
 
         [Key(1)]
-        public byte RoomId { get; set; }
+        public int RoomId { get; set; }
 
         [Key(2)]
         public float Distance { get; set; }

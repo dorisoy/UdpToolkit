@@ -1,7 +1,6 @@
 ﻿using MessagePack;
 using MessagePack.Resolvers;
 using Serilog;
-using UnityEditor;
 using UnityEngine;
 
 public class Startup
@@ -22,7 +21,7 @@ public class Startup
             serializerRegistered = true;
 
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Fatal()
+                .MinimumLevel.Debug()
                 .WriteTo.Unity3D()
                 .CreateLogger();
         }

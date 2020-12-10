@@ -5,13 +5,9 @@ namespace UdpToolkit.Core
     public interface IScheduler
     {
         void Schedule(
-            ushort roomId,
+            int roomId,
             short timerId,
             int dueTimeMs,
             Action action);
-
-        void Unschedule(
-            ushort roomId,
-            short timerId);
     }
 }

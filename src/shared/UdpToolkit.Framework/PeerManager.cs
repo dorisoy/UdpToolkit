@@ -5,6 +5,7 @@ namespace UdpToolkit.Framework
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
 
     public class PeerManager : IPeerManager, IRawPeerManager
@@ -21,7 +22,7 @@ namespace UdpToolkit.Framework
         public void Remove(
             Peer peer)
         {
-            _peers.Remove(peer.PeerId, out _);
+            _peers.TryRemove(peer.PeerId, out _);
         }
 
         public Peer GetPeer(Guid peerId)
@@ -35,6 +36,23 @@ namespace UdpToolkit.Framework
             TimeSpan inactivityTimeout)
         {
             return AddOrUpdate(peerId, ips, inactivityTimeout);
+        }
+
+        public async Task Apply(
+            Func<Peer, bool> condition,
+            Func<Peer, Task> action)
+        {
+            for (var i = 0; i < _peers.Count; i++)
+            {
+                var pair = _peers.ElementAt(i);
+                var peer = pair.Value;
+                if (!condition(peer))
+                {
+                    continue;
+                }
+
+                await action(pair.Value).ConfigureAwait(false);
+            }
         }
 
         public bool TryGetPeer(Guid peerId, out IPeer peer)

@@ -15,9 +15,9 @@ namespace UdpToolkit.Core
             Subscription subscription,
             byte hookId);
 
-        void Publish<TEvent>(
+        void PublishCore<TEvent>(
             TEvent @event,
-            ushort roomId,
+            int roomId,
             byte hookId,
             UdpMode udpMode);
     }

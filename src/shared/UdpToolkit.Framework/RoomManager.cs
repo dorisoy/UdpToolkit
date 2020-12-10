@@ -2,11 +2,13 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
 
     public class RoomManager : IRoomManager, IRawRoomManager
     {
-        private readonly ConcurrentDictionary<ushort, IRawRoom> _rooms = new ConcurrentDictionary<ushort, IRawRoom>();
+        private readonly ConcurrentDictionary<int, IRawRoom> _rooms = new ConcurrentDictionary<int, IRawRoom>();
         private readonly IPeerManager _peerManager;
 
         public RoomManager(IPeerManager peerManager)
@@ -14,7 +16,7 @@ namespace UdpToolkit.Framework
             _peerManager = peerManager;
         }
 
-        public void JoinOrCreate(ushort roomId, Guid peerId)
+        public void JoinOrCreate(int roomId, Guid peerId)
         {
             var exists = _peerManager.TryGetPeer(peerId, out var peer);
             if (!exists)
@@ -26,7 +28,7 @@ namespace UdpToolkit.Framework
                 key: roomId,
                 addValueFactory: (id) =>
                 {
-                    var room = new Room(roomId);
+                    var room = new Room();
                     room.AddPeer(peer);
                     peer.SetRoomId(roomId);
 
@@ -40,14 +42,8 @@ namespace UdpToolkit.Framework
                 });
         }
 
-        public IRoom GetRoom(
-            ushort roomId)
-        {
-            return _rooms[roomId];
-        }
-
         public void Remove(
-            ushort roomId,
+            int roomId,
             Peer peer)
         {
             if (!_rooms.TryGetValue(roomId, out var room))
@@ -58,18 +54,21 @@ namespace UdpToolkit.Framework
             room.RemovePeer(peer.PeerId);
         }
 
-        public void Apply(
-            ushort roomId,
+        public Task Apply(
+            int roomId,
+            Guid caller,
             Func<Peer, bool> condition,
-            Action<Peer> action)
+            Func<Peer, Task> func)
         {
-            _rooms[roomId]
+            JoinOrCreate(roomId, caller);
+
+            return _rooms[roomId]
                 .Apply(
                     condition: condition,
-                    action: action);
+                    func: func);
         }
 
-        public void Leave(ushort roomId, Guid peerId)
+        public void Leave(int roomId, Guid peerId)
         {
             var exists = _peerManager.TryGetPeer(peerId, out var peer);
             if (!exists)

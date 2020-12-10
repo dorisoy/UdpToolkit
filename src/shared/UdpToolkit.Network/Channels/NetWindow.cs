@@ -59,7 +59,7 @@ namespace UdpToolkit.Network.Channels
             return _networkPackets[id].HasValue && _networkPackets[id].Value.Acked;
         }
 
-        public IEnumerable<NetworkPacket> GetLostPackets()
+        public IEnumerable<NetworkPacket> GetLostPackets(TimeSpan resendTimeout)
         {
             for (var i = _minAckedPacket; i < _networkPackets.Length; i++)
             {
@@ -69,10 +69,8 @@ namespace UdpToolkit.Network.Channels
                 {
                     continue;
                 }
-#pragma warning disable
-                Console.WriteLine($"Packet - {packet.HasValue}|Ack - {packet?.Acked}|Id - {packet?.NetworkPacket.ChannelHeader.Id}|minAck - {_minAckedPacket}");
 
-                var isExpired = packet.Value.NetworkPacket.IsExpired();
+                var isExpired = packet.Value.NetworkPacket.IsExpired(resendTimeout);
                 if ((packet.Value.Acked && i == _minAckedPacket) || isExpired)
                 {
                     _minAckedPacket++;
@@ -95,26 +93,26 @@ namespace UdpToolkit.Network.Channels
             {
                 return null;
             }
-        
+
             _networkPackets[id] = new PacketData(
                 networkPacket: packet.Value.NetworkPacket,
                 acked: true);
-        
+
             return packet.Value.NetworkPacket;
         }
 
         public void InsertPacketData(NetworkPacket networkPacket, bool acked)
         {
-            var index = (int)networkPacket.ChannelHeader.Id % _windowSize;
-            _ids[index] = networkPacket.ChannelHeader.Id;
+            var index = (int)networkPacket.Id % _windowSize;
+            _ids[index] = networkPacket.Id;
 
             _networkPackets[index] = new PacketData(
                 networkPacket,
                 acked: acked);
 
-            if (networkPacket.ChannelHeader.Id > _maxId)
+            if (NetworkUtils.SequenceGreaterThan(networkPacket.Id, _maxId))
             {
-                _maxId = networkPacket.ChannelHeader.Id;
+                _maxId = networkPacket.Id;
             }
         }
     }

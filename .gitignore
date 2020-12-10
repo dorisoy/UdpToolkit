@@ -9,6 +9,8 @@
 [Nn]ode_modules/
 [Dd]ist/
 [Bb]uild/
+[Cc]lient_build/
+[Ss]erver_build/
 
 #Rider
 .idea/

@@ -26,9 +26,10 @@ namespace UdpToolkit.Framework
                     hookId: (byte)ProtocolHookId.Connect,
                     onInputEvent: (bytes, peerId) =>
                     {
-                        var @event = serializer.DeserializeContractLess<Connect>(bytes);
+                        var @event = ProtocolEvent<Connect>.Deserialize(bytes);
+
                         var ips = @event.ClientIps
-                            .Select(ip => new IPEndPoint(IPAddress.Parse(@event.ClientHost), ip))
+                            .Select(server => new IPEndPoint(IPAddress.Parse(server.Host), server.Port))
                             .ToList();
 
                         var peer = peerManager.AddOrUpdate(
@@ -60,7 +61,8 @@ namespace UdpToolkit.Framework
                     hookId: (byte)ProtocolHookId.Disconnect,
                     onInputEvent: (bytes, peerId) =>
                     {
-                        var disconnect = serializer.DeserializeContractLess<Disconnect>(bytes);
+                        var disconnect = ProtocolEvent<Disconnect>.Deserialize(bytes);
+
                         peerManager.TryGetPeer(disconnect.PeerId, out var peer);
 
                         timersPool.DisableResend(peer.PeerId);

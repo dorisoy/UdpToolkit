@@ -4,8 +4,6 @@ namespace UdpToolkit.Core
 
     public interface IRoom
     {
-        ushort RoomId { get; }
-
         void AddPeer(IPeer peer);
 
         void RemovePeer(Guid peerId);

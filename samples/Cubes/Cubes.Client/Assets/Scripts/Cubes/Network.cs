@@ -1,20 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Threading.Tasks;
-using Serilog;
-using Shared.Join;
-using Shared.Move;
-using Shared.Spawn;
+using Cubes.Shared.Events;
+using Cubes.Shared.Server;
 using UdpToolkit.Core;
-using UdpToolkit.Framework.Client.Core;
-using UdpToolkit.Framework.Client.Host;
+using UdpToolkit.Core.ProtocolEvents;
+using UdpToolkit.Framework;
 using UdpToolkit.Serialization.MsgPack;
 using UnityEngine;
 
 public class Network : MonoBehaviour
 {
-    private readonly Dictionary<byte, GameObject> _players = new Dictionary<byte, GameObject>();
-    private readonly Dictionary<byte, SyncPlayer> _moves = new Dictionary<byte, SyncPlayer>();
+    private const byte roomId = 123;
 
     [SerializeField]
     private GameObject myPlayerPrefab;
@@ -22,110 +18,83 @@ public class Network : MonoBehaviour
     [SerializeField]
     private GameObject playerPrefab;
 
-    private string myNickName = Guid.NewGuid().ToString();
-
-    private IClientHost _clientHost;
+    private IServerHostClient serverHostClient;
+    private IHost host;
+    private IEventHandler<Connect> connectEventHandler;
+    private IEventHandler<JoinEvent> joinEventHandler;
+    private IEventHandler<SpawnEvent> spawnEventHandler;
+    private IEventHandler<MoveEvent> moveEventHandler;
 
     void Start()
     {
-        _clientHost = Host
-            .CreateClientBuilder()
-            .Configure(cfg =>
+        host = UdpHost
+            .CreateHostBuilder()
+            .ConfigureHost((settings) =>
             {
-                cfg.ServerHost = "0.0.0.0";
-                cfg.Serializer = new Serializer();
-                cfg.ServerInputPorts = new[] { 7000, 7001 };
-                cfg.ServerOutputPorts = new[] { 8000, 8001 };
-                cfg.Receivers = 2;
-                cfg.Senders = 2;
+                settings.Host = "127.0.0.1";
+                settings.Serializer = new Serializer();
+                settings.InputPorts = new[] { 5000, 5001 };
+                settings.OutputPorts = new[] { 6000, 6001 };
+                settings.Workers = 2;
+                settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
+                settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+            })
+            .ConfigureServerHostClient((settings) =>
+            {
+                settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
+                settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                settings.ClientHost = "127.0.0.1";
+                settings.ServerHost = "127.0.0.1";
+                settings.ServerInputPorts = new[] { 7000, 7001 };
+                settings.ServerOutputPorts = new[] { 8000, 8001 };
+                settings.PingDelayInMs = null; // pass null for disable pings
             })
             .Build();
 
-        _clientHost.OnEvent<JoinedEvent>(
-            handler: (joined) =>
-            {
-                Debug.Log("on join...");
-                Debug.Log($"Player - {joined.Nickname} joined!");
-            },
-            hubId: 0,
-            rpcId: 0);
+        serverHostClient = host.ServerHostClient;
 
-        _clientHost.OnEvent<MoveEvent>(
-            handler: (move) =>
-            {
-                Debug.Log("on move...");
+        Task.Run(() => host.RunAsync());
 
-                _moves[move.PlayerId].ApplyMove(move);
-            },
-            hubId: 0,
-            rpcId: 2);
+        connectEventHandler = new ConnectEventHandler(host, NetworkThreadDispatcher.Instance());
+        joinEventHandler = new JoinEventHandler(host, NetworkThreadDispatcher.Instance());
+        spawnEventHandler = new SpawnEventHandler(host, NetworkThreadDispatcher.Instance());
+        moveEventHandler = new MoveEventHandler(host, NetworkThreadDispatcher.Instance());
 
-        _clientHost.OnEvent<SpawnedEvent>(
-            handler: (spawned) =>
-            {
-                Log.Logger.Debug("spawned log - {@spawned}", spawned);
+        connectEventHandler.OnTimeout += peerId => Debug.Log($"Connection timeout for peer {peerId}");
+        connectEventHandler.OnAck += peerId => Debug.Log($"You connected with peerId {peerId}");
 
-                if (spawned.Nickname == myNickName)
-                {
-                    Debug.Log("spawn me");
+        joinEventHandler.OnEvent += joinEvent => Debug.Log($"{joinEvent.Nickname} joined to {joinEvent.RoomId}");
+        joinEventHandler.OnAck += peerId => Debug.Log($"You joined to room with id {peerId}");
 
-                    _players[spawned.PlayerId] = Instantiate(
-                        original: myPlayerPrefab,
-                        position: spawned.Position,
-                        rotation: Quaternion.identity);
+        spawnEventHandler.OnEvent += spawnEvent => Instantiate(
+            original: myPlayerPrefab,
+            position: spawnEvent.Position,
+            rotation: Quaternion.identity);
 
-                    // TODO di
-                    _players[spawned.PlayerId].GetComponent<MovePlayer>().ClientHost = _clientHost;
-                    _players[spawned.PlayerId].GetComponent<MovePlayer>().PlayerId = spawned.PlayerId;
-                }
-                else
-                {
-                    Debug.Log("spawn other");
+        moveEventHandler.OnEvent += moveEvent => Debug.Log("Move");
+    }
 
-                    _players[spawned.PlayerId] = Instantiate(
-                        original: playerPrefab,
-                        position: spawned.Position,
-                        rotation: Quaternion.identity);
-
-                    _moves[spawned.PlayerId] = _players[spawned.PlayerId].GetComponent<SyncPlayer>();
-                }
-
-                Debug.Log("end spawn..");
-            },
-            hubId: 0,
-            rpcId: 1);
-
-        Task.Run(() => _clientHost.RunAsync());
+    void OnApplicationQuit()
+    {
+        host.Stop();
     }
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.N))
+        if (Input.GetKeyDown(KeyCode.C))
         {
-            Debug.Log("spawn...");
-            _clientHost.Publish(
-                @event: new SpawnEvent
-                {
-                    RoomId = 0,
-                    Nickname = myNickName,
-                },
-                hubId: 0,
-                rpcId: 1,
-                udpMode: UdpMode.Udp);
+            Debug.Log("Connect to server...");
+            serverHostClient.ConnectAsync();
         }
 
         if (Input.GetKeyDown(KeyCode.J))
         {
-            Debug.Log("join...");
-            _clientHost.Publish(
-                @event: new JoinEvent
-                {
-                    RoomId = 0,
-                    Nickname = myNickName,
-                },
-                hubId: 0,
-                rpcId: 0,
-                udpMode: UdpMode.Udp);
+            Debug.Log("Join to server...");
+
+            serverHostClient.Publish(
+                @event: new JoinEvent(roomId: roomId, nickname: "Nickname " + DateTime.UtcNow),
+                hookId: 1,
+                udpMode: UdpMode.ReliableUdp);
         }
     }
 }

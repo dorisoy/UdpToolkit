@@ -7,11 +7,11 @@ namespace UdpToolkit.Framework
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Core;
+    using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
-    using UdpToolkit.Serialization;
 
     public sealed class Host : IHost
     {
@@ -19,58 +19,72 @@ namespace UdpToolkit.Framework
 
         private readonly HostSettings _hostSettings;
 
-        private readonly IAsyncQueue<NetworkPacket> _outputQueue;
-        private readonly IAsyncQueue<NetworkPacket> _inputQueue;
+        private readonly IAsyncQueue<CallContext> _outputQueue;
+        private readonly IAsyncQueue<CallContext> _inputQueue;
+        private readonly IAsyncQueue<CallContext> _resendQueue;
 
         private readonly IEnumerable<IUdpSender> _senders;
         private readonly IEnumerable<IUdpReceiver> _receivers;
+        private readonly IEnumerable<IUdpSender> _resenders;
 
         private readonly IRawPeerManager _rawPeerManager;
 
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
+        private readonly IBroadcastManager _broadcastManager;
 
         private readonly IRoomManager _roomManager;
         private readonly ServerHostClient _serverHostClient;
-        private readonly IBroadcastStrategyResolver _broadcastStrategyResolver;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IScheduler _scheduler;
-        private readonly IServerSelector _serverSelector;
+        private readonly TimersPool _timersPool;
 
         public Host(
             HostSettings hostSettings,
-            IAsyncQueue<NetworkPacket> outputQueue,
-            IAsyncQueue<NetworkPacket> inputQueue,
+            IAsyncQueue<CallContext> outputQueue,
+            IAsyncQueue<CallContext> inputQueue,
+            IAsyncQueue<CallContext> resendQueue,
             IEnumerable<IUdpSender> senders,
             IEnumerable<IUdpReceiver> receivers,
+            IEnumerable<IUdpSender> resenders,
             ISubscriptionManager subscriptionManager,
             IRawPeerManager rawPeerManager,
             IRoomManager roomManager,
             IProtocolSubscriptionManager protocolSubscriptionManager,
             ServerHostClient serverHostClient,
-            IBroadcastStrategyResolver broadcastStrategyResolver,
             IDateTimeProvider dateTimeProvider,
             IScheduler scheduler,
-            IServerSelector serverSelector)
+            TimersPool timersPool,
+            IBroadcastManager broadcastManager)
         {
             _hostSettings = hostSettings;
             _outputQueue = outputQueue;
             _senders = senders;
             _receivers = receivers;
+            _resenders = resenders;
             _subscriptionManager = subscriptionManager;
             _serverHostClient = serverHostClient;
-            _broadcastStrategyResolver = broadcastStrategyResolver;
             _dateTimeProvider = dateTimeProvider;
             _scheduler = scheduler;
-            _serverSelector = serverSelector;
+            _timersPool = timersPool;
+            _broadcastManager = broadcastManager;
             _rawPeerManager = rawPeerManager;
             _roomManager = roomManager;
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _inputQueue = inputQueue;
+            _resendQueue = resendQueue;
 
             foreach (var receiver in _receivers)
             {
-                receiver.UdpPacketReceived += _inputQueue.Produce;
+                receiver.UdpPacketReceived += (networkPacket) =>
+                {
+                    _inputQueue.Produce(new CallContext(
+                        roomId: null,
+                        broadcastMode: null,
+                        networkPacket: networkPacket,
+                        resendTimeout: _hostSettings.ResendPacketsTimeout,
+                        createdAt: _dateTimeProvider.UtcNow()));
+                };
             }
         }
 
@@ -102,6 +116,17 @@ namespace UdpToolkit.Framework
                         token: default))
                 .ToList();
 
+            var resenders = _resenders
+                .Select(resender => TaskUtils.RunWithRestartOnFail(
+                    job: () => StartResendAsync(resender),
+                    logger: (exception) =>
+                    {
+                        _logger.Error("Exception on resend task: {@Exception}", exception);
+                        _logger.Warning("Restart resender...");
+                    },
+                    token: default))
+                .ToList();
+
             var workers = Enumerable
                 .Range(0, _hostSettings.Workers)
                 .Select(_ => Task.Run(StartWorkerAsync))
@@ -109,7 +134,8 @@ namespace UdpToolkit.Framework
 
             var tasks = senders
                 .Concat(receivers)
-                .Concat(workers);
+                .Concat(workers)
+                .Concat(resenders);
 
             _logger.Information($"{nameof(Host)} running...");
 
@@ -122,6 +148,7 @@ namespace UdpToolkit.Framework
         {
             _inputQueue.Stop();
             _outputQueue.Stop();
+            _timersPool.Dispose();
         }
 
         public void OnCore(Subscription subscription, byte hookId)
@@ -129,27 +156,27 @@ namespace UdpToolkit.Framework
             _subscriptionManager.Subscribe(hookId, subscription);
         }
 
-        public void Publish<TEvent>(
+        public void PublishCore<TEvent>(
             TEvent @event,
-            ushort roomId,
+            int roomId,
             byte hookId,
             UdpMode udpMode)
         {
-            _broadcastStrategyResolver
-                .Resolve(
-                    broadcastType: BroadcastType.Room)
-                .Execute(
-                    roomId: roomId,
-                    networkPacket: new NetworkPacket(
-                        networkPacketType: NetworkPacketType.UserDefined,
-                        createdAt: _dateTimeProvider.UtcNow(),
-                        resendTimeout: _hostSettings.ResendPacketsTimeout,
-                        channelType: udpMode.Map(),
-                        peerId: default,
-                        channelHeader: default,
-                        serializer: () => _hostSettings.Serializer.Serialize(@event),
-                        ipEndPoint: null,
-                        hookId: hookId));
+            _outputQueue.Produce(new CallContext(
+                roomId: roomId,
+                networkPacket: new NetworkPacket(
+                    id: default,
+                    acks: default,
+                    ipEndPoint: null,
+                    networkPacketType: NetworkPacketType.FromServer,
+                    createdAt: _dateTimeProvider.UtcNow(),
+                    channelType: udpMode.Map(),
+                    peerId: default,
+                    serializer: () => _hostSettings.Serializer.Serialize(@event),
+                    hookId: hookId),
+                broadcastMode: BroadcastMode.Room,
+                resendTimeout: _hostSettings.ResendPacketsTimeout,
+                createdAt: _dateTimeProvider.UtcNow()));
         }
 
         public void Dispose()
@@ -168,28 +195,41 @@ namespace UdpToolkit.Framework
             _outputQueue.Dispose();
         }
 
+        private async Task StartResendAsync(IUdpSender udpSender)
+        {
+            foreach (var callContext in _resendQueue.Consume())
+            {
+                await udpSender
+                    .SendAsync(callContext.NetworkPacket)
+                    .ConfigureAwait(false);
+            }
+        }
+
         private void StartWorkerAsync()
         {
-            foreach (var networkPacket in _inputQueue.Consume())
+            foreach (var callContext in _inputQueue.Consume())
             {
                 try
                 {
-                    switch (networkPacket.NetworkPacketType)
+                    switch (callContext.NetworkPacket.NetworkPacketType)
                     {
+                        case NetworkPacketType.FromServer:
+                            ProcessServerInputEvent(networkPacket: callContext.NetworkPacket);
+                            break;
                         case NetworkPacketType.UserDefined:
-                            ProcessUserDefinedInputEvent(networkPacket: networkPacket);
+                            ProcessUserDefinedInputEvent(networkPacket: callContext.NetworkPacket);
                             break;
                         case NetworkPacketType.Protocol:
-                            ProcessProtocolInputEvent(networkPacket: networkPacket);
+                            ProcessProtocolInputEvent(networkPacket: callContext.NetworkPacket);
                             break;
                         case NetworkPacketType.Ack:
-                            if (networkPacket.IsProtocolEvent)
+                            if (callContext.NetworkPacket.IsProtocolEvent)
                             {
-                                ProcessInputProtocolAck(networkPacket: networkPacket);
+                                ProcessInputProtocolAck(networkPacket: callContext.NetworkPacket);
                             }
                             else
                             {
-                                ProcessInputAck(networkPacket: networkPacket);
+                                ProcessInputAck(networkPacket: callContext.NetworkPacket);
                             }
 
                             break;
@@ -199,6 +239,52 @@ namespace UdpToolkit.Framework
                 {
                     _logger.Warning("Unhandled exception on process packet, {@Exception}", ex);
                 }
+            }
+        }
+
+        private void ProcessServerInputEvent(NetworkPacket networkPacket)
+        {
+            var rawPeer = _rawPeerManager
+                .GetPeer(peerId: networkPacket.PeerId);
+
+            var channel = rawPeer
+                .GetChannel(channelType: networkPacket.ChannelType);
+
+            var userDefinedSubscription = _subscriptionManager
+                .GetSubscription(networkPacket.HookId);
+
+            var packetHandled = channel
+                .HandleInputPacket(networkPacket: networkPacket);
+
+            if (!packetHandled)
+            {
+                _logger.Debug($"FromServer NetworkPacket dropped! {networkPacket.Id}");
+
+                return;
+            }
+
+            if (userDefinedSubscription == null)
+            {
+                _logger.Error($"Subscription with id {networkPacket.HookId} not found! {nameof(ProcessServerInputEvent)}");
+
+                return;
+            }
+
+            var roomId = userDefinedSubscription.OnEvent(
+                networkPacket.Serializer(),
+                networkPacket.PeerId,
+                _hostSettings.Serializer,
+                _roomManager,
+                _scheduler);
+
+            if (networkPacket.IsReliable)
+            {
+                _outputQueue.Produce(new CallContext(
+                    networkPacket: networkPacket,
+                    resendTimeout: _hostSettings.ResendPacketsTimeout,
+                    createdAt: _dateTimeProvider.UtcNow(),
+                    roomId: roomId,
+                    broadcastMode: BroadcastMode.AckToServer));
             }
         }
 
@@ -213,22 +299,71 @@ namespace UdpToolkit.Framework
         private async Task StartSenderAsync(
             IUdpSender udpSender)
         {
-            foreach (var networkPacket in _outputQueue.Consume())
+            foreach (var callContext in _outputQueue.Consume())
             {
-                switch (networkPacket.NetworkPacketType)
+                if (callContext.NetworkPacket.IsProtocolEvent)
                 {
-                    case NetworkPacketType.UserDefined:
-                        break;
-                    case NetworkPacketType.Protocol:
-                        ProcessProtocolOutputEvent(networkPacket: networkPacket);
-                        break;
-                    case NetworkPacketType.Ack:
-                        break;
+                    var protocolSubscription = _protocolSubscriptionManager
+                        .GetProtocolSubscription(callContext.NetworkPacket.HookId);
+
+                    protocolSubscription?.OnOutputEvent(
+                        arg1: callContext.NetworkPacket.Serializer(),
+                        arg2: callContext.NetworkPacket.PeerId);
                 }
 
-                await udpSender
-                    .SendAsync(networkPacket)
-                    .ConfigureAwait(false);
+                switch (callContext.BroadcastMode)
+                {
+                    case BroadcastMode.Caller:
+                        await _broadcastManager
+                            .Caller(udpSender, callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    case BroadcastMode.Room:
+
+                        await _broadcastManager.Room(
+                            roomId: callContext.RoomId ?? throw new ArgumentNullException(nameof(callContext.RoomId)),
+                            udpSender: udpSender,
+                            networkPacket: callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    case BroadcastMode.RoomExceptCaller:
+                        await _broadcastManager.RoomExceptCaller(
+                                roomId: callContext.RoomId ?? throw new ArgumentNullException(nameof(callContext.RoomId)),
+                                udpSender: udpSender,
+                                networkPacket: callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    case BroadcastMode.Server:
+                        await _broadcastManager.Server(
+                            udpSender: udpSender,
+                            networkPacket: callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    case BroadcastMode.AllPeers:
+                        await _broadcastManager
+                            .AllServer(udpSender, callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    case BroadcastMode.AckToServer:
+                        await _broadcastManager
+                            .AckToServer(udpSender, callContext.NetworkPacket)
+                            .ConfigureAwait(false);
+
+                        break;
+
+                    default:
+                        throw new ArgumentOutOfRangeException($"Invalid broadcastMode - {callContext.BroadcastMode}");
+                }
             }
         }
 
@@ -253,7 +388,6 @@ namespace UdpToolkit.Framework
 
             if (!inputHandled)
             {
-                // resend lost ack
                 return;
             }
 
@@ -265,25 +399,26 @@ namespace UdpToolkit.Framework
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
                     protocolSubscription?.OnInputEvent(
-                        arg1: networkPacket.Serializer(),
-                        arg2: networkPacket.PeerId);
+                            arg1: networkPacket.Serializer(),
+                            arg2: networkPacket.PeerId);
 
-                    userDefinedSubscription?.OnEvent(
+                    userDefinedSubscription?.OnProtocolEvent(
                         networkPacket.Serializer(),
                         networkPacket.PeerId,
-                        _hostSettings.Serializer,
-                        _roomManager,
-                        _scheduler);
-
-                    _broadcastStrategyResolver
-                        .Resolve(
-                            broadcastType: protocolSubscription?.BroadcastMode.Map() ?? BroadcastType.Caller)
-                        .Execute(
-                            roomId: ushort.MaxValue,
-                            networkPacket: networkPacket);
+                        _hostSettings.Serializer);
+#pragma warning disable
+                    // resend ack if !inputHandled
+#pragma warning restore
 
                     break;
             }
+
+            _outputQueue.Produce(new CallContext(
+                networkPacket: networkPacket,
+                resendTimeout: _hostSettings.ResendPacketsTimeout,
+                createdAt: _dateTimeProvider.UtcNow(),
+                roomId: null,
+                broadcastMode: BroadcastMode.Caller));
         }
 
         private void ProcessUserDefinedInputEvent(
@@ -303,30 +438,31 @@ namespace UdpToolkit.Framework
 
             if (!packetHandled)
             {
-                _logger.Debug($"Input NetworkPacket dropped! {networkPacket.ChannelHeader.Id}");
+                _logger.Debug($"User defined NetworkPacket dropped! {networkPacket.Id}");
 
                 return;
             }
 
-            userDefinedSubscription?.OnEvent(
+            if (userDefinedSubscription == null)
+            {
+                _logger.Error($"Subscription with id {networkPacket.HookId} not found! {nameof(ProcessUserDefinedInputEvent)}");
+
+                return;
+            }
+
+            var roomId = userDefinedSubscription.OnEvent(
                 networkPacket.Serializer(),
                 networkPacket.PeerId,
                 _hostSettings.Serializer,
                 _roomManager,
                 _scheduler);
 
-            var result = _serverSelector.IsServerIp(networkPacket.IpEndPoint);
-
-            var ip = result
-                ? _serverSelector
-                    .GetServer()
-                    .GetRandomIp()
-                : rawPeer.GetRandomIp();
-
-            var ackPacket = channel
-                .GetAck(networkPacket, ip);
-
-            _outputQueue.Produce(ackPacket);
+            _outputQueue.Produce(new CallContext(
+                networkPacket: networkPacket,
+                resendTimeout: _hostSettings.ResendPacketsTimeout,
+                createdAt: _dateTimeProvider.UtcNow(),
+                roomId: roomId,
+                broadcastMode: userDefinedSubscription.BroadcastMode));
         }
 
         private void ProcessInputAck(
@@ -346,7 +482,7 @@ namespace UdpToolkit.Framework
 
             if (!ackHandled)
             {
-                _logger.Debug($"Ack NetworkPacket dropped! {networkPacket.ChannelHeader.Id}");
+                _logger.Debug($"Ack NetworkPacket dropped! {networkPacket.Id}");
 
                 return;
             }
@@ -400,27 +536,6 @@ namespace UdpToolkit.Framework
 
                     userDefinedSubscription?
                         .OnAck(networkPacket.PeerId);
-                    break;
-            }
-        }
-
-        private void ProcessProtocolOutputEvent(
-            NetworkPacket networkPacket)
-        {
-            var protocolHookId = networkPacket.ProtocolHookId;
-            var protocolSubscription = _protocolSubscriptionManager
-                .GetProtocolSubscription((byte)networkPacket.ProtocolHookId);
-
-            switch (protocolHookId)
-            {
-                case ProtocolHookId.Disconnect when _serverHostClient.IsConnected:
-                case ProtocolHookId.P2P when _serverHostClient.IsConnected:
-                case ProtocolHookId.Ping when _serverHostClient.IsConnected:
-                case ProtocolHookId.Pong when _serverHostClient.IsConnected:
-                case ProtocolHookId.Connect:
-                    protocolSubscription?.OnOutputEvent(
-                        arg1: networkPacket.Serializer(),
-                        arg2: networkPacket.PeerId);
                     break;
             }
         }

@@ -6,41 +6,25 @@ namespace UdpToolkit.Core
 
     public sealed class Scheduler : IScheduler
     {
-        private readonly ConcurrentDictionary<TimerKey, Timer> _timers = new ConcurrentDictionary<TimerKey, Timer>();
+        private readonly ConcurrentDictionary<TimerKey, Lazy<Timer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<Timer>>();
 
         public void Schedule(
-            ushort roomId,
+            int roomId,
             short timerId,
             int dueTimeMs,
             Action action)
         {
-            _timers.GetOrAdd(
+            var lazyTimer = _timers.GetOrAdd(
                 key: new TimerKey(
                     roomId: roomId,
                     timerId: timerId),
-                valueFactory: (key) => new Timer(
+                valueFactory: (key) => new Lazy<Timer>(() => new Timer(
                     callback: (state) => action(),
                     state: null,
                     dueTime: TimeSpan.FromMilliseconds(dueTimeMs),
-                    period: TimeSpan.FromMilliseconds(Timeout.Infinite)));
-        }
+                    period: TimeSpan.FromMilliseconds(Timeout.Infinite))));
 
-        public void Unschedule(
-            ushort roomId,
-            short timerId)
-        {
-            var success = _timers
-                .TryRemove(
-                    key: new TimerKey(
-                        roomId: roomId,
-                        timerId: timerId),
-                    value: out var timer);
-
-            if (success)
-            {
-                timer.Change(Timeout.Infinite, Timeout.Infinite);
-                timer.Dispose();
-            }
+            _ = lazyTimer.Value;
         }
     }
 }

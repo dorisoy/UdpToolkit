@@ -15,7 +15,7 @@ namespace UdpToolkit.Framework
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _channels;
         private readonly TimeSpan _inactivityTimeout;
         private readonly Random _random = new Random();
-        private ushort _roomId;
+        private int _roomId;
 
         private Peer(
             Guid peerId,
@@ -37,7 +37,7 @@ namespace UdpToolkit.Framework
 
         public DateTimeOffset LastPong { get; private set; }
 
-        public DateTimeOffset LastActivityAt { get; private set; }
+        public DateTimeOffset? LastActivityAt { get; private set; }
 
         public static Peer New(
             Guid peerId,
@@ -62,10 +62,10 @@ namespace UdpToolkit.Framework
             return PeerIps[_random.Next(0, PeerIps.Count - 1)];
         }
 
-        public ushort GetRoomId() => _roomId;
+        public int GetRoomId() => _roomId;
 
         public void SetRoomId(
-            ushort roomId)
+            int roomId)
         {
             _roomId = roomId;
         }

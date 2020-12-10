@@ -3,12 +3,12 @@ namespace UdpToolkit.Network.Channels
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using UdpToolkit.Network.Packets;
 
     public sealed class SequencedChannel : IChannel
     {
-        private readonly HashSet<ushort> _received = new HashSet<ushort>();
+        private readonly object _locker = new object();
+        private ushort _lastReceivedNumber;
         private ushort _sequenceNumber;
 
         public SequencedChannel()
@@ -19,41 +19,48 @@ namespace UdpToolkit.Network.Channels
         public bool HandleInputPacket(
             NetworkPacket networkPacket)
         {
-            var packetId = networkPacket.ChannelHeader.Id;
-            if (packetId <= _sequenceNumber && _received.Contains(item: packetId))
+            lock (_locker)
             {
+                var packetId = networkPacket.Id;
+                var flag = packetId != _lastReceivedNumber;
+                if (NetworkUtils.SequenceGreaterThan(packetId, _sequenceNumber) && flag)
+                {
+                    _lastReceivedNumber = packetId;
+                    return true;
+                }
+
                 return false;
             }
-
-            _received.Add(item: packetId);
-
-            return true;
         }
 
         public NetworkPacket GetAck(
-            NetworkPacket networkPacket,
-            IPEndPoint ipEndPoint)
+            NetworkPacket networkPacket)
         {
-            throw new NotImplementedException();
+            return networkPacket;
         }
 
         public void HandleOutputPacket(
             NetworkPacket networkPacket)
         {
-            _sequenceNumber++;
+            lock (_locker)
+            {
+                networkPacket.SetHeader(
+                    id: ++_sequenceNumber,
+                    acks: 0);
+            }
+        }
 
-            networkPacket.SetChannelHeader(new ChannelHeader(
-                id: _sequenceNumber,
-                acks: 0));
+        public void GetNext(NetworkPacket networkPacket)
+        {
         }
 
         public bool HandleAck(
             NetworkPacket networkPacket)
         {
-            throw new NotImplementedException();
+            return true;
         }
 
-        public IEnumerable<NetworkPacket> ToResend()
+        public IEnumerable<NetworkPacket> ToResend(TimeSpan resendTimeout)
         {
             return Enumerable.Empty<NetworkPacket>();
         }

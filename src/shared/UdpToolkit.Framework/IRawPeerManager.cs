@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Generic;
     using System.Net;
+    using System.Threading.Tasks;
 
     public interface IRawPeerManager
     {
@@ -16,5 +17,9 @@ namespace UdpToolkit.Framework
             Guid peerId,
             List<IPEndPoint> ips,
             TimeSpan inactivityTimeout);
+
+        Task Apply(
+            Func<Peer, bool> condition,
+            Func<Peer, Task> action);
     }
 }

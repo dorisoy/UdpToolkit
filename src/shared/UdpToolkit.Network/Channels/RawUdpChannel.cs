@@ -14,8 +14,7 @@ namespace UdpToolkit.Network.Channels
         }
 
         public NetworkPacket GetAck(
-            NetworkPacket networkPacket,
-            IPEndPoint ipEndPoint)
+            NetworkPacket networkPacket)
         {
             throw new NotImplementedException();
         }
@@ -25,13 +24,17 @@ namespace UdpToolkit.Network.Channels
         {
         }
 
+        public void GetNext(NetworkPacket networkPacket)
+        {
+        }
+
         public bool HandleAck(
             NetworkPacket networkPacket)
         {
-            throw new NotImplementedException();
+            return true;
         }
 
-        public IEnumerable<NetworkPacket> ToResend()
+        public IEnumerable<NetworkPacket> ToResend(TimeSpan resendTimeout)
         {
             return Enumerable.Empty<NetworkPacket>();
         }

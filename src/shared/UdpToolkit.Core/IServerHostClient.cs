@@ -9,6 +9,9 @@ namespace UdpToolkit.Core
         bool Connect(
             TimeSpan? connectionTimeout = null);
 
+        void ConnectAsync(
+            TimeSpan? connectionTimeout = null);
+
         bool Disconnect();
 
         void Publish<TEvent>(

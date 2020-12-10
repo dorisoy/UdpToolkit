@@ -9,15 +9,12 @@ namespace UdpToolkit.Network.Clients
     {
         private const int MtuSizeLimit = 3000;
         private readonly ILogger _logger = Log.Logger.ForContext<UdpSender>();
-        private readonly IUdpProtocol _udpProtocol;
         private readonly UdpClient _sender;
 
         public UdpSender(
-            UdpClient sender,
-            IUdpProtocol udpProtocol)
+            UdpClient sender)
         {
             _sender = sender;
-            _udpProtocol = udpProtocol;
             _logger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
         }
 
@@ -28,7 +25,7 @@ namespace UdpToolkit.Network.Clients
 
         public async Task SendAsync(NetworkPacket networkPacket)
         {
-            var bytes = _udpProtocol.Serialize(networkPacket: networkPacket);
+            var bytes = NetworkPacket.Serialize(networkPacket);
 
             if (bytes.Length > MtuSizeLimit)
             {

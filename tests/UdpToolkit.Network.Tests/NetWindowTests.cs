@@ -70,7 +70,7 @@ namespace UdpToolkit.Network.Tests
             for (ushort i = 1024; i < windowSize * 2; i++)
             {
                 netWindow.TryGetNetworkPacket(i, out var packet);
-                Assert.Equal(i, packet.ChannelHeader.Id);
+                Assert.Equal(i, packet.Id);
             }
         }
     }

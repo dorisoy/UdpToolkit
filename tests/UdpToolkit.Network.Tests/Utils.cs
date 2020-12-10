@@ -12,11 +12,9 @@ namespace UdpToolkit.Network.Tests
         public static NetworkPacket CreatePacket(byte hookId, ChannelType channelType, NetworkPacketType networkPacketType, ushort id) => new NetworkPacket(
             networkPacketType: networkPacketType,
             createdAt: DateTimeOffset.UtcNow,
-            resendTimeout: TimeSpan.FromSeconds(10),
             peerId: Guid.NewGuid(),
-            channelHeader: new ChannelHeader(
-                id: id,
-                acks: 0),
+            id: id,
+            acks: 0,
             serializer: () => new byte[] { 1, 2, 3 },
             ipEndPoint: new IPEndPoint(
                 address: IPAddress.Loopback,

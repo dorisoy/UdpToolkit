@@ -6,9 +6,9 @@ namespace UdpToolkit.Core
 
     public class HostSettings
     {
-        public IEnumerable<int> OutputPorts { get; set; }
+        public IEnumerable<int> OutputPorts { get; set; } = Array.Empty<int>();
 
-        public IEnumerable<int> InputPorts { get; set; }
+        public IEnumerable<int> InputPorts { get; set; } = Array.Empty<int>();
 
         public int Workers { get; set; }
 

@@ -16,33 +16,10 @@ namespace UdpToolkit.Network
             }
         }
 
-        public static string BitsAsString(uint container)
+        // https://gafferongames.com/post/reliability_ordering_and_congestion_avoidance_over_udp/
+        public static bool SequenceGreaterThan(ushort s1, ushort s2)
         {
-            char[] b = new char[32];
-            uint pos = 31;
-            int i = 0;
-
-            while (i < 32)
-            {
-                if ((container & (1 << i)) != 0)
-                {
-                    b[pos] = '1';
-                }
-                else
-                {
-                    b[pos] = '0';
-                }
-
-                pos--;
-                i++;
-            }
-
-            return new string(b);
-        }
-
-        public static bool ContainBit(uint container, int bitPosition)
-        {
-            return (container & (1 << bitPosition)) != 0;
+            return ((s1 > s2) && (s1 - s2 <= 32768)) || ((s1 < s2) && (s2 - s1 > 32768));
         }
 
         public static void SetBitValue(ref uint container, int bitPosition)

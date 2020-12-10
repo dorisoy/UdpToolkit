@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>netstandard2.0</TargetFramework>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="MessagePack.UnityShims" Version="2.2.60" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
+        <Compile Include="..\Cubes.Client\Assets\Cubes\Shared\**\*.cs" LinkBase="Shared" />
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\JoinEventHandler.cs">
+          <Link>Shared\Server\JoinEventHandler.cs</Link>
+        </Compile>
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\MoveEventHandler.cs">
+          <Link>Shared\Server\MoveEventHandler.cs</Link>
+        </Compile>
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\SpawnEventHandler.cs">
+          <Link>Shared\Server\SpawnEventHandler.cs</Link>
+        </Compile>
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\IEventHandler.cs">
+          <Link>Shared\Server\IEventHandler.cs</Link>
+        </Compile>
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\SubscriptionFactory.cs">
+          <Link>Shared\Server\SubscriptionFactory.cs</Link>
+        </Compile>
+        <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\IEventHandler.cs">
+          <Link>Shared\Server\IEventHandler.cs</Link>
+        </Compile>
+    </ItemGroup>
+</Project>

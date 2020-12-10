@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using Shared.Move;
+using Cubes.Shared.Events;
 using UnityEngine;
 
 public class SyncPlayer : MonoBehaviour

@@ -5,7 +5,5 @@ namespace UdpToolkit.Core
     public interface IServerSelector
     {
         IPeer GetServer();
-
-        bool IsServerIp(IPEndPoint ipEndPoint);
     }
 }
