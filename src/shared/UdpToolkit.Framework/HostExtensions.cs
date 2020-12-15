@@ -25,8 +25,17 @@ namespace UdpToolkit.Framework
                     broadcastMode: broadcastMode,
                     onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
                     {
-                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                        return onEvent.Invoke(peerId, @event);
+                        var l = bytes.Length;
+                        try
+                        {
+                            var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                            return onEvent.Invoke(peerId, @event);
+                        }
+                        catch (Exception e)
+                        {
+                            Console.WriteLine(e);
+                            throw;
+                        }
                     },
                     onAck: onAck,
                     onTimeout: onTimeout),

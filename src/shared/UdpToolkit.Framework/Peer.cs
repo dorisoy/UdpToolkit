@@ -8,11 +8,13 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Core;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Queues;
 
-    public sealed class Peer : IPeer
+    public sealed class Peer : IPeer, IRawPeer
     {
-        private readonly IReadOnlyDictionary<ChannelType, IChannel> _channels;
+        private readonly IReadOnlyDictionary<ChannelType, IChannel> _inputChannels;
+        private readonly IReadOnlyDictionary<ChannelType, IChannel> _outputChannels;
         private readonly TimeSpan _inactivityTimeout;
         private readonly Random _random = new Random();
         private int _roomId;
@@ -20,11 +22,13 @@ namespace UdpToolkit.Framework
         private Peer(
             Guid peerId,
             List<IPEndPoint> peerIps,
-            IReadOnlyDictionary<ChannelType, IChannel> channels,
+            IReadOnlyDictionary<ChannelType, IChannel> inputChannels,
+            IReadOnlyDictionary<ChannelType, IChannel> outputChannels,
             TimeSpan inactivityTimeout)
         {
             PeerId = peerId;
-            _channels = channels;
+            _inputChannels = inputChannels;
+            _outputChannels = outputChannels;
             _inactivityTimeout = inactivityTimeout;
             PeerIps = peerIps;
         }
@@ -48,7 +52,14 @@ namespace UdpToolkit.Framework
                 peerId: peerId,
                 peerIps: peerIps,
                 inactivityTimeout: inactivityTimeout,
-                channels: new Dictionary<ChannelType, IChannel>
+                outputChannels: new Dictionary<ChannelType, IChannel>
+                {
+                    [ChannelType.Udp] = new RawUdpChannel(),
+                    [ChannelType.ReliableUdp] = new ReliableChannel(windowSize: 1024),
+                    [ChannelType.ReliableOrderedUdp] = new ReliableOrderedChannel(),
+                    [ChannelType.Sequenced] = new SequencedChannel(),
+                },
+                inputChannels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),
                     [ChannelType.ReliableUdp] = new ReliableChannel(windowSize: 1024),
@@ -92,8 +103,10 @@ namespace UdpToolkit.Framework
 
         public TimeSpan GetRtt() => LastPong - LastPing;
 
-        public IChannel GetChannel(ChannelType channelType) => _channels[channelType];
+        public IChannel GetIncomingChannel(ChannelType channelType) => _inputChannels[channelType];
 
-        public IEnumerable<IChannel> GetChannels() => _channels.Values;
+        public IChannel GetOutcomingChannel(ChannelType channelType) => _outputChannels[channelType];
+
+        public IEnumerable<IChannel> GetChannels() => _outputChannels.Values;
     }
 }

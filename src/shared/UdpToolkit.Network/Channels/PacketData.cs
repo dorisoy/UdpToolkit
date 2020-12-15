@@ -1,19 +1,20 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-    using UdpToolkit.Network.Packets;
-
     public readonly struct PacketData
     {
         public PacketData(
-            NetworkPacket networkPacket,
+            ushort id,
+            uint acks,
             bool acked)
         {
-            NetworkPacket = networkPacket;
             Acked = acked;
+            Id = id;
+            Acks = acks;
         }
 
-        public NetworkPacket NetworkPacket { get; }
+        public ushort Id { get; }
+
+        public uint Acks { get; }
 
         public bool Acked { get; }
     }

@@ -5,6 +5,7 @@ namespace UdpToolkit.Framework
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
+    using UdpToolkit.Network.Peers;
 
     public class RoomManager : IRoomManager, IRawRoomManager
     {
@@ -44,7 +45,7 @@ namespace UdpToolkit.Framework
 
         public void Remove(
             int roomId,
-            Peer peer)
+            IRawPeer peer)
         {
             if (!_rooms.TryGetValue(roomId, out var room))
             {
@@ -57,8 +58,8 @@ namespace UdpToolkit.Framework
         public Task Apply(
             int roomId,
             Guid caller,
-            Func<Peer, bool> condition,
-            Func<Peer, Task> func)
+            Func<IRawPeer, bool> condition,
+            Func<IRawPeer, Task> func)
         {
             JoinOrCreate(roomId, caller);
 

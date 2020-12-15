@@ -2,14 +2,13 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
-    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Pooling;
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Serialization;
 
@@ -22,7 +21,8 @@ namespace UdpToolkit.Framework
         private readonly int? _pingDelayMs;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISerializer _serializer;
-        private readonly IAsyncQueue<CallContext> _outputQueue;
+        private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
+        private readonly IObjectsPool<CallContext> _callContextPool;
         private readonly List<ClientIp> _clientIps;
 
         private readonly Task _ping;
@@ -31,18 +31,20 @@ namespace UdpToolkit.Framework
             Guid peerId,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
-            IAsyncQueue<CallContext> outputQueue,
+            IAsyncQueue<PooledObject<CallContext>> outputQueue,
             TimeSpan connectionTimeout,
             TimeSpan resendPacketsTimeout,
             List<ClientIp> clientIps,
             int? pingDelayMs,
-            CancellationTokenSource cancellationTokenSource)
+            CancellationTokenSource cancellationTokenSource,
+            IObjectsPool<CallContext> callContextPool)
         {
             _serializer = serializer;
             _dateTimeProvider = dateTimeProvider;
             _connectionTimeoutFromSettings = connectionTimeout;
             _resendPacketsTimeout = resendPacketsTimeout;
             _pingDelayMs = pingDelayMs;
+            _callContextPool = callContextPool;
             _outputQueue = outputQueue;
             _peerId = peerId;
             _clientIps = clientIps;
@@ -60,7 +62,7 @@ namespace UdpToolkit.Framework
                 resendTimeout: timeout,
                 @event: new Connect(_peerId, _clientIps),
                 networkPacketType: NetworkPacketType.Protocol,
-                broadcastMode: BroadcastMode.Server,
+                broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
@@ -75,7 +77,7 @@ namespace UdpToolkit.Framework
                 resendTimeout: connectionTimeout ?? _connectionTimeoutFromSettings,
                 @event: new Connect(_peerId, _clientIps),
                 networkPacketType: NetworkPacketType.Protocol,
-                broadcastMode: BroadcastMode.Server,
+                broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
@@ -86,7 +88,7 @@ namespace UdpToolkit.Framework
             PublishInternal(
                 resendTimeout: _resendPacketsTimeout,
                 @event: new Disconnect(peerId: _peerId),
-                broadcastMode: BroadcastMode.Server,
+                broadcastMode: Core.BroadcastMode.Server,
                 networkPacketType: NetworkPacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
                 udpMode: UdpMode.ReliableUdp,
@@ -101,8 +103,8 @@ namespace UdpToolkit.Framework
             UdpMode udpMode)
         {
             PublishInternal(
-                networkPacketType: NetworkPacketType.UserDefined,
-                broadcastMode: BroadcastMode.Server,
+                networkPacketType: NetworkPacketType.FromClient,
+                broadcastMode: Core.BroadcastMode.Server,
                 resendTimeout: _resendPacketsTimeout,
                 @event: @event,
                 hookId: hookId,
@@ -116,24 +118,29 @@ namespace UdpToolkit.Framework
             byte hookId,
             UdpMode udpMode,
             NetworkPacketType networkPacketType,
-            BroadcastMode broadcastMode,
+            Core.BroadcastMode broadcastMode,
             Func<TEvent, byte[]> serializer)
         {
-            _outputQueue.Produce(new CallContext(
+            var pooledCallContext = _callContextPool.Get();
+
+            pooledCallContext.Value.Set(
                 roomId: null,
                 broadcastMode: broadcastMode,
-                networkPacket: new NetworkPacket(
-                    id: default,
-                    acks: default,
-                    createdAt: _dateTimeProvider.UtcNow(),
-                    networkPacketType: networkPacketType,
-                    channelType: udpMode.Map(),
-                    peerId: _peerId,
-                    ipEndPoint: null,
-                    serializer: () => serializer(@event),
-                    hookId: hookId),
                 resendTimeout: resendTimeout,
-                createdAt: _dateTimeProvider.UtcNow()));
+                createdAt: _dateTimeProvider.UtcNow());
+
+            pooledCallContext.Value.NetworkPacketDto.Set(
+                id: default,
+                acks: default,
+                createdAt: _dateTimeProvider.UtcNow(),
+                networkPacketType: networkPacketType,
+                channelType: udpMode.Map(),
+                peerId: _peerId,
+                ipEndPoint: null,
+                serializer: () => serializer(@event),
+                hookId: hookId);
+
+            _outputQueue.Produce(pooledCallContext);
         }
 
         private async Task PingHost(
@@ -155,7 +162,7 @@ namespace UdpToolkit.Framework
                         resendTimeout: _resendPacketsTimeout,
                         @event: @event,
                         networkPacketType: NetworkPacketType.Protocol,
-                        broadcastMode: BroadcastMode.Server,
+                        broadcastMode: Core.BroadcastMode.Server,
                         hookId: (byte)ProtocolHookId.Ping,
                         udpMode: UdpMode.ReliableUdp,
                         serializer: ProtocolEvent<Ping>.Serialize);

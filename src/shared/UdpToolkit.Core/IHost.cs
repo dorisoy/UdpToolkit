@@ -1,6 +1,7 @@
 namespace UdpToolkit.Core
 {
     using System;
+    using System.Net;
     using System.Threading.Tasks;
 
     public interface IHost : IDisposable
@@ -12,13 +13,14 @@ namespace UdpToolkit.Core
         void Stop();
 
         void OnCore(
-            Subscription subscription,
-            byte hookId);
+            byte hookId,
+            Subscription subscription);
 
         void PublishCore<TEvent>(
             TEvent @event,
             int roomId,
             byte hookId,
-            UdpMode udpMode);
+            UdpMode udpMode,
+            IPEndPoint ipEndPoint = null);
     }
 }

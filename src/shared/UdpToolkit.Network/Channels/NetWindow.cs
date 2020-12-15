@@ -3,13 +3,13 @@ namespace UdpToolkit.Network.Channels
     using System;
     using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Pooling;
 
     public sealed class NetWindow
     {
         private readonly int _windowSize;
         private readonly ushort?[] _ids;
         private readonly PacketData?[] _networkPackets;
-        private ushort _minAckedPacket = 1;
 
         private ushort _maxId;
 
@@ -34,9 +34,8 @@ namespace UdpToolkit.Network.Channels
             return false;
         }
 
-        public bool TryGetNetworkPacket(ushort id, out NetworkPacket networkPacket)
+        public bool PacketExists(ushort id)
         {
-            networkPacket = default;
             var index = (int)id % _windowSize;
             if (_ids[index] == id)
             {
@@ -46,73 +45,51 @@ namespace UdpToolkit.Network.Channels
                     return false;
                 }
 
-                networkPacket = packet.Value.NetworkPacket;
-
                 return true;
             }
 
             return false;
         }
 
-        public bool IsAcked(ushort id)
+        public bool IsDelivered(ushort id)
         {
             return _networkPackets[id].HasValue && _networkPackets[id].Value.Acked;
         }
 
-        public IEnumerable<NetworkPacket> GetLostPackets(TimeSpan resendTimeout)
-        {
-            for (var i = _minAckedPacket; i < _networkPackets.Length; i++)
-            {
-                var packet = _networkPackets[i];
-
-                if (!packet.HasValue)
-                {
-                    continue;
-                }
-
-                var isExpired = packet.Value.NetworkPacket.IsExpired(resendTimeout);
-                if ((packet.Value.Acked && i == _minAckedPacket) || isExpired)
-                {
-                    _minAckedPacket++;
-                    if (isExpired)
-                    {
-                        yield return packet.Value.NetworkPacket;
-                    }
-                }
-                else
-                {
-                    yield return packet.Value.NetworkPacket;
-                }
-            }
-        }
-
-        public NetworkPacket AcceptAck(ushort id)
+        public bool AcceptAck(
+            ushort id,
+            uint acks)
         {
             var packet = _networkPackets[id];
             if (!packet.HasValue)
             {
-                return null;
+                return false;
             }
 
             _networkPackets[id] = new PacketData(
-                networkPacket: packet.Value.NetworkPacket,
+                id: id,
+                acks: acks,
                 acked: true);
 
-            return packet.Value.NetworkPacket;
+            return true;
         }
 
-        public void InsertPacketData(NetworkPacket networkPacket, bool acked)
+        public void InsertPacketData(
+            ushort id,
+            uint acks,
+            bool acked)
         {
-            var index = (int)networkPacket.Id % _windowSize;
-            _ids[index] = networkPacket.Id;
+            var index = (int)id % _windowSize;
+            _ids[index] = id;
 
             _networkPackets[index] = new PacketData(
-                networkPacket,
+                id: id,
+                acks: acks,
                 acked: acked);
 
-            if (NetworkUtils.SequenceGreaterThan(networkPacket.Id, _maxId))
+            if (NetworkUtils.SequenceGreaterThan(id, _maxId))
             {
-                _maxId = networkPacket.Id;
+                _maxId = id;
             }
         }
     }

@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit.Network.Peers
 {
     using System;
     using System.Collections.Generic;
@@ -8,18 +8,19 @@ namespace UdpToolkit.Framework
     public interface IRawPeerManager
     {
         void Remove(
-            Peer peer);
+            IRawPeer peer);
 
-        Peer GetPeer(
-            Guid peerId);
+        bool TryGetPeer(
+            Guid peerId,
+            out IRawPeer rawPeer);
 
-        Peer AddOrUpdate(
+        IRawPeer AddOrUpdate(
             Guid peerId,
             List<IPEndPoint> ips,
             TimeSpan inactivityTimeout);
 
         Task Apply(
-            Func<Peer, bool> condition,
-            Func<Peer, Task> action);
+            Func<IRawPeer, bool> condition,
+            Func<IRawPeer, Task> action);
     }
 }

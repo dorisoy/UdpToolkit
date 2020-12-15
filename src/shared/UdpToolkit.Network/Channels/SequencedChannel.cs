@@ -1,8 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using UdpToolkit.Network.Packets;
 
     public sealed class SequencedChannel : IChannel
@@ -33,10 +30,14 @@ namespace UdpToolkit.Network.Channels
             }
         }
 
-        public NetworkPacket GetAck(
+        public void GetAck(
             NetworkPacket networkPacket)
         {
-            return networkPacket;
+        }
+
+        public bool IsDelivered(ushort networkPacketId)
+        {
+            return true;
         }
 
         public void HandleOutputPacket(
@@ -44,25 +45,16 @@ namespace UdpToolkit.Network.Channels
         {
             lock (_locker)
             {
-                networkPacket.SetHeader(
+                networkPacket.Set(
                     id: ++_sequenceNumber,
                     acks: 0);
             }
-        }
-
-        public void GetNext(NetworkPacket networkPacket)
-        {
         }
 
         public bool HandleAck(
             NetworkPacket networkPacket)
         {
             return true;
-        }
-
-        public IEnumerable<NetworkPacket> ToResend(TimeSpan resendTimeout)
-        {
-            return Enumerable.Empty<NetworkPacket>();
         }
     }
 }

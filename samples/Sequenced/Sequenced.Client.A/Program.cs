@@ -1,7 +1,6 @@
 ﻿namespace Sequenced.Client.A
 {
     using System;
-    using System.Threading;
     using System.Threading.Tasks;
     using Sequenced.Contracts;
     using Serilog;
@@ -35,7 +34,7 @@
                 onAck: (peerId) => { },
                 onTimeout: (peerId) => { },
                 hookId: 1,
-                broadcastMode: BroadcastMode.Room);
+                broadcastMode: BroadcastMode.RoomExceptCaller);
 
 #pragma warning disable CS4014
             Task.Run(() => host.RunAsync());

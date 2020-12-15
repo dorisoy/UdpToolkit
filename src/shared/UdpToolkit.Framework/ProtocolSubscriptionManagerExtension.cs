@@ -16,8 +16,6 @@ namespace UdpToolkit.Framework
         public static void BootstrapSubscriptions(
             this IProtocolSubscriptionManager protocolSubscriptionManager,
             TimeSpan inactivityTimeout,
-            ITimersPool timersPool,
-            ISerializer serializer,
             IPeerManager peerManager,
             IDateTimeProvider dateTimeProvider)
         {
@@ -32,18 +30,16 @@ namespace UdpToolkit.Framework
                             .Select(server => new IPEndPoint(IPAddress.Parse(server.Host), server.Port))
                             .ToList();
 
-                        var peer = peerManager.AddOrUpdate(
+                        peerManager.AddOrUpdate(
                             inactivityTimeout: inactivityTimeout,
                             peerId: peerId,
                             ips: ips);
 
-                        timersPool.EnableResend(peer);
                         Logger.Debug($"Input - {nameof(Connect)}");
                     },
                     onOutputEvent: (bytes, peerId) =>
                     {
                         peerManager.TryGetPeer(peerId, out var peer);
-                        timersPool.EnableResend(peer);
                         Logger.Debug($"Output - {nameof(Connect)}");
                     },
                     onAck: (peerId) =>
@@ -52,7 +48,6 @@ namespace UdpToolkit.Framework
                     },
                     onAckTimeout: (peerId) =>
                     {
-                        timersPool.DisableResend(peerId);
                     },
                     broadcastMode: BroadcastMode.Caller);
 
@@ -64,8 +59,6 @@ namespace UdpToolkit.Framework
                         var disconnect = ProtocolEvent<Disconnect>.Deserialize(bytes);
 
                         peerManager.TryGetPeer(disconnect.PeerId, out var peer);
-
-                        timersPool.DisableResend(peer.PeerId);
                     },
                     onOutputEvent: (bytes, peerId) =>
                     {

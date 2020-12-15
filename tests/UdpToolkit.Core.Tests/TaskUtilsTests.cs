@@ -21,7 +21,7 @@ namespace UdpToolkit.Core.Tests
         {
             var exception = await Record
                 .ExceptionAsync(
-                    testCode: () => TaskUtils.RunWithRestartOnFail(
+                    testCode: () => TaskUtils.RestartOnFail(
                         job: testCase.Job,
                         logger: testCase.Logger,
                         token: default))
@@ -51,7 +51,7 @@ namespace UdpToolkit.Core.Tests
             var exception = await Record
                 .ExceptionAsync(
                     testCode: () =>
-                        TaskUtils.RunWithRestartOnFail(
+                        TaskUtils.RestartOnFail(
                             job: job,
                             logger: (ex) => { },
                             token: cts.Token))
@@ -69,7 +69,7 @@ namespace UdpToolkit.Core.Tests
 
             var exception = await Record
                 .ExceptionAsync(() => TaskUtils
-                    .RunWithRestartOnFail(
+                    .RestartOnFail(
                         job: () => Task.CompletedTask,
                         logger: (ex) => { },
                         token: cts.Token))

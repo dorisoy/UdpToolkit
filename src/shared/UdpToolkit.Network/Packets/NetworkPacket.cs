@@ -4,16 +4,16 @@ namespace UdpToolkit.Network.Packets
     using System.IO;
     using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Pooling;
 
-    public sealed class NetworkPacket
+    public sealed class NetworkPacket : IResetteble
     {
         [Obsolete("Deserialization only")]
-        public NetworkPacket(DateTimeOffset createdAt)
+        public NetworkPacket()
         {
-            CreatedAt = createdAt;
         }
 
-        public NetworkPacket(
+        private NetworkPacket(
             byte hookId,
             ChannelType channelType,
             NetworkPacketType networkPacketType,
@@ -39,21 +39,19 @@ namespace UdpToolkit.Network.Packets
 
         public uint Acks { get; private set; }
 
-        public byte HookId { get; }
+        public byte HookId { get; private set; }
 
-        public ChannelType ChannelType { get; }
+        public ChannelType ChannelType { get; private set; }
 
-        public Guid PeerId { get; }
+        public Guid PeerId { get; private set; }
 
-        public NetworkPacketType NetworkPacketType { get; }
+        public NetworkPacketType NetworkPacketType { get; private set; }
 
-        public Func<byte[]> Serializer { get; }
+        public Func<byte[]> Serializer { get; private set; }
 
-        public DateTimeOffset CreatedAt { get; }
+        public DateTimeOffset CreatedAt { get; private set; }
 
         public IPEndPoint IpEndPoint { get; private set; }
-
-        public ProtocolHookId ProtocolHookId => (ProtocolHookId)HookId;
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
 
@@ -78,7 +76,10 @@ namespace UdpToolkit.Network.Packets
             }
         }
 
-        public static NetworkPacket Deserialize(byte[] bytes, IPEndPoint ipEndPoint)
+        public static void Deserialize(
+            byte[] bytes,
+            IPEndPoint ipEndPoint,
+            PooledObject<NetworkPacket> pooledNetworkPacket)
         {
             using (var reader = new BinaryReader(new MemoryStream(bytes)))
             {
@@ -90,7 +91,7 @@ namespace UdpToolkit.Network.Packets
                 var acks = reader.ReadUInt32();
                 var payload = reader.ReadBytes(bytes.Length - 25);
 
-                return new NetworkPacket(
+                pooledNetworkPacket.Value.Set(
                     ipEndPoint: ipEndPoint,
                     createdAt: DateTimeOffset.UtcNow,
                     hookId: hookId,
@@ -105,34 +106,58 @@ namespace UdpToolkit.Network.Packets
 
         public bool IsExpired(TimeSpan resendTimeout) => DateTimeOffset.UtcNow - CreatedAt > resendTimeout;
 
-        public NetworkPacket Clone(
-            Guid peerId,
-            IPEndPoint ipEndPoint,
-            NetworkPacketType networkPacketType)
+        public void Reset()
         {
-            return new NetworkPacket(
-                id: Id,
-                acks: Acks,
-                hookId: HookId,
-                ipEndPoint: ipEndPoint,
-                createdAt: DateTimeOffset.UtcNow,
-                serializer: this.Serializer,
-                channelType: this.ChannelType,
-                peerId: peerId,
-                networkPacketType: networkPacketType);
+            Console.WriteLine("RESET NETWORK PACKET");
+            Serializer = default;
+            CreatedAt = default;
+            HookId = default;
+            ChannelType = default;
+            PeerId = default;
+            NetworkPacketType = default;
+            Id = default;
+            Acks = default;
+            IpEndPoint = default;
         }
 
-        public void SetIp(IPEndPoint ipEndPoint)
+        public void Set(
+            byte? hookId = null,
+            ChannelType? channelType = null,
+            NetworkPacketType? networkPacketType = null,
+            Guid? peerId = null,
+            ushort? id = null,
+            uint? acks = null,
+            Func<byte[]> serializer = null,
+            DateTimeOffset? createdAt = null,
+            IPEndPoint ipEndPoint = null)
         {
-            IpEndPoint = ipEndPoint;
+            Serializer = serializer ?? Serializer;
+            CreatedAt = createdAt ?? CreatedAt;
+            HookId = hookId ?? HookId;
+            ChannelType = channelType ?? ChannelType;
+            PeerId = peerId ?? PeerId;
+            NetworkPacketType = networkPacketType ?? NetworkPacketType;
+            Id = id ?? Id;
+            Acks = acks ?? Acks;
+            IpEndPoint = ipEndPoint ?? IpEndPoint;
         }
 
-        public void SetHeader(
-            ushort id,
-            uint acks)
+        public void Clone(
+            NetworkPacket networkPacket)
         {
-            Id = id;
-            Acks = acks;
+            Serializer = networkPacket.Serializer;
+            CreatedAt = networkPacket.CreatedAt;
+            HookId = networkPacket.HookId;
+            ChannelType = networkPacket.ChannelType;
+            PeerId = networkPacket.PeerId;
+            NetworkPacketType = networkPacket.NetworkPacketType;
+            Id = networkPacket.Id;
+            Acks = networkPacket.Acks;
+            IpEndPoint = networkPacket.IpEndPoint;
         }
+
+#pragma warning disable
+        public static NetworkPacket Create() => new NetworkPacket();
+#pragma warning restore
     }
 }

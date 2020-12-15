@@ -3,6 +3,7 @@ namespace UdpToolkit.Network.Channels
     using System;
     using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Pooling;
 
     public interface IChannel
     {
@@ -12,15 +13,13 @@ namespace UdpToolkit.Network.Channels
         void HandleOutputPacket(
             NetworkPacket networkPacket);
 
-        void GetNext(
-            NetworkPacket networkPacket);
-
         bool HandleAck(
             NetworkPacket networkPacket);
 
-        NetworkPacket GetAck(
+        void GetAck(
             NetworkPacket networkPacket);
 
-        IEnumerable<NetworkPacket> ToResend(TimeSpan resendTimeout);
+        bool IsDelivered(
+            ushort networkPacketId);
     }
 }

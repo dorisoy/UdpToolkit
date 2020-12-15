@@ -4,6 +4,7 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Core;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Packets;
 
     public static class MapExtensions
     {
@@ -20,6 +21,26 @@ namespace UdpToolkit.Framework
                     return ChannelType.ReliableUdp;
                 case UdpMode.ReliableOrderedUdp:
                     return ChannelType.ReliableOrderedUdp;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(udpMode), udpMode, null);
+            }
+        }
+
+        public static BroadcastType Map(
+            this BroadcastMode udpMode)
+        {
+            switch (udpMode)
+            {
+                case BroadcastMode.Caller:
+                    return BroadcastType.Caller;
+                case BroadcastMode.Room:
+                    return BroadcastType.Room;
+                case BroadcastMode.Server:
+                    return BroadcastType.Server;
+                case BroadcastMode.RoomExceptCaller:
+                    return BroadcastType.RoomExceptCaller;
+                case BroadcastMode.AckToServer:
+                    return BroadcastType.AckToServer;
                 default:
                     throw new ArgumentOutOfRangeException(nameof(udpMode), udpMode, null);
             }

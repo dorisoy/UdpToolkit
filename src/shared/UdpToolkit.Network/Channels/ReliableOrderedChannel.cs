@@ -1,30 +1,31 @@
 namespace UdpToolkit.Network.Channels
 {
     using System;
-    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
-    using System.Linq;
     using UdpToolkit.Network.Packets;
 
     [ExcludeFromCodeCoverage]
     public sealed class ReliableOrderedChannel : IChannel
     {
-        public bool HandleInputPacket(NetworkPacket networkPacket)
-        {
-            throw new System.NotImplementedException();
-        }
-
-        public NetworkPacket GetAck(
+        public bool HandleInputPacket(
             NetworkPacket networkPacket)
         {
             throw new System.NotImplementedException();
         }
 
-        public void HandleOutputPacket(NetworkPacket networkPacket)
+        public void GetAck(
+            NetworkPacket networkPacket)
         {
         }
 
-        public void GetNext(NetworkPacket networkPacket)
+        public bool IsDelivered(
+            ushort networkPacketId)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void HandleOutputPacket(
+            NetworkPacket networkPacket)
         {
         }
 
@@ -32,11 +33,6 @@ namespace UdpToolkit.Network.Channels
             NetworkPacket networkPacket)
         {
             throw new System.NotImplementedException();
-        }
-
-        public IEnumerable<NetworkPacket> ToResend(TimeSpan resendTimeout)
-        {
-            return Enumerable.Empty<NetworkPacket>();
         }
     }
 }

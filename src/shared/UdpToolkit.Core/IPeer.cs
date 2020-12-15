@@ -8,8 +8,6 @@ namespace UdpToolkit.Core
     {
         Guid PeerId { get; }
 
-        IPEndPoint GetRandomIp();
-
         void SetRoomId(
             int roomId);
 
@@ -20,5 +18,7 @@ namespace UdpToolkit.Core
             DateTimeOffset onPongReceived);
 
         TimeSpan GetRtt();
+
+        IPEndPoint GetRandomIp();
     }
 }

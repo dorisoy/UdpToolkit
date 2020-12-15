@@ -4,33 +4,41 @@ namespace UdpToolkit.Framework
     using System.Linq;
     using System.Net;
     using UdpToolkit.Core;
+    using UdpToolkit.Network.Peers;
 
-    public class RandomServerSelector : IServerSelector, IRawServerSelector
+    public sealed class RandomServerSelector : IServerSelector, IRawServerSelector
     {
-        private static readonly Random Random = new Random();
-        private readonly Peer[] _servers;
+        private readonly IPeerManager _peerManager;
+        private readonly Guid _serverId;
 
         public RandomServerSelector(
-            IPEndPoint[] inputIps)
+            IPEndPoint[] inputIps,
+            PeerManager peerManager)
         {
-            var serverId = Guid.NewGuid();
+            _peerManager = peerManager;
+            _serverId = Guid.NewGuid();
 
-            _servers = inputIps
-                .Select(ip => Peer.New(
-                    inactivityTimeout: TimeSpan.MaxValue,
-                    peerId: serverId,
-                    peerIps: inputIps.ToList()))
-                .ToArray();
+            peerManager.AddOrUpdate(_serverId, inputIps.ToList(), TimeSpan.MaxValue);
         }
 
-        public IPeer GetServer()
+        IPeer IServerSelector.GetServer()
         {
-            return _servers[Random.Next(0, _servers.Length - 1)];
+            return GetServer();
         }
 
-        Peer IRawServerSelector.GetServer()
+        IRawPeer IRawServerSelector.GetServer()
         {
-            return _servers[Random.Next(0, _servers.Length - 1)];
+            return GetServer();
+        }
+
+        private Peer GetServer()
+        {
+            if (_peerManager.TryGetPeer(_serverId, out var peer))
+            {
+                return peer as Peer;
+            }
+
+            return null;
         }
     }
 }

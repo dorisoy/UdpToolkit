@@ -7,6 +7,7 @@ namespace UdpToolkit.Framework
     using System.Net;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
+    using UdpToolkit.Network.Peers;
 
     public class PeerManager : IPeerManager, IRawPeerManager
     {
@@ -20,14 +21,21 @@ namespace UdpToolkit.Framework
         }
 
         public void Remove(
-            Peer peer)
+            IRawPeer peer)
         {
             _peers.TryRemove(peer.PeerId, out _);
         }
 
-        public Peer GetPeer(Guid peerId)
+        public bool TryGetPeer(Guid peerId, out IRawPeer rawPeer)
         {
-            return _peers[peerId];
+            if (_peers.TryGetValue(peerId, out var peer))
+            {
+                rawPeer = peer;
+                return true;
+            }
+
+            rawPeer = null;
+            return false;
         }
 
         IPeer IPeerManager.AddOrUpdate(
@@ -38,9 +46,17 @@ namespace UdpToolkit.Framework
             return AddOrUpdate(peerId, ips, inactivityTimeout);
         }
 
+        IRawPeer IRawPeerManager.AddOrUpdate(
+            Guid peerId,
+            List<IPEndPoint> ips,
+            TimeSpan inactivityTimeout)
+        {
+            return AddOrUpdate(peerId, ips, inactivityTimeout);
+        }
+
         public async Task Apply(
-            Func<Peer, bool> condition,
-            Func<Peer, Task> action)
+            Func<IRawPeer, bool> condition,
+            Func<IRawPeer, Task> action)
         {
             for (var i = 0; i < _peers.Count; i++)
             {

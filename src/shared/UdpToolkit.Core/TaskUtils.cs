@@ -6,7 +6,7 @@ namespace UdpToolkit.Core
 
     public static class TaskUtils
     {
-        public static async Task RunWithRestartOnFail(
+        public static async Task RestartOnFail(
             Func<Task> job,
             Action<Exception> logger,
             CancellationToken token = default)

@@ -1,50 +1,44 @@
-#pragma warning disable
 namespace UdpToolkit.Network.Tests
 {
-    using System.Linq;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Pooling;
     using Xunit;
-    using static Utils;
 
     public class ReliableUdpChannelTests
     {
         [Fact]
         public void Packet_Processed()
         {
+            var pool = new ObjectsPool<NetworkPacket>(NetworkPacket.Create, 0);
             var channel = new ReliableChannel(windowSize: 1024);
-            var networkPacket = CreatePacket(
-                hookId: (byte)ProtocolHookId.Connect,
-                channelType: ChannelType.ReliableUdp,
-                id: 1,
-                networkPacketType: NetworkPacketType.Protocol);
+            var pooledPacket = pool.Get();
 
-            var result = channel.HandleInputPacket(networkPacket: networkPacket);
+            var result = channel.HandleInputPacket(pooledPacket.Value);
 
             Assert.True(result);
-            Assert.Equal(1, networkPacket.Id);
-            Assert.Equal(1, networkPacket.Id);
-            Assert.Equal(ChannelType.ReliableUdp, networkPacket.ChannelType);
+            Assert.Equal(1, pooledPacket.Value.Id);
+            Assert.Equal(1, pooledPacket.Value.Id);
+            Assert.Equal(ChannelType.ReliableUdp, pooledPacket.Value.ChannelType);
         }
 
         [Fact]
         public void Duplicate_Dropped()
         {
+            var pool = new ObjectsPool<NetworkPacket>(NetworkPacket.Create, 0);
             var channel = new ReliableChannel(windowSize: 1024);
-            var networkPacket = CreatePacket(
-                hookId: (byte)ProtocolHookId.Connect,
-                channelType: ChannelType.ReliableUdp,
-                id: 1,
-                networkPacketType: NetworkPacketType.Protocol);
+            var pooledPacket = pool.Get();
 
-            _ = channel.HandleInputPacket(networkPacket: networkPacket);
-            var result = channel.HandleInputPacket(networkPacket: networkPacket);
+            _ = channel.HandleInputPacket(pooledPacket.Value);
+            var result = channel.HandleInputPacket(pooledPacket.Value);
 
             Assert.False(false);
-            Assert.Equal(1, networkPacket.Id);
-            Assert.Equal(1, networkPacket.Id);
-            Assert.Equal(ChannelType.ReliableUdp, networkPacket.ChannelType);
+            Assert.Equal(1, pooledPacket.Value.Id);
+            Assert.Equal(1, pooledPacket.Value.Id);
+            Assert.Equal(ChannelType.ReliableUdp, pooledPacket.Value.ChannelType);
         }
 
+#pragma warning disable
         #region MyRegion
         //
         // [Fact]
