@@ -5,7 +5,7 @@ namespace UdpToolkit.Network.Clients
     using System.Net;
     using System.Net.Sockets;
     using System.Threading.Tasks;
-    using Serilog;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
@@ -13,7 +13,7 @@ namespace UdpToolkit.Network.Clients
     public sealed class UdpReceiver : IUdpReceiver
     {
         private readonly UdpClient _receiver;
-        private readonly ILogger _logger = Log.ForContext<UdpReceiver>();
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
         private readonly IRawPeerManager _rawPeerManager;
         private readonly TimeSpan _peerInactivityTimeout;
@@ -22,13 +22,15 @@ namespace UdpToolkit.Network.Clients
             UdpClient receiver,
             IObjectsPool<NetworkPacket> networkPacketPool,
             IRawPeerManager rawPeerManager,
-            TimeSpan peerInactivityTimeout)
+            TimeSpan peerInactivityTimeout,
+            IUdpToolkitLogger udpToolkitLogger)
         {
             _receiver = receiver;
             _networkPacketPool = networkPacketPool;
             _rawPeerManager = rawPeerManager;
             _peerInactivityTimeout = peerInactivityTimeout;
-            _logger.Debug($"{nameof(UdpReceiver)} - {receiver.Client.LocalEndPoint} created");
+            _udpToolkitLogger = udpToolkitLogger;
+            _udpToolkitLogger.Debug($"{nameof(UdpReceiver)} - {receiver.Client.LocalEndPoint} created");
         }
 
         public void Dispose()
@@ -67,12 +69,8 @@ namespace UdpToolkit.Network.Clients
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
             var networkPacket = pooledNetworkPacket.Value;
-            _logger.Debug($"Packet from - {udpReceiveResult.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
-            _logger.Debug(
-                    messageTemplate: "Packet received: {@packet}, Total bytes length: {@length}, Payload bytes length: {@payload}",
-                    propertyValue0: networkPacket,
-                    propertyValue1: udpReceiveResult.Buffer.Length,
-                    propertyValue2: networkPacket.Serializer().Length);
+            _udpToolkitLogger.Debug($"Packet from - {udpReceiveResult.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
+            _udpToolkitLogger.Debug($"Packet received: {networkPacket}, Total bytes length: {udpReceiveResult.Buffer.Length}, Payload bytes length: {networkPacket.Serializer().Length}");
 
             switch (networkPacket.NetworkPacketType)
             {
@@ -80,7 +78,7 @@ namespace UdpToolkit.Network.Clients
                 case NetworkPacketType.FromClient:
                     if (!HandleUserDefinedEvent(pooledNetworkPacket))
                     {
-                        _logger.Debug($"UserDefined {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
+                        _udpToolkitLogger.Debug($"UserDefined {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
                         return false;
                     }
 
@@ -88,7 +86,7 @@ namespace UdpToolkit.Network.Clients
                 case NetworkPacketType.Protocol:
                     if (!HandleProtocolEvent(pooledNetworkPacket))
                     {
-                        _logger.Debug($"Protocol {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
+                        _udpToolkitLogger.Debug($"Protocol {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
                         return false;
                     }
 
@@ -98,7 +96,7 @@ namespace UdpToolkit.Network.Clients
                     {
                         if (!HandleProtocolAck(pooledNetworkPacket))
                         {
-                            _logger.Debug("Protocol Ack dropped - {@packet}", networkPacket);
+                            _udpToolkitLogger.Debug($"Protocol Ack dropped - {networkPacket}");
                             return false;
                         }
                     }
@@ -106,7 +104,7 @@ namespace UdpToolkit.Network.Clients
                     {
                         if (!HandleUserDefinedAck(pooledNetworkPacket))
                         {
-                            _logger.Debug($"UserDefined Ack dropped! {networkPacket.Id}");
+                            _udpToolkitLogger.Debug($"UserDefined Ack dropped! {networkPacket.Id}");
                             return false;
                         }
                     }

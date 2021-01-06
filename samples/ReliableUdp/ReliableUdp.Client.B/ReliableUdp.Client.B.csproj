@@ -10,6 +10,7 @@
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
         <ProjectReference Include="..\ReliableUdp.Contracts\ReliableUdp.Contracts.csproj" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Logging.Serilog\UdpToolkit.Logging.Serilog.csproj" />
     </ItemGroup>
 
     <ItemGroup>

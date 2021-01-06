@@ -41,9 +41,12 @@ namespace UdpToolkit
 
         public IHost Build()
         {
+            ValidateSettings(_hostSettings);
+
             var dateTimeProvider = new DateTimeProvider();
             var udpClientFactory = new UdpClientFactory();
             var scheduler = new Scheduler();
+            var loggerFactory = _hostSettings.LoggerFactory;
 
             var callContextPool = new ObjectsPool<CallContext>(CallContext.Create, 1000);
             var networkPacketPool = new ObjectsPool<NetworkPacket>(NetworkPacket.Create, 1000);
@@ -99,6 +102,7 @@ namespace UdpToolkit
             var senders = outputPorts
                 .Select(udpClientFactory.Create)
                 .Select(udpClient => new UdpSender(
+                    udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient,
                     rawRoomManager: roomManager,
                     networkPacketPool: networkPacketPool))
@@ -120,6 +124,7 @@ namespace UdpToolkit
             var receivers = inputPorts
                 .Select(udpClientFactory.Create)
                 .Select(udpClient => new UdpReceiver(
+                    udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
                     peerInactivityTimeout: _hostSettings.PeerInactivityTimeout,
                     rawPeerManager: peerManager,
                     receiver: udpClient,
@@ -129,11 +134,13 @@ namespace UdpToolkit
             var subscriptionManager = new SubscriptionManager();
 
             var protocolSubscriptionManager = new ProtocolSubscriptionManager();
-
-            protocolSubscriptionManager.BootstrapSubscriptions(
+            var protocolSubscriptionBootstraper = new ProtocolSubscriptionBootstraper(
+                protocolSubscriptionManager: protocolSubscriptionManager,
+                udpToolkitLogger: loggerFactory.Create<ProtocolSubscriptionBootstraper>(),
                 peerManager: peerManager,
                 dateTimeProvider: dateTimeProvider,
                 inactivityTimeout: _hostSettings.PeerInactivityTimeout);
+            protocolSubscriptionBootstraper.BootstrapSubscriptions();
 
             var peerId = Guid.NewGuid();
 
@@ -159,6 +166,7 @@ namespace UdpToolkit
                 ips: inputPorts);
 
             return new Host(
+                udpToolkitLogger: loggerFactory.Create<Host>(),
                 callContextPool: callContextPool,
                 dateTimeProvider: dateTimeProvider,
                 hostSettings: _hostSettings,
@@ -169,6 +177,7 @@ namespace UdpToolkit
                 receivers: receivers,
                 scheduler: scheduler,
                 sendingJob: new SenderJob(
+                    udpToolkitLogger: loggerFactory.Create<SenderJob>(),
                     scheduler: scheduler,
                     resendQueue: new ResendQueue(),
                     rawPeerManager: peerManager,
@@ -182,6 +191,7 @@ namespace UdpToolkit
                     callContextPool: callContextPool,
                     inputQueue: inputQueue),
                 workerJob: new WorkerJob(
+                    udpToolkitLogger: loggerFactory.Create<WorkerJob>(),
                     inputQueue: inputQueue,
                     outputQueue: outputQueue,
                     callContextPool: callContextPool,
@@ -192,6 +202,20 @@ namespace UdpToolkit
                     hostSettings: _hostSettings,
                     scheduler: scheduler,
                     serverHostClient: serverHostClient));
+        }
+
+        private void ValidateSettings(
+            HostSettings hostSettings)
+        {
+            if (hostSettings.Serializer == null)
+            {
+                throw new ArgumentNullException(nameof(hostSettings.Serializer), "PLease install serializer NuGet Package, or write your own..");
+            }
+
+            if (hostSettings.LoggerFactory == null)
+            {
+                throw new ArgumentNullException(nameof(hostSettings.Serializer), "PLease install logging NuGet Package, or write your own..");
+            }
         }
     }
 }

@@ -1,13 +1,12 @@
 ﻿namespace P2P.Server
 {
     using System;
-    using System.Linq;
     using System.Threading.Tasks;
-    using P2P.Contracts;
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Core;
+    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
@@ -33,6 +32,7 @@
                 {
                     settings.Host = "127.0.0.1";
                     settings.Serializer = new Serializer();
+                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.InputPorts = new[] { 7000, 7001 };
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;

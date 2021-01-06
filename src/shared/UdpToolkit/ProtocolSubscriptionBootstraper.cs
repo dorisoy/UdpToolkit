@@ -3,23 +3,36 @@ namespace UdpToolkit
     using System;
     using System.Linq;
     using System.Net;
-    using Serilog;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Serialization;
 
-    public static class ProtocolSubscriptionManagerExtension
+    public sealed class ProtocolSubscriptionBootstraper
     {
-        private static readonly ILogger Logger = Log.ForContext<Host>();
+        private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
+        private readonly TimeSpan _inactivityTimeout;
+        private readonly IPeerManager _peerManager;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
 
-        public static void BootstrapSubscriptions(
-            this IProtocolSubscriptionManager protocolSubscriptionManager,
+        public ProtocolSubscriptionBootstraper(
+            IProtocolSubscriptionManager protocolSubscriptionManager,
             TimeSpan inactivityTimeout,
             IPeerManager peerManager,
-            IDateTimeProvider dateTimeProvider)
+            IDateTimeProvider dateTimeProvider,
+            IUdpToolkitLogger udpToolkitLogger)
         {
-            protocolSubscriptionManager
+            _protocolSubscriptionManager = protocolSubscriptionManager;
+            _inactivityTimeout = inactivityTimeout;
+            _peerManager = peerManager;
+            _dateTimeProvider = dateTimeProvider;
+            _udpToolkitLogger = udpToolkitLogger;
+        }
+
+        public void BootstrapSubscriptions()
+        {
+            _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Connect>(
                     hookId: (byte)ProtocolHookId.Connect,
                     onInputEvent: (bytes, peerId) =>
@@ -30,79 +43,79 @@ namespace UdpToolkit
                             .Select(server => new IPEndPoint(IPAddress.Parse(server.Host), server.Port))
                             .ToList();
 
-                        peerManager.AddOrUpdate(
-                            inactivityTimeout: inactivityTimeout,
+                        _peerManager.AddOrUpdate(
+                            inactivityTimeout: _inactivityTimeout,
                             peerId: peerId,
                             ips: ips);
 
-                        Logger.Debug($"Input - {nameof(Connect)}");
+                        _udpToolkitLogger.Debug($"Input - {nameof(Connect)}");
                     },
                     onOutputEvent: (bytes, peerId) =>
                     {
-                        peerManager.TryGetPeer(peerId, out var peer);
-                        Logger.Debug($"Output - {nameof(Connect)}");
+                        _peerManager.TryGetPeer(peerId, out var peer);
+                        _udpToolkitLogger.Debug($"Output - {nameof(Connect)}");
                     },
                     onAck: (peerId) =>
                     {
-                        Logger.Debug($"Peer - {peerId}");
+                        _udpToolkitLogger.Debug($"Peer - {peerId}");
                     },
                     onAckTimeout: (peerId) =>
                     {
                     },
                     broadcastMode: BroadcastMode.Caller);
 
-            protocolSubscriptionManager
+            _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Disconnect>(
                     hookId: (byte)ProtocolHookId.Disconnect,
                     onInputEvent: (bytes, peerId) =>
                     {
                         var disconnect = ProtocolEvent<Disconnect>.Deserialize(bytes);
 
-                        peerManager.TryGetPeer(disconnect.PeerId, out var peer);
+                        _peerManager.TryGetPeer(disconnect.PeerId, out var peer);
                     },
                     onOutputEvent: (bytes, peerId) =>
                     {
-                        peerManager.TryGetPeer(peerId, out var peer);
+                        _peerManager.TryGetPeer(peerId, out var peer);
 
-                        peer.OnPing(dateTimeProvider.UtcNow());
+                        peer.OnPing(_dateTimeProvider.UtcNow());
                     },
                     onAck: (peerId) => { },
                     onAckTimeout: (peerId) => { },
                     broadcastMode: BroadcastMode.Caller);
 
-            protocolSubscriptionManager
+            _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Ping>(
                     hookId: (byte)ProtocolHookId.Ping,
                     onInputEvent: (bytes, peerId) => { },
                     onOutputEvent: (bytes, peerId) =>
                     {
-                        peerManager.TryGetPeer(peerId, out var peer);
+                        _peerManager.TryGetPeer(peerId, out var peer);
 
-                        peer.OnPing(dateTimeProvider.UtcNow());
+                        peer.OnPing(_dateTimeProvider.UtcNow());
                     },
                     onAck: (peerId) => { },
                     onAckTimeout: (peerId) => { },
                     broadcastMode: BroadcastMode.Caller);
 
-            protocolSubscriptionManager
+            _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Pong>(
                     hookId: (byte)ProtocolHookId.Pong,
                     onInputEvent: (bytes, peerId) =>
                     {
-                        peerManager.TryGetPeer(peerId, out var peer);
+                        _peerManager.TryGetPeer(peerId, out var peer);
 
-                        Logger.Debug($"{ProtocolHookId.Pong}");
+                        _udpToolkitLogger.Debug($"{ProtocolHookId.Pong}");
 
-                        peer.OnPong(dateTimeProvider.UtcNow());
-                        Logger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
+                        peer.OnPong(_dateTimeProvider.UtcNow());
+                        _udpToolkitLogger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
                     },
                     onOutputEvent: (bytes, peerId) =>
                     {
-                        peerManager.TryGetPeer(peerId, out var peer);
-                        Logger.Debug($"{ProtocolHookId.Pong}");
+                        _peerManager.TryGetPeer(peerId, out var peer);
+                        _udpToolkitLogger.Debug($"{ProtocolHookId.Pong}");
 
-                        peer.OnPong(dateTimeProvider.UtcNow());
-                        Logger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
+                        peer.OnPong(_dateTimeProvider.UtcNow());
+                        _udpToolkitLogger.Information($"Rtt - {peer.GetRtt().TotalMilliseconds}");
                     },
                     onAck: (peerId) => { },
                     onAckTimeout: (peerId) => { },

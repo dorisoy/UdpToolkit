@@ -9,6 +9,7 @@
     </ItemGroup>
     
     <ItemGroup>
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Logging.Serilog\UdpToolkit.Logging.Serilog.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
         <Compile Include="..\Cubes.Client\Assets\Cubes\Shared\**\*.cs" LinkBase="Shared" />
         <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\JoinEventHandler.cs">

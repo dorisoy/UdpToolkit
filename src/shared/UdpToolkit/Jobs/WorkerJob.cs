@@ -1,17 +1,16 @@
 namespace UdpToolkit.Jobs
 {
     using System;
-    using Serilog;
     using UdpToolkit.Core;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Pooling;
     using UdpToolkit.Network.Queues;
 
     public sealed class WorkerJob
     {
-        private readonly ILogger _logger = Log.Logger;
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
 
         private readonly Scheduler _scheduler;
         private readonly HostSettings _hostSettings;
@@ -37,7 +36,8 @@ namespace UdpToolkit.Jobs
             IDateTimeProvider dateTimeProvider,
             HostSettings hostSettings,
             Scheduler scheduler,
-            ServerHostClient serverHostClient)
+            ServerHostClient serverHostClient,
+            IUdpToolkitLogger udpToolkitLogger)
         {
             _inputQueue = inputQueue;
             _callContextPool = callContextPool;
@@ -47,6 +47,7 @@ namespace UdpToolkit.Jobs
             _hostSettings = hostSettings;
             _scheduler = scheduler;
             _serverHostClient = serverHostClient;
+            _udpToolkitLogger = udpToolkitLogger;
             _roomManager = roomManager;
             _outputQueue = outputQueue;
         }
@@ -66,7 +67,7 @@ namespace UdpToolkit.Jobs
                 }
                 catch (Exception ex)
                 {
-                    _logger.Warning("WorkerError - {@Exception}", ex);
+                    _udpToolkitLogger.Warning($"WorkerError - {ex}");
                 }
             }
         }
@@ -158,7 +159,7 @@ namespace UdpToolkit.Jobs
 
             if (userDefinedSubscription == null)
             {
-                _logger.Error($"Subscription with id {networkPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
+                _udpToolkitLogger.Error($"Subscription with id {networkPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
 
                 return;
             }

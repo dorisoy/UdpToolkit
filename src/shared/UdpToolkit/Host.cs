@@ -4,9 +4,9 @@ namespace UdpToolkit
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
-    using Serilog;
     using UdpToolkit.Core;
     using UdpToolkit.Jobs;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Pooling;
@@ -14,7 +14,7 @@ namespace UdpToolkit
 
     public sealed class Host : IHost
     {
-        private readonly ILogger _logger = Log.ForContext<Host>();
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
 
         private readonly HostSettings _hostSettings;
 
@@ -45,7 +45,8 @@ namespace UdpToolkit
             IScheduler scheduler,
             SenderJob sendingJob,
             ReceiverJob receivingJob,
-            WorkerJob workerJob)
+            WorkerJob workerJob,
+            IUdpToolkitLogger udpToolkitLogger)
         {
             Scheduler = scheduler;
             _hostSettings = hostSettings;
@@ -57,6 +58,7 @@ namespace UdpToolkit
             _sendingJob = sendingJob;
             _receivingJob = receivingJob;
             _workerJob = workerJob;
+            _udpToolkitLogger = udpToolkitLogger;
             _inputQueue = inputQueue;
             _outputQueue = outputQueue;
         }
@@ -73,8 +75,8 @@ namespace UdpToolkit
                         job: () => _sendingJob.Execute(sender),
                         logger: (exception) =>
                         {
-                            _logger.Error("Exception on send task: {@Exception}", exception);
-                            _logger.Warning("Restart sender...");
+                            _udpToolkitLogger.Error($"Exception on send task: {exception}");
+                            _udpToolkitLogger.Warning("Restart sender...");
                         },
                         token: default))
                 .ToList();
@@ -85,8 +87,8 @@ namespace UdpToolkit
                         job: () => _receivingJob.Execute(receiver),
                         logger: (exception) =>
                         {
-                            _logger.Error("Exception on receive task: {@Exception}", exception);
-                            _logger.Warning("Restart receiver...");
+                            _udpToolkitLogger.Error($"Exception on receive task: {exception}");
+                            _udpToolkitLogger.Warning("Restart receiver...");
                         },
                         token: default))
                 .ToList();
@@ -100,7 +102,7 @@ namespace UdpToolkit
                 .Concat(receivers)
                 .Concat(workers);
 
-            _logger.Information($"{nameof(Host)} running...");
+            _udpToolkitLogger.Information($"{nameof(Host)} running...");
 
             await Task
                 .WhenAll(tasks)

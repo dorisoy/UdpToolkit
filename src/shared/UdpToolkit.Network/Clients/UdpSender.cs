@@ -3,7 +3,7 @@ namespace UdpToolkit.Network.Clients
     using System;
     using System.Net.Sockets;
     using System.Threading.Tasks;
-    using Serilog;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
@@ -16,18 +16,19 @@ namespace UdpToolkit.Network.Clients
 
         private readonly IRawRoomManager _rawRoomManager;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
-
-        private readonly ILogger _logger = Log.Logger.ForContext<UdpSender>();
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
 
         public UdpSender(
             UdpClient sender,
             IRawRoomManager rawRoomManager,
-            IObjectsPool<NetworkPacket> networkPacketPool)
+            IObjectsPool<NetworkPacket> networkPacketPool,
+            IUdpToolkitLogger udpToolkitLogger)
         {
             _sender = sender;
             _rawRoomManager = rawRoomManager;
             _networkPacketPool = networkPacketPool;
-            _logger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
+            _udpToolkitLogger = udpToolkitLogger;
+            _udpToolkitLogger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
         }
 
         public void Dispose()
@@ -82,17 +83,13 @@ namespace UdpToolkit.Network.Clients
 
             if (bytes.Length > MtuSizeLimit)
             {
-                _logger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
+                _udpToolkitLogger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
 
                 return;
             }
 
-            _logger.Debug($"Packet from - {_sender.Client.LocalEndPoint} to {pooledNetworkPacket.Value.IpEndPoint} sended");
-            _logger.Debug(
-                messageTemplate: "Packet sends: {@packet}, Total bytes length: {@length}, Payload bytes length: {@payload}",
-                propertyValue0: pooledNetworkPacket.Value,
-                propertyValue1: bytes.Length,
-                propertyValue2: pooledNetworkPacket.Value.Serializer().Length);
+            _udpToolkitLogger.Debug($"Packet from - {_sender.Client.LocalEndPoint} to {pooledNetworkPacket.Value.IpEndPoint} sended");
+            _udpToolkitLogger.Debug($"Packet sends: {pooledNetworkPacket.Value}, Total bytes length: {bytes.Length}, Payload bytes length: {pooledNetworkPacket.Value.Serializer().Length}");
 
             await _sender
                 .SendAsync(bytes, bytes.Length, pooledNetworkPacket.Value.IpEndPoint)

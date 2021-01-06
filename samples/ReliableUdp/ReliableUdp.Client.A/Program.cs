@@ -8,6 +8,7 @@
     using UdpToolkit;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
+    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Serialization.MsgPack;
 
@@ -88,6 +89,7 @@
                 {
                     settings.Host = "127.0.0.1";
                     settings.Serializer = new Serializer();
+                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.InputPorts = new[] { 3000, 3001 };
                     settings.OutputPorts = new[] { 4000, 4001 };
                     settings.Workers = 2;

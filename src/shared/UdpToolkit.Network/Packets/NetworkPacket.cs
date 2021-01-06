@@ -106,6 +106,11 @@ namespace UdpToolkit.Network.Packets
 
         public bool IsExpired(TimeSpan resendTimeout) => DateTimeOffset.UtcNow - CreatedAt > resendTimeout;
 
+        public override string ToString()
+        {
+            return $"{nameof(Id)}: {Id}, {nameof(Acks)}: {Acks}, {nameof(HookId)}: {HookId}, {nameof(ChannelType)}: {ChannelType}, {nameof(PeerId)}: {PeerId}, {nameof(NetworkPacketType)}: {NetworkPacketType}, {nameof(CreatedAt)}: {CreatedAt}, {nameof(IpEndPoint)}: {IpEndPoint}, {nameof(IsProtocolEvent)}: {IsProtocolEvent}, {nameof(IsReliable)}: {IsReliable}";
+        }
+
         public void Reset()
         {
             Serializer = default;
@@ -139,20 +144,6 @@ namespace UdpToolkit.Network.Packets
             Id = id ?? Id;
             Acks = acks ?? Acks;
             IpEndPoint = ipEndPoint ?? IpEndPoint;
-        }
-
-        public void Clone(
-            NetworkPacket networkPacket)
-        {
-            Serializer = networkPacket.Serializer;
-            CreatedAt = networkPacket.CreatedAt;
-            HookId = networkPacket.HookId;
-            ChannelType = networkPacket.ChannelType;
-            PeerId = networkPacket.PeerId;
-            NetworkPacketType = networkPacket.NetworkPacketType;
-            Id = networkPacket.Id;
-            Acks = networkPacket.Acks;
-            IpEndPoint = networkPacket.IpEndPoint;
         }
 
 #pragma warning disable

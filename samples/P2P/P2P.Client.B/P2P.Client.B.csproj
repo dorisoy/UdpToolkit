@@ -11,6 +11,7 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Logging.Serilog\UdpToolkit.Logging.Serilog.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
         <ProjectReference Include="..\P2P.Contracts\P2P.Contracts.csproj" />

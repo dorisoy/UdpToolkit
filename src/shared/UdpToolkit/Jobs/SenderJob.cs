@@ -2,8 +2,8 @@ namespace UdpToolkit.Jobs
 {
     using System;
     using System.Threading.Tasks;
-    using Serilog;
     using UdpToolkit.Core;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
@@ -13,7 +13,7 @@ namespace UdpToolkit.Jobs
 
     public sealed class SenderJob
     {
-        private readonly ILogger _logger = Log.Logger;
+        private readonly IUdpToolkitLogger _udpToolkitLogger;
         private readonly ResendQueue _resendQueue;
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
         private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
@@ -29,7 +29,8 @@ namespace UdpToolkit.Jobs
             IRawPeerManager rawPeerManager,
             IServerSelector serverSelector,
             Scheduler scheduler,
-            ResendQueue resendQueue)
+            ResendQueue resendQueue,
+            IUdpToolkitLogger udpToolkitLogger)
         {
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _outputQueue = outputQueue;
@@ -38,6 +39,7 @@ namespace UdpToolkit.Jobs
             _serverSelector = serverSelector;
             _scheduler = scheduler;
             _resendQueue = resendQueue;
+            _udpToolkitLogger = udpToolkitLogger;
         }
 
         public async Task Execute(
@@ -107,7 +109,7 @@ namespace UdpToolkit.Jobs
                                 dueTimeMs: 1000,
                                 action: () =>
                                 {
-                                    _logger.Debug($"Resend: {DateTime.UtcNow} PeerId: {peerId}");
+                                    _udpToolkitLogger.Debug($"Resend: {DateTime.UtcNow} PeerId: {peerId}");
                                     var resendQueue = _resendQueue.Get(peer.PeerId);
                                     for (var i = 0; i < resendQueue.Count; i++)
                                     {
