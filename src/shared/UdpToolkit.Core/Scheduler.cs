@@ -12,7 +12,7 @@ namespace UdpToolkit.Core
         public void Schedule(
             int roomId,
             short timerId,
-            int dueTimeMs,
+            TimeSpan dueTime,
             Action action)
         {
             var lazyTimer = _timers.GetOrAdd(
@@ -22,7 +22,7 @@ namespace UdpToolkit.Core
                 valueFactory: (key) => new Lazy<Timer>(() => new Timer(
                     callback: (state) => action(),
                     state: null,
-                    dueTime: TimeSpan.FromMilliseconds(dueTimeMs),
+                    dueTime: dueTime,
                     period: TimeSpan.FromMilliseconds(Timeout.Infinite))));
 
             _ = lazyTimer.Value;

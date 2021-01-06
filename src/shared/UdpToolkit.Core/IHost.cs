@@ -8,6 +8,8 @@ namespace UdpToolkit.Core
     {
         IServerHostClient ServerHostClient { get; }
 
+        IScheduler Scheduler { get; }
+
         Task RunAsync();
 
         void Stop();
@@ -21,6 +23,7 @@ namespace UdpToolkit.Core
             int roomId,
             byte hookId,
             UdpMode udpMode,
+            BroadcastMode broadcastMode,
             IPEndPoint ipEndPoint = null);
     }
 }

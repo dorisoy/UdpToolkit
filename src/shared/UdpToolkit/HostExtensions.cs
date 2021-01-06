@@ -49,7 +49,7 @@ namespace UdpToolkit
             byte hookId,
             Action<Guid> onAck = null,
             Action<Guid> onTimeout = null,
-            Action<Guid, TEvent, IScheduler> scheduleCall = null)
+            ScheduledCall<TEvent> scheduleCall = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
@@ -63,36 +63,11 @@ namespace UdpToolkit
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
                         var roomId = onEvent.Invoke(peerId, @event, roomManager);
-                        scheduleCall?.Invoke(peerId, @event, scheduler);
-                        return roomId;
-                    },
-                    onAck: onAck,
-                    onTimeout: onTimeout),
-                hookId: hookId);
-        }
+                        if (scheduleCall != null)
+                        {
+                            scheduler.Schedule(roomId, scheduleCall.TimerId, scheduleCall.Delay, () => scheduleCall.Action(@event));
+                        }
 
-        public static void On<TEvent>(
-            this IHost host,
-            Func<Guid, TEvent, IRoomManager, int> onEvent,
-            Action<Guid> onAck,
-            Action<Guid> onTimeout,
-            BroadcastMode broadcastMode,
-            byte hookId,
-            Action<Guid, TEvent, IRoomManager, IScheduler> scheduleCall)
-        {
-#pragma warning disable
-            if (host == null) throw new ArgumentNullException(nameof(host));
-#pragma warning restore
-
-            host.OnCore(
-                subscription: new Subscription(
-                    onProtocolEvent: null,
-                    broadcastMode: broadcastMode,
-                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
-                    {
-                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                        var roomId = onEvent.Invoke(peerId, @event, roomManager);
-                        scheduleCall?.Invoke(peerId, @event, roomManager, scheduler);
                         return roomId;
                     },
                     onAck: onAck,

@@ -42,27 +42,24 @@ namespace Cubes.Shared.Server
 
                         return joinEvent.RoomId;
                     },
-                    scheduleCall: (peerId, joinEvent, scheduler) =>
-                    {
-                        scheduler
-                            .Schedule(
+                    scheduleCall: new ScheduledCall<JoinEvent>(
+                        timerId: Timers.SpawnTimer,
+                        action: (joinEvent) =>
+                        {
+                            Log.Logger.Information($"Scheduled event!");
+
+                            host.PublishCore(
+                                @event: new SpawnEvent(
+                                    playerId: Guid.Empty,
+                                    roomId: joinEvent.RoomId,
+                                    nickname: joinEvent.Nickname,
+                                    position: new Vector3(x: 5, y: 5, z: 5)),
                                 roomId: joinEvent.RoomId,
-                                timerId: Timers.SpawnTimer,
-                                dueTimeMs: 7000,
-                                action: () =>
-                                {
-                                    Log.Logger.Information($"Scheduled event!");
-                                    host.PublishCore(
-                                        @event: new SpawnEvent(
-                                            playerId: peerId,
-                                            roomId: joinEvent.RoomId,
-                                            nickname: joinEvent.Nickname,
-                                            position: new Vector3(x: 5, y: 5, z: 5)),
-                                        roomId: joinEvent.RoomId,
-                                        hookId: 2,
-                                        udpMode: UdpMode.ReliableUdp);
-                                });
-                    },
+                                hookId: 2,
+                                udpMode: UdpMode.ReliableUdp,
+                                broadcastMode: BroadcastMode.Room);
+                        },
+                        delay: TimeSpan.FromMilliseconds(7000)),
                     onAck: (peerId) =>
                     {
                         dispatcher?.Enqueue(() => OnAck?.Invoke(peerId));

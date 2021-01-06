@@ -42,10 +42,12 @@ namespace UdpToolkit
             ISubscriptionManager subscriptionManager,
             IDateTimeProvider dateTimeProvider,
             IObjectsPool<CallContext> callContextPool,
+            IScheduler scheduler,
             SenderJob sendingJob,
             ReceiverJob receivingJob,
             WorkerJob workerJob)
         {
+            Scheduler = scheduler;
             _hostSettings = hostSettings;
             _senders = senders;
             _receivers = receivers;
@@ -60,6 +62,8 @@ namespace UdpToolkit
         }
 
         public IServerHostClient ServerHostClient => _workerJob.ServerHostClient;
+
+        public IScheduler Scheduler { get; }
 
         public async Task RunAsync()
         {
@@ -121,6 +125,7 @@ namespace UdpToolkit
             int roomId,
             byte hookId,
             UdpMode udpMode,
+            BroadcastMode broadcastMode,
             IPEndPoint ipEndPoint = null)
         {
             var pooledCallContext = _callContextPool.Get();
@@ -129,7 +134,7 @@ namespace UdpToolkit
                 resendTimeout: _hostSettings.ResendPacketsTimeout,
                 createdAt: _dateTimeProvider.UtcNow(),
                 roomId: roomId,
-                broadcastMode: Core.BroadcastMode.Room);
+                broadcastMode: broadcastMode);
 
             pooledCallContext.Value.NetworkPacketDto.Set(
                 hookId: hookId,

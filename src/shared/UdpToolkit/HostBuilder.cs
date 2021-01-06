@@ -167,6 +167,7 @@ namespace UdpToolkit
                 inputQueue: inputQueue,
                 senders: senders,
                 receivers: receivers,
+                scheduler: scheduler,
                 sendingJob: new SenderJob(
                     scheduler: scheduler,
                     resendQueue: new ResendQueue(),

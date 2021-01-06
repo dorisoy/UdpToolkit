@@ -30,9 +30,6 @@
 
                     return joinEvent.RoomId;
                 },
-                scheduleCall: (peerId, joinEvent, scheduler) => { },
-                onAck: (peerId) => { },
-                onTimeout: (peerId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
@@ -43,8 +40,6 @@
 
                     return moveEvent.RoomId;
                 },
-                onAck: (peerId) => { },
-                onTimeout: (peerId) => { },
                 broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 1);
 

@@ -30,21 +30,19 @@
 
                     return joinEvent.RoomId;
                 },
-                scheduleCall: (peerId, joinEvent, scheduler) =>
-                {
-                    scheduler
-                        .Schedule(
+                scheduleCall: new ScheduledCall<JoinEvent>(
+                    timerId: Timers.JoinTimeout,
+                    action: (joinEvent) =>
+                    {
+                        Log.Logger.Information($"Scheduled event!");
+                        host.PublishCore(
+                            @event: new StartGame(joinEvent.RoomId),
                             roomId: joinEvent.RoomId,
-                            timerId: Timers.JoinTimeout,
-                            dueTimeMs: 20_000,
-                            action: () =>
-                            {
-                                Log.Logger.Information($"Scheduled event!");
-                                host.PublishCore(new StartGame(joinEvent.RoomId), joinEvent.RoomId, 1, UdpMode.ReliableUdp);
-                            });
-                },
-                onAck: (peerId) => { },
-                onTimeout: (peerId) => { },
+                            hookId: 1,
+                            udpMode: UdpMode.ReliableUdp,
+                            broadcastMode: BroadcastMode.Room);
+                    },
+                    delay: TimeSpan.FromMilliseconds(20_000)),
                 broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
@@ -59,7 +57,6 @@
                 {
                     Log.Logger.Information("Game started ack!");
                 },
-                onTimeout: (peerId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 1);
 

@@ -7,7 +7,7 @@ namespace UdpToolkit.Core
         void Schedule(
             int roomId,
             short timerId,
-            int dueTimeMs,
+            TimeSpan dueTime,
             Action action);
     }
 }
