@@ -3,8 +3,8 @@ namespace Cubes.Shared.Server
     using System;
     using Cubes.Shared.Events;
     using Serilog;
+    using UdpToolkit;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework;
     using UnityEngine;
 
     public class JoinEventHandler : IEventHandler<JoinEvent>

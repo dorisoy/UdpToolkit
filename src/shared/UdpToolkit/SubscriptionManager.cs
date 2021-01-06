@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit
 {
     using System.Collections.Concurrent;
     using UdpToolkit.Core;

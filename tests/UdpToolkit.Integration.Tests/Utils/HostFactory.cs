@@ -1,8 +1,7 @@
 namespace UdpToolkit.Integration.Tests.Utils
 {
-    using System;
+    using UdpToolkit;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class HostFactory

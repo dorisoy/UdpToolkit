@@ -1,9 +1,9 @@
 namespace Cubes.Shared.Server
 {
     using System;
+    using UdpToolkit;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
-    using UdpToolkit.Framework;
     using UdpToolkit.Network.Channels;
 
     public sealed class ConnectEventHandler : EventHandlerBase, IEventHandler<Connect>

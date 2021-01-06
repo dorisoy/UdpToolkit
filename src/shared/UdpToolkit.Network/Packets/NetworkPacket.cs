@@ -108,7 +108,6 @@ namespace UdpToolkit.Network.Packets
 
         public void Reset()
         {
-            Console.WriteLine("RESET NETWORK PACKET");
             Serializer = default;
             CreatedAt = default;
             HookId = default;

@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit
 {
     using System;
     using UdpToolkit.Core;
@@ -10,10 +10,10 @@ namespace UdpToolkit.Framework
         public static void On<TEvent>(
             this IHost host,
             Func<Guid, TEvent, int> onEvent,
-            Action<Guid> onAck,
-            Action<Guid> onTimeout,
             BroadcastMode broadcastMode,
-            byte hookId)
+            byte hookId,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
@@ -45,11 +45,11 @@ namespace UdpToolkit.Framework
         public static void On<TEvent>(
             this IHost host,
             Func<Guid, TEvent, IRoomManager, int> onEvent,
-            Action<Guid> onAck,
-            Action<Guid> onTimeout,
             BroadcastMode broadcastMode,
             byte hookId,
-            Action<Guid, TEvent, IScheduler> scheduleCall)
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null,
+            Action<Guid, TEvent, IScheduler> scheduleCall = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));

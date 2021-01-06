@@ -20,7 +20,6 @@ namespace UdpToolkit.Network.Pooling
 
         public void Dispose()
         {
-            Console.WriteLine($"POOLED OBJECT DISPOSED {typeof(T).Name}");
             _obj.Reset();
             _objectsPool.Return(this);
         }

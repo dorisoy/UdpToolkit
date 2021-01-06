@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework.Jobs
+namespace UdpToolkit.Jobs
 {
     using System.Threading.Tasks;
     using UdpToolkit.Core;

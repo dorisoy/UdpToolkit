@@ -1,13 +1,12 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit
 {
-    using System;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net;
     using System.Threading.Tasks;
     using Serilog;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework.Jobs;
+    using UdpToolkit.Jobs;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Pooling;

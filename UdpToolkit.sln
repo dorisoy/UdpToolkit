@@ -33,7 +33,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "P2P", "P2P", "{32F6BD6A-5F9
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpToolkit.Network.Tests", "tests\UdpToolkit.Network.Tests\UdpToolkit.Network.Tests.csproj", "{A24310B7-3E1F-4E17-86F6-AD6DA80623C2}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpToolkit.Framework", "src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj", "{EE20DAF3-3EE6-4A79-BE1A-024D0322771E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpToolkit", "src\shared\UdpToolkit\UdpToolkit.csproj", "{EE20DAF3-3EE6-4A79-BE1A-024D0322771E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UdpToolkit.Serialization", "src\shared\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj", "{599B1EAB-D153-49DE-BA81-99E5223240B3}"
 EndProject

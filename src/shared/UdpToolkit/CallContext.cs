@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit
 {
     using System;
     using System.Net;
@@ -40,7 +40,6 @@ namespace UdpToolkit.Framework
 
         public void Reset()
         {
-            Console.WriteLine("RESET CALL CONTEXT");
             NetworkPacketDto.Reset();
             RoomId = default;
             BroadcastMode = default;

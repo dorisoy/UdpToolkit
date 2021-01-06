@@ -21,11 +21,9 @@ namespace UdpToolkit.Network.Pooling
         {
             if (_pool.TryTake(out var returnObject))
             {
-                Console.WriteLine($"RETRIEVED FROM POOL {typeof(T).Name}");
                 return returnObject;
             }
 
-            Console.WriteLine($"CREATED NEW OBJECT {typeof(T).Name}");
             return new PooledObject<T>(_factory(), this);
         }
 
@@ -33,12 +31,7 @@ namespace UdpToolkit.Network.Pooling
         {
             if (obj != null)
             {
-                Console.WriteLine($"RETURNED TO POOL {typeof(T).Name}");
                 _pool.Add(obj);
-            }
-            else
-            {
-                Console.WriteLine($"POOLED OBJECT {typeof(T).Name} IS NULL!!!");
             }
         }
 

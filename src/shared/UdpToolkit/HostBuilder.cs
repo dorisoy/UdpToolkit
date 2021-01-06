@@ -1,11 +1,11 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit
 {
     using System;
     using System.Linq;
     using System.Net;
     using System.Threading;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework.Jobs;
+    using UdpToolkit.Jobs;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;

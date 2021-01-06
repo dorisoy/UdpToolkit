@@ -9,7 +9,6 @@
     </ItemGroup>
     
     <ItemGroup>
-        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
         <Compile Include="..\Cubes.Client\Assets\Cubes\Shared\**\*.cs" LinkBase="Shared" />
         <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\JoinEventHandler.cs">
@@ -30,5 +29,6 @@
         <Compile Update="..\Cubes.Client\Assets\Cubes\Shared\Server\IEventHandler.cs">
           <Link>Shared\Server\IEventHandler.cs</Link>
         </Compile>
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
     </ItemGroup>
 </Project>

@@ -2,8 +2,8 @@ namespace Cubes.Shared.Server
 {
     using System;
     using Cubes.Shared.Events;
+    using UdpToolkit;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework;
 
     public class MoveEventHandler : IEventHandler<MoveEvent>
     {

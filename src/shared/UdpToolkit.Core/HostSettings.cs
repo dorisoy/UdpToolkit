@@ -10,14 +10,14 @@ namespace UdpToolkit.Core
 
         public IEnumerable<int> InputPorts { get; set; } = Array.Empty<int>();
 
-        public int Workers { get; set; }
+        public int Workers { get; set; } = 2;
 
         public ISerializer Serializer { get; set; }
 
-        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
-        public TimeSpan PeerInactivityTimeout { get; set; } = TimeSpan.FromSeconds(5);
+        public TimeSpan PeerInactivityTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
-        public string Host { get; set; }
+        public string Host { get; set; } = "127.0.0.1";
     }
 }

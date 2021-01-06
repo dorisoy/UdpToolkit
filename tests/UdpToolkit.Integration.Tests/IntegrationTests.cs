@@ -9,7 +9,7 @@ namespace UdpToolkit.Integration.Tests
     using Serilog;
     using Serilog.Events;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework;
+    using UdpToolkit;
     using UdpToolkit.Integration.Tests.Resources;
     using UdpToolkit.Integration.Tests.Utils;
     using Xunit;

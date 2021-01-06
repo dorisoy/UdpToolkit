@@ -5,9 +5,9 @@
     using ReliableUdp.Contracts;
     using Serilog;
     using Serilog.Events;
+    using UdpToolkit;
     using UdpToolkit.Core;
     using UdpToolkit.Core.ProtocolEvents;
-    using UdpToolkit.Framework;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Serialization.MsgPack;
 

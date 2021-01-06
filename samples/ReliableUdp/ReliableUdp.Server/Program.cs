@@ -5,8 +5,8 @@
     using ReliableUdp.Contracts;
     using Serilog;
     using Serilog.Events;
+    using UdpToolkit;
     using UdpToolkit.Core;
-    using UdpToolkit.Framework;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
