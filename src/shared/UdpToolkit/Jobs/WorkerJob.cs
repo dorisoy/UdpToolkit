@@ -115,11 +115,11 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
-                    protocolSubscription?.OnInputEvent(
+                    protocolSubscription?.OnInputEvent?.Invoke(
                             arg1: networkPacket.Serializer(),
                             arg2: networkPacket.PeerId);
 
-                    userDefinedSubscription?.OnProtocolEvent(
+                    userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         networkPacket.Serializer(),
                         networkPacket.PeerId,
                         _hostSettings.Serializer);
@@ -255,8 +255,7 @@ namespace UdpToolkit.Jobs
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(networkPacket.HookId);
 
-            userDefinedSubscription?
-                .OnAck(networkPacket.PeerId);
+            userDefinedSubscription?.OnAck?.Invoke(networkPacket.PeerId);
         }
 
         private void HandleProtocolAck(
@@ -285,11 +284,8 @@ namespace UdpToolkit.Jobs
                             break;
                     }
 
-                    protocolSubscription?
-                        .OnAck(networkPacket.PeerId);
-
-                    userDefinedSubscription?
-                        .OnAck(networkPacket.PeerId);
+                    protocolSubscription?.OnAck?.Invoke(networkPacket.PeerId);
+                    userDefinedSubscription?.OnAck?.Invoke(networkPacket.PeerId);
                     break;
             }
         }

@@ -149,7 +149,7 @@ namespace UdpToolkit.Jobs
                 var protocolSubscription = _protocolSubscriptionManager
                     .GetProtocolSubscription(pooledNetworkPacket.Value.HookId);
 
-                protocolSubscription?.OnOutputEvent(
+                protocolSubscription?.OnOutputEvent?.Invoke(
                     arg1: pooledNetworkPacket.Value.Serializer(),
                     arg2: pooledNetworkPacket.Value.PeerId);
             }

@@ -24,15 +24,11 @@
 
             host.On<JoinEvent>(
                 onEvent: (peerId, joinEvent) => joinEvent.RoomId,
-                onAck: (peerId) => { },
-                onTimeout: (peerId) => { },
                 hookId: 0,
                 broadcastMode: BroadcastMode.Room);
 
             host.On<MoveEvent>(
                 onEvent: (peerId, move) => move.RoomId,
-                onAck: (peerId) => { },
-                onTimeout: (peerId) => { },
                 hookId: 1,
                 broadcastMode: BroadcastMode.RoomExceptCaller);
 

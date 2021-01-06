@@ -60,8 +60,6 @@
 
                     return startGame.RoomId;
                 },
-                onTimeout: (peerId) => { },
-                onAck: (peerId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 1);
 

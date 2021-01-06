@@ -49,7 +49,6 @@
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
-                onTimeout: (peerId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
@@ -60,8 +59,6 @@
 
                     return startGame.RoomId;
                 },
-                onTimeout: (peerId) => { },
-                onAck: (peerId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 1);
 
