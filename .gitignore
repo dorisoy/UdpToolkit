@@ -11,6 +11,8 @@
 [Bb]uild/
 [Cc]lient_build/
 [Ss]erver_build/
+[Uu]nity_package/
+./src/unity/UdpToolkit.Unity/Assets/Plugins/
 
 #Rider
 .idea/
