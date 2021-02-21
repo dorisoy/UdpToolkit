@@ -14,7 +14,6 @@ namespace UdpToolkit
 
     public sealed class HostClient : IHostClient
     {
-        private readonly Guid _peerId;
         private readonly TimeSpan _connectionTimeoutFromSettings;
         private readonly TimeSpan _resendPacketsTimeout;
 
@@ -46,10 +45,12 @@ namespace UdpToolkit
             _pingDelayMs = pingDelayMs;
             _callContextPool = callContextPool;
             _outputQueue = outputQueue;
-            _peerId = peerId;
+            PeerId = peerId;
             _clientIps = clientIps;
             _ping = Task.Run(() => PingHost(cancellationTokenSource.Token));
         }
+
+        public Guid PeerId { get; }
 
         public bool IsConnected { get; internal set; }
 
@@ -60,7 +61,7 @@ namespace UdpToolkit
 
             PublishInternal(
                 resendTimeout: timeout,
-                @event: new Connect(_peerId, _clientIps),
+                @event: new Connect(PeerId, _clientIps),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
@@ -75,7 +76,7 @@ namespace UdpToolkit
         {
             PublishInternal(
                 resendTimeout: connectionTimeout ?? _connectionTimeoutFromSettings,
-                @event: new Connect(_peerId, _clientIps),
+                @event: new Connect(PeerId, _clientIps),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
@@ -87,7 +88,7 @@ namespace UdpToolkit
         {
             PublishInternal(
                 resendTimeout: _resendPacketsTimeout,
-                @event: new Disconnect(peerId: _peerId),
+                @event: new Disconnect(peerId: PeerId),
                 broadcastMode: Core.BroadcastMode.Server,
                 networkPacketType: NetworkPacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
@@ -135,7 +136,7 @@ namespace UdpToolkit
                 createdAt: _dateTimeProvider.UtcNow(),
                 networkPacketType: networkPacketType,
                 channelType: udpMode.Map(),
-                peerId: _peerId,
+                peerId: PeerId,
                 ipEndPoint: null,
                 serializer: () => serializer(@event),
                 hookId: hookId);
