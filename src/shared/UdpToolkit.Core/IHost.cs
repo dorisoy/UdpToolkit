@@ -6,7 +6,7 @@ namespace UdpToolkit.Core
 
     public interface IHost : IDisposable
     {
-        IServerHostClient ServerHostClient { get; }
+        IHostClient HostClient { get; }
 
         IScheduler Scheduler { get; }
 
@@ -18,7 +18,7 @@ namespace UdpToolkit.Core
             byte hookId,
             Subscription subscription);
 
-        void PublishCore<TEvent>(
+        void SendCore<TEvent>(
             TEvent @event,
             int roomId,
             byte hookId,

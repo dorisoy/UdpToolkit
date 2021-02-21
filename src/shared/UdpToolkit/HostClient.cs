@@ -12,7 +12,7 @@ namespace UdpToolkit
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Serialization;
 
-    public sealed class ServerHostClient : IServerHostClient
+    public sealed class HostClient : IHostClient
     {
         private readonly Guid _peerId;
         private readonly TimeSpan _connectionTimeoutFromSettings;
@@ -27,7 +27,7 @@ namespace UdpToolkit
 
         private readonly Task _ping;
 
-        public ServerHostClient(
+        public HostClient(
             Guid peerId,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
@@ -97,7 +97,7 @@ namespace UdpToolkit
             return SpinWait.SpinUntil(() => !IsConnected, TimeSpan.FromMilliseconds(_resendPacketsTimeout.TotalMilliseconds * 1.2));
         }
 
-        public void Publish<TEvent>(
+        public void Send<TEvent>(
             TEvent @event,
             byte hookId,
             UdpMode udpMode)

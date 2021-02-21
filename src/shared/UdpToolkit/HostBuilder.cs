@@ -15,14 +15,14 @@ namespace UdpToolkit
     public sealed class HostBuilder : IHostBuilder
     {
         private readonly HostSettings _hostSettings;
-        private readonly ServerHostClientSettings _serverHostClientSettings;
+        private readonly HostClientSettings _hostClientSettings;
 
         public HostBuilder(
             HostSettings hostSettings,
-            ServerHostClientSettings serverHostClientSettings)
+            HostClientSettings hostClientSettings)
         {
             _hostSettings = hostSettings;
-            _serverHostClientSettings = serverHostClientSettings;
+            _hostClientSettings = hostClientSettings;
         }
 
         public IHostBuilder ConfigureHost(Action<HostSettings> configurator)
@@ -32,9 +32,9 @@ namespace UdpToolkit
             return this;
         }
 
-        public IHostBuilder ConfigureServerHostClient(Action<ServerHostClientSettings> configurator)
+        public IHostBuilder ConfigureHostClient(Action<HostClientSettings> configurator)
         {
-            configurator(_serverHostClientSettings);
+            configurator(_hostClientSettings);
 
             return this;
         }
@@ -66,19 +66,19 @@ namespace UdpToolkit
             var roomManager = new RoomManager(
                 peerManager: peerManager);
 
-            if (!_serverHostClientSettings.ServerInputPorts.Any())
+            if (!_hostClientSettings.ServerInputPorts.Any())
             {
-                _serverHostClientSettings.ServerInputPorts = new int[]
+                _hostClientSettings.ServerInputPorts = new int[]
                 {
                     NetworkUtils.GetAvailablePort(),
                     NetworkUtils.GetAvailablePort(),
                 };
             }
 
-            var inputIps = _serverHostClientSettings.ServerInputPorts
+            var inputIps = _hostClientSettings.ServerInputPorts
                 .Select(port =>
                     new IPEndPoint(
-                        address: IPAddress.Parse(ipString: _serverHostClientSettings.ServerHost),
+                        address: IPAddress.Parse(ipString: _hostClientSettings.ServerHost),
                         port: port))
                 .ToArray();
 
@@ -148,15 +148,15 @@ namespace UdpToolkit
                 .Select(ip => new ClientIp(host: ip.Address.ToString(), port: ip.Port))
                 .ToList();
 
-            var serverHostClient = new ServerHostClient(
+            var hostClient = new HostClient(
                 callContextPool: callContextPool,
                 clientIps: clientIps,
                 peerId: peerId,
                 cancellationTokenSource: new CancellationTokenSource(),
                 outputQueue: outputQueue,
-                pingDelayMs: _serverHostClientSettings.PingDelayInMs,
-                resendPacketsTimeout: _serverHostClientSettings.ResendPacketsTimeout,
-                connectionTimeout: _serverHostClientSettings.ConnectionTimeout,
+                pingDelayMs: _hostClientSettings.PingDelayInMs,
+                resendPacketsTimeout: _hostClientSettings.ResendPacketsTimeout,
+                connectionTimeout: _hostClientSettings.ConnectionTimeout,
                 dateTimeProvider: dateTimeProvider,
                 serializer: _hostSettings.Serializer);
 
@@ -201,7 +201,7 @@ namespace UdpToolkit
                     dateTimeProvider: dateTimeProvider,
                     hostSettings: _hostSettings,
                     scheduler: scheduler,
-                    serverHostClient: serverHostClient));
+                    hostClient: hostClient));
         }
 
         private void ValidateSettings(

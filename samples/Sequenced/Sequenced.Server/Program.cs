@@ -63,7 +63,7 @@
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
                 })
-                .ConfigureServerHostClient((settings) =>
+                .ConfigureHostClient((settings) =>
                 {
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);

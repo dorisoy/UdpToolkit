@@ -2,7 +2,7 @@ namespace UdpToolkit.Core
 {
     using System;
 
-    public interface IServerHostClient
+    public interface IHostClient
     {
         bool IsConnected { get; }
 
@@ -14,7 +14,7 @@ namespace UdpToolkit.Core
 
         bool Disconnect();
 
-        void Publish<TEvent>(
+        void Send<TEvent>(
             TEvent @event,
             byte hookId,
             UdpMode udpMode);

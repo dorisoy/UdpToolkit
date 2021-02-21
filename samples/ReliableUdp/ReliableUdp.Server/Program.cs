@@ -36,7 +36,7 @@
                     action: (joinEvent) =>
                     {
                         Log.Logger.Information($"Scheduled event!");
-                        host.PublishCore(
+                        host.SendCore(
                             @event: new StartGame(joinEvent.RoomId),
                             roomId: joinEvent.RoomId,
                             hookId: 1,
@@ -80,7 +80,7 @@
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
                 })
-                .ConfigureServerHostClient((settings) =>
+                .ConfigureHostClient((settings) =>
                 {
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);

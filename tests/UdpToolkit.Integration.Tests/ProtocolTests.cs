@@ -45,7 +45,7 @@ namespace UdpToolkit.Integration.Tests
             Task.Run(() => clientHost.RunAsync());
 #pragma warning restore 4014
 
-            var client = clientHost.ServerHostClient;
+            var client = clientHost.HostClient;
             client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
             waitCallback.WaitOne(timeout: waitCallBackTimeout);
@@ -99,7 +99,7 @@ namespace UdpToolkit.Integration.Tests
             Task.Run(() => clientHost.RunAsync());
 #pragma warning restore 4014
 
-            var client = clientHost.ServerHostClient;
+            var client = clientHost.HostClient;
             client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
 
             waitCallback1.WaitOne(timeout: waitCallBackTimeout);

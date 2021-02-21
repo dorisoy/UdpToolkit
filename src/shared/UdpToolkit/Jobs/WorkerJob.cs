@@ -14,7 +14,7 @@ namespace UdpToolkit.Jobs
 
         private readonly Scheduler _scheduler;
         private readonly HostSettings _hostSettings;
-        private readonly ServerHostClient _serverHostClient;
+        private readonly HostClient _hostClient;
         private readonly IDateTimeProvider _dateTimeProvider;
 
         private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
@@ -36,7 +36,7 @@ namespace UdpToolkit.Jobs
             IDateTimeProvider dateTimeProvider,
             HostSettings hostSettings,
             Scheduler scheduler,
-            ServerHostClient serverHostClient,
+            HostClient hostClient,
             IUdpToolkitLogger udpToolkitLogger)
         {
             _inputQueue = inputQueue;
@@ -46,13 +46,13 @@ namespace UdpToolkit.Jobs
             _protocolSubscriptionManager = protocolSubscriptionManager;
             _hostSettings = hostSettings;
             _scheduler = scheduler;
-            _serverHostClient = serverHostClient;
+            _hostClient = hostClient;
             _udpToolkitLogger = udpToolkitLogger;
             _roomManager = roomManager;
             _outputQueue = outputQueue;
         }
 
-        public IServerHostClient ServerHostClient => _serverHostClient;
+        public IHostClient HostClient => _hostClient;
 
         public void Execute()
         {
@@ -281,7 +281,7 @@ namespace UdpToolkit.Jobs
                     {
                         case ProtocolHookId.Connect:
                         case ProtocolHookId.Disconnect:
-                            _serverHostClient.IsConnected = protocolHookId == ProtocolHookId.Connect;
+                            _hostClient.IsConnected = protocolHookId == ProtocolHookId.Connect;
                             break;
                     }
 

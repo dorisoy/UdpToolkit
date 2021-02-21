@@ -22,7 +22,7 @@
                 .CreateLogger();
 
             var host = BuildHost();
-            var client = host.ServerHostClient;
+            var client = host.HostClient;
             var nickname = "Client B";
 
             host.OnProtocol<Connect>(
@@ -71,7 +71,7 @@
             var isConnected = client
                 .Connect();
 
-            client.Publish(
+            client.Send(
                 @event: new JoinEvent(roomId: 11, nickname: nickname),
                 hookId: 0,
                 udpMode: UdpMode.ReliableUdp);
@@ -97,7 +97,7 @@
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
                 })
-                .ConfigureServerHostClient((settings) =>
+                .ConfigureHostClient((settings) =>
                 {
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);

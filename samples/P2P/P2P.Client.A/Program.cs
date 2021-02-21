@@ -19,7 +19,7 @@
                 .CreateLogger();
 
             var host = BuildHost();
-            var client = host.ServerHostClient;
+            var client = host.HostClient;
 
 #pragma warning disable CS4014
             Task.Run(() => host.RunAsync());
@@ -49,7 +49,7 @@
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
                 })
-                .ConfigureServerHostClient((settings) =>
+                .ConfigureHostClient((settings) =>
                 {
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(35);

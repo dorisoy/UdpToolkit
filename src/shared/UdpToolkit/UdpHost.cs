@@ -8,7 +8,7 @@ namespace UdpToolkit
         {
             return new HostBuilder(
                 hostSettings: new HostSettings(),
-                serverHostClientSettings: new ServerHostClientSettings());
+                hostClientSettings: new HostClientSettings());
         }
     }
 }

@@ -3,7 +3,7 @@ namespace UdpToolkit.Core
     using System;
     using System.Collections.Generic;
 
-    public class ServerHostClientSettings
+    public class HostClientSettings
     {
         public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(15);
 

@@ -38,7 +38,7 @@ namespace UdpToolkit.Integration.Tests.Utils
                     settings.Workers = 2;
                     settings.Serializer = new Serializer();
                 })
-                .ConfigureServerHostClient((settings) =>
+                .ConfigureHostClient((settings) =>
                 {
                     settings.ServerHost = "0.0.0.0";
                     settings.ServerInputPorts = serverInputPorts;

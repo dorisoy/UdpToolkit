@@ -63,7 +63,7 @@ namespace UdpToolkit
             _outputQueue = outputQueue;
         }
 
-        public IServerHostClient ServerHostClient => _workerJob.ServerHostClient;
+        public IHostClient HostClient => _workerJob.HostClient;
 
         public IScheduler Scheduler { get; }
 
@@ -122,7 +122,7 @@ namespace UdpToolkit
             _subscriptionManager.Subscribe(hookId, subscription);
         }
 
-        public void PublishCore<TEvent>(
+        public void SendCore<TEvent>(
             TEvent @event,
             int roomId,
             byte hookId,

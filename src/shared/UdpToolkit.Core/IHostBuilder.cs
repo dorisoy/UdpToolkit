@@ -6,7 +6,7 @@ namespace UdpToolkit.Core
     {
         IHostBuilder ConfigureHost(Action<HostSettings> configurator);
 
-        IHostBuilder ConfigureServerHostClient(Action<ServerHostClientSettings> configurator);
+        IHostBuilder ConfigureHostClient(Action<HostClientSettings> configurator);
 
         IHost Build();
     }
