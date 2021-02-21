@@ -1,6 +1,8 @@
 ﻿namespace ReliableUdp.Server
 {
     using System;
+    using System.Collections.Generic;
+    using System.Linq;
     using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
@@ -9,9 +11,20 @@
     using UdpToolkit.Core;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Serialization.MsgPack;
+    using UnityEngine;
 
     public static class Program
     {
+        private static readonly Queue<Vector3> Positions =
+            new Queue<Vector3>(new[]
+            {
+                new Vector3(1, 1, 1),
+                new Vector3(2, 2, 2),
+                new Vector3(3, 3, 3),
+                new Vector3(4, 4, 4),
+                new Vector3(5, 5, 5),
+            });
+
         public static async Task Main()
         {
             Log.Logger = new LoggerConfiguration()
@@ -33,11 +46,18 @@
                 },
                 scheduleCall: new ScheduledCall<JoinEvent>(
                     timerId: Timers.JoinTimeout,
-                    action: (peerId, joinEvent) =>
+                    action: (peerId, joinEvent, roomManager) =>
                     {
+                        var peers = roomManager
+                            .GetRoomPeers(joinEvent.RoomId);
+
+                        var spawnPositions = peers
+                            .Select(id => new { id, position = Positions.Dequeue() })
+                            .ToDictionary(pair => pair.id, pair => pair.position);
+
                         Log.Logger.Information($"Scheduled event!");
                         host.SendCore(
-                            @event: new StartGame(joinEvent.RoomId, peerId),
+                            @event: new StartGame(joinEvent.RoomId, spawnPositions),
                             roomId: joinEvent.RoomId,
                             hookId: 1,
                             udpMode: UdpMode.ReliableUdp,

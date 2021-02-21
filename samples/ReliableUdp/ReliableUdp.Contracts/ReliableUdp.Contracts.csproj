@@ -6,6 +6,7 @@
 
     <ItemGroup>
       <PackageReference Include="MessagePack" Version="2.2.60" />
+      <PackageReference Include="MessagePack.UnityShims" Version="2.2.60" />
     </ItemGroup>
 
 </Project>

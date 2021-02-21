@@ -1,23 +1,25 @@
 namespace ReliableUdp.Contracts
 {
     using System;
+    using System.Collections.Generic;
     using MessagePack;
+    using UnityEngine;
 
     [MessagePackObject]
     public class StartGame
     {
         public StartGame(
             int roomId,
-            Guid peerId)
+            Dictionary<Guid, Vector3> positions)
         {
             RoomId = roomId;
-            PeerId = peerId;
+            Positions = positions;
         }
 
         [Key(0)]
-        public int RoomId { get; set; }
+        public int RoomId { get; }
 
         [Key(1)]
-        public Guid PeerId { get; set; }
+        public Dictionary<Guid, Vector3> Positions { get; }
     }
 }

@@ -2,6 +2,7 @@ namespace UdpToolkit
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Linq;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
@@ -18,6 +19,11 @@ namespace UdpToolkit
         public void RemovePeer(Guid peerId)
         {
             _roomPeers.TryRemove(peerId, out _);
+        }
+
+        public IEnumerable<Guid> GetPeers()
+        {
+            return _roomPeers.Keys;
         }
 
         public async Task Apply(

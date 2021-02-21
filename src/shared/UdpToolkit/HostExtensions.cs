@@ -65,7 +65,7 @@ namespace UdpToolkit
                         var roomId = onEvent.Invoke(peerId, @event, roomManager);
                         if (scheduleCall != null)
                         {
-                            scheduler.Schedule(roomId, scheduleCall.TimerId, scheduleCall.Delay, () => scheduleCall.Action(peerId, @event));
+                            scheduler.Schedule(roomId, scheduleCall.TimerId, scheduleCall.Delay, () => scheduleCall.Action(peerId, @event, roomManager));
                         }
 
                         return roomId;

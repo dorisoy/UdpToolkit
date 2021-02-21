@@ -1,6 +1,7 @@
 ﻿namespace ReliableUdp.Client.A
 {
     using System;
+    using System.Linq;
     using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
@@ -56,7 +57,11 @@
             host.On<StartGame>(
                 onEvent: (peerId, startGame) =>
                 {
-                    Log.Logger.Information($"Game started for - {startGame.PeerId}!");
+                    var positions = startGame.Positions
+                        .Select(pair => pair.Key + "|" + pair.Value.x + pair.Value.y + pair.Value.z)
+                        .ToArray();
+
+                    Log.Logger.Information("Spawn positions - {@positions}!", positions);
                     return startGame.RoomId;
                 },
                 broadcastMode: BroadcastMode.Room,

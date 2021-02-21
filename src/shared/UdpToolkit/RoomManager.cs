@@ -43,6 +43,11 @@ namespace UdpToolkit
                 });
         }
 
+        public IEnumerable<Guid> GetRoomPeers(int roomId)
+        {
+            return _rooms[roomId].GetPeers();
+        }
+
         public void Remove(
             int roomId,
             IRawPeer peer)
