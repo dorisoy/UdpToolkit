@@ -6,7 +6,7 @@ namespace UdpToolkit
     {
         public ScheduledCall(
             short timerId,
-            Action<TEvent> action,
+            Action<Guid, TEvent> action,
             TimeSpan delay)
         {
             TimerId = timerId;
@@ -16,7 +16,7 @@ namespace UdpToolkit
 
         public short TimerId { get; }
 
-        public Action<TEvent> Action { get; }
+        public Action<Guid, TEvent> Action { get; }
 
         public TimeSpan Delay { get; }
     }

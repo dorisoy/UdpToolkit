@@ -56,8 +56,7 @@
             host.On<StartGame>(
                 onEvent: (peerId, startGame) =>
                 {
-                    Log.Logger.Information("Game started!");
-
+                    Log.Logger.Information($"Game started for - {startGame.PeerId}!");
                     return startGame.RoomId;
                 },
                 broadcastMode: BroadcastMode.Room,

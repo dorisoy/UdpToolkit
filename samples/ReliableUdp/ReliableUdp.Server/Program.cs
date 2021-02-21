@@ -33,11 +33,11 @@
                 },
                 scheduleCall: new ScheduledCall<JoinEvent>(
                     timerId: Timers.JoinTimeout,
-                    action: (joinEvent) =>
+                    action: (peerId, joinEvent) =>
                     {
                         Log.Logger.Information($"Scheduled event!");
                         host.SendCore(
-                            @event: new StartGame(joinEvent.RoomId),
+                            @event: new StartGame(joinEvent.RoomId, peerId),
                             roomId: joinEvent.RoomId,
                             hookId: 1,
                             udpMode: UdpMode.ReliableUdp,
