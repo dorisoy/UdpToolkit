@@ -1,12 +1,13 @@
 namespace UdpToolkit.Core
 {
     using System;
+    using System.Net;
 
     public class ProtocolSubscription
     {
         public ProtocolSubscription(
             Action<byte[], Guid> onOutputEvent,
-            Action<byte[], Guid> onInputEvent,
+            Action<byte[], Guid, IPEndPoint> onInputEvent,
             Action<Guid> onAck,
             Action<Guid> onTimeout,
             BroadcastMode broadcastMode)
@@ -20,7 +21,7 @@ namespace UdpToolkit.Core
 
         public Action<byte[], Guid> OnOutputEvent { get; }
 
-        public Action<byte[], Guid> OnInputEvent { get; }
+        public Action<byte[], Guid, IPEndPoint> OnInputEvent { get; }
 
         public Action<Guid> OnAck { get; }
 

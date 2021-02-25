@@ -14,15 +14,15 @@ namespace UdpToolkit.Core.ProtocolEvents
 
         public Connect(
             Guid peerId,
-            List<ClientIp> clientIps)
+            int[] inputPorts)
         {
             PeerId = peerId;
-            ClientIps = clientIps;
+            InputPorts = inputPorts;
         }
 
         public Guid PeerId { get; }
 
-        public List<ClientIp> ClientIps { get; }
+        public int[] InputPorts { get; }
 
         protected override byte[] SerializeInternal(Connect connect)
         {
@@ -30,10 +30,9 @@ namespace UdpToolkit.Core.ProtocolEvents
             {
                 var bw = new BinaryWriter(ms);
                 bw.Write(buffer: connect.PeerId.ToByteArray());
-                foreach (var server in connect.ClientIps)
+                for (var i = 0; i < connect.InputPorts.Length; i++)
                 {
-                    bw.Write(server.Host);
-                    bw.Write(server.Port);
+                    bw.Write(connect.InputPorts[i]);
                 }
 
                 bw.Flush();
@@ -47,18 +46,20 @@ namespace UdpToolkit.Core.ProtocolEvents
             {
                 return new Connect(
                     peerId: new Guid(reader.ReadBytes(16)),
-                    clientIps: ReadServers(reader).ToList());
+                    inputPorts: ReadPorts(reader).ToArray());
             }
         }
 
-        private IEnumerable<ClientIp> ReadServers(BinaryReader reader)
+        private int[] ReadPorts(
+            BinaryReader reader)
         {
+            var list = new List<int>();
             while (reader.BaseStream.Position != reader.BaseStream.Length)
             {
-                yield return new ClientIp(
-                    host: reader.ReadString(),
-                    port: reader.ReadInt32());
+                list.Add(reader.ReadInt32());
             }
+
+            return list.ToArray();
         }
     }
 }

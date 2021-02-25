@@ -18,11 +18,11 @@ namespace UdpToolkit
         private readonly TimeSpan _resendPacketsTimeout;
 
         private readonly int? _pingDelayMs;
+        private readonly int[] _inputPorts;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISerializer _serializer;
         private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
         private readonly IObjectsPool<CallContext> _callContextPool;
-        private readonly List<ClientIp> _clientIps;
 
         private readonly Task _ping;
 
@@ -33,8 +33,8 @@ namespace UdpToolkit
             IAsyncQueue<PooledObject<CallContext>> outputQueue,
             TimeSpan connectionTimeout,
             TimeSpan resendPacketsTimeout,
-            List<ClientIp> clientIps,
             int? pingDelayMs,
+            int[] inputPorts,
             CancellationTokenSource cancellationTokenSource,
             IObjectsPool<CallContext> callContextPool)
         {
@@ -43,10 +43,10 @@ namespace UdpToolkit
             _connectionTimeoutFromSettings = connectionTimeout;
             _resendPacketsTimeout = resendPacketsTimeout;
             _pingDelayMs = pingDelayMs;
+            _inputPorts = inputPorts;
             _callContextPool = callContextPool;
             _outputQueue = outputQueue;
             PeerId = peerId;
-            _clientIps = clientIps;
             _ping = Task.Run(() => PingHost(cancellationTokenSource.Token));
         }
 
@@ -61,7 +61,7 @@ namespace UdpToolkit
 
             PublishInternal(
                 resendTimeout: timeout,
-                @event: new Connect(PeerId, _clientIps),
+                @event: new Connect(PeerId, _inputPorts),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
@@ -76,7 +76,7 @@ namespace UdpToolkit
         {
             PublishInternal(
                 resendTimeout: connectionTimeout ?? _connectionTimeoutFromSettings,
-                @event: new Connect(PeerId, _clientIps),
+                @event: new Connect(PeerId, _inputPorts),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,

@@ -144,13 +144,9 @@ namespace UdpToolkit
 
             var peerId = Guid.NewGuid();
 
-            var clientIps = inputPorts
-                .Select(ip => new ClientIp(host: ip.Address.ToString(), port: ip.Port))
-                .ToList();
-
             var hostClient = new HostClient(
+                inputPorts: _hostSettings.InputPorts.ToArray(),
                 callContextPool: callContextPool,
-                clientIps: clientIps,
                 peerId: peerId,
                 cancellationTokenSource: new CancellationTokenSource(),
                 outputQueue: outputQueue,

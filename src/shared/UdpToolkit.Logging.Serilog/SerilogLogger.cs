@@ -15,25 +15,25 @@
         public void Warning(
             string message)
         {
-            _logger.Warning(message);
+            _logger.Warning("{@message}", message);
         }
 
         public void Error(
             string message)
         {
-            _logger.Error(message);
+            _logger.Error("{@message}", message);
         }
 
         public void Information(
             string message)
         {
-            _logger.Information(message);
+            _logger.Information("{@message}", message);
         }
 
         public void Debug(
             string message)
         {
-            _logger.Debug(message);
+            _logger.Debug("{@message}", message);
         }
     }
 }

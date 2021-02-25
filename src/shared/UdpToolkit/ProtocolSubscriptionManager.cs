@@ -2,6 +2,7 @@ namespace UdpToolkit
 {
     using System;
     using System.Collections.Generic;
+    using System.Net;
     using UdpToolkit.Core;
 
     public sealed class ProtocolSubscriptionManager : IProtocolSubscriptionManager
@@ -15,7 +16,7 @@ namespace UdpToolkit
 
         public void SubscribeOnProtocolEvent<TEvent>(
             byte hookId,
-            Action<byte[], Guid> onInputEvent,
+            Action<byte[], Guid, IPEndPoint> onInputEvent,
             Action<byte[], Guid> onOutputEvent,
             Action<Guid> onAck,
             Action<Guid> onAckTimeout,

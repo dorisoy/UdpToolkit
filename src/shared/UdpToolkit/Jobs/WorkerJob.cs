@@ -118,7 +118,8 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.Connect:
                     protocolSubscription?.OnInputEvent?.Invoke(
                             arg1: networkPacket.Serializer(),
-                            arg2: networkPacket.PeerId);
+                            arg2: networkPacket.PeerId,
+                            arg3: networkPacket.IpEndPoint);
 
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         networkPacket.Serializer(),

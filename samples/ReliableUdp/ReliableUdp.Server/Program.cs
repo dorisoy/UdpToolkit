@@ -100,15 +100,6 @@
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
                 })
-                .ConfigureHostClient((settings) =>
-                {
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
-                    settings.ClientHost = "127.0.0.1";
-                    settings.ServerHost = "127.0.0.1";
-                    settings.ServerInputPorts = new[] { 7000, 7001 };
-                    settings.PingDelayInMs = null; // pass null for disable pings
-                })
                 .Build();
     }
 }

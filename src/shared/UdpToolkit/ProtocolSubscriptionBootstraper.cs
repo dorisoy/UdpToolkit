@@ -35,18 +35,16 @@ namespace UdpToolkit
             _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Connect>(
                     hookId: (byte)ProtocolHookId.Connect,
-                    onInputEvent: (bytes, peerId) =>
+                    onInputEvent: (bytes, peerId, ipEndPoint) =>
                     {
                         var @event = ProtocolEvent<Connect>.Deserialize(bytes);
 
-                        var ips = @event.ClientIps
-                            .Select(server => new IPEndPoint(IPAddress.Parse(server.Host), server.Port))
-                            .ToList();
-
                         _peerManager.AddOrUpdate(
                             inactivityTimeout: _inactivityTimeout,
-                            peerId: peerId,
-                            ips: ips);
+                            peerId: @event.PeerId,
+                            ips: @event.InputPorts
+                                .Select(port => new IPEndPoint(ipEndPoint.Address, port))
+                                .ToList());
 
                         _udpToolkitLogger.Debug($"Input - {nameof(Connect)}");
                     },
@@ -67,7 +65,7 @@ namespace UdpToolkit
             _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Disconnect>(
                     hookId: (byte)ProtocolHookId.Disconnect,
-                    onInputEvent: (bytes, peerId) =>
+                    onInputEvent: (bytes, peerId, ipEndPoint) =>
                     {
                         var disconnect = ProtocolEvent<Disconnect>.Deserialize(bytes);
 
@@ -86,7 +84,7 @@ namespace UdpToolkit
             _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Ping>(
                     hookId: (byte)ProtocolHookId.Ping,
-                    onInputEvent: (bytes, peerId) => { },
+                    onInputEvent: (bytes, peerId, ipEndPoint) => { },
                     onOutputEvent: (bytes, peerId) =>
                     {
                         _peerManager.TryGetPeer(peerId, out var peer);
@@ -100,7 +98,7 @@ namespace UdpToolkit
             _protocolSubscriptionManager
                 .SubscribeOnProtocolEvent<Pong>(
                     hookId: (byte)ProtocolHookId.Pong,
-                    onInputEvent: (bytes, peerId) =>
+                    onInputEvent: (bytes, peerId, ipEndPoint) =>
                     {
                         _peerManager.TryGetPeer(peerId, out var peer);
 
