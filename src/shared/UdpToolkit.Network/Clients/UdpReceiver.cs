@@ -47,11 +47,19 @@ namespace UdpToolkit.Network.Clients
             var pooledNetworkPacket = _networkPacketPool.Get();
 
             NetworkPacket.Deserialize(
-                    bytes: udpReceiveResult.Buffer,
-                    ipEndPoint: udpReceiveResult.RemoteEndPoint,
-                    pooledNetworkPacket: pooledNetworkPacket);
+                bytes: udpReceiveResult.Buffer,
+                ipEndPoint: udpReceiveResult.RemoteEndPoint,
+                pooledNetworkPacket: pooledNetworkPacket);
 
-            if (ReceiveInternalAsync(udpReceiveResult, pooledNetworkPacket))
+            var peerId = pooledNetworkPacket.Value.PeerId;
+            var rawPeer = pooledNetworkPacket.Value.IsProtocolEvent
+                ? _rawPeerManager.AddOrUpdate(
+                    inactivityTimeout: _peerInactivityTimeout,
+                    peerId: peerId,
+                    ips: new List<IPEndPoint>())
+                : _rawPeerManager.TryGetPeer(peerId);
+
+            if (ReceiveInternalAsync(rawPeer, udpReceiveResult, pooledNetworkPacket))
             {
                 return pooledNetworkPacket;
             }
@@ -65,116 +73,32 @@ namespace UdpToolkit.Network.Clients
         }
 
         private bool ReceiveInternalAsync(
+            IRawPeer rawPeer,
             UdpReceiveResult udpReceiveResult,
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
             var networkPacket = pooledNetworkPacket.Value;
-            _udpToolkitLogger.Debug($"Packet from - {udpReceiveResult.RemoteEndPoint} to {_receiver.Client.LocalEndPoint} received");
-            _udpToolkitLogger.Debug($"Packet received: {networkPacket}, Total bytes length: {udpReceiveResult.Buffer.Length}, Payload bytes length: {networkPacket.Serializer().Length}");
+            _udpToolkitLogger.Debug(
+                $"Packet received from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packet: {networkPacket} total bytes length: {udpReceiveResult.Buffer.Length}, payload bytes length: {networkPacket.Serializer().Length}");
 
             switch (networkPacket.NetworkPacketType)
             {
                 case NetworkPacketType.FromServer:
                 case NetworkPacketType.FromClient:
-                    if (!HandleUserDefinedEvent(pooledNetworkPacket))
-                    {
-                        _udpToolkitLogger.Debug($"UserDefined {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
-                        return false;
-                    }
-
-                    break;
                 case NetworkPacketType.Protocol:
-                    if (!HandleProtocolEvent(pooledNetworkPacket))
-                    {
-                        _udpToolkitLogger.Debug($"Protocol {nameof(NetworkPacket)} with id - {networkPacket.Id} dropped! ");
-                        return false;
-                    }
+                    return rawPeer
+                        .GetIncomingChannel(channelType: networkPacket.ChannelType)
+                        .HandleInputPacket(pooledNetworkPacket.Value);
 
-                    break;
                 case NetworkPacketType.Ack:
-                    if (networkPacket.IsProtocolEvent)
-                    {
-                        if (!HandleProtocolAck(pooledNetworkPacket))
-                        {
-                            _udpToolkitLogger.Debug($"Protocol Ack dropped - {networkPacket}");
-                            return false;
-                        }
-                    }
-                    else
-                    {
-                        if (!HandleUserDefinedAck(pooledNetworkPacket))
-                        {
-                            _udpToolkitLogger.Debug($"UserDefined Ack dropped! {networkPacket.Id}");
-                            return false;
-                        }
-                    }
+                    return rawPeer
+                        .GetOutcomingChannel(networkPacket.ChannelType)
+                        .HandleAck(pooledNetworkPacket.Value);
 
-                    break;
                 default:
-                    throw new NotSupportedException($"NetworkPacketType {networkPacket.NetworkPacketType} - not supported!");
+                    throw new NotSupportedException(
+                        $"NetworkPacketType {networkPacket.NetworkPacketType} - not supported!");
             }
-
-            return true;
-        }
-
-        private bool HandleUserDefinedEvent(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            var networkPacket = pooledNetworkPacket.Value;
-            if (!_rawPeerManager.TryGetPeer(networkPacket.PeerId, out var rawPeer))
-            {
-                return false;
-            }
-
-            var channel = rawPeer
-                .GetIncomingChannel(channelType: networkPacket.ChannelType);
-
-            return channel
-                .HandleInputPacket(pooledNetworkPacket.Value);
-        }
-
-        private bool HandleProtocolEvent(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            var networkPacket = pooledNetworkPacket.Value;
-            var peer = _rawPeerManager.AddOrUpdate(
-                inactivityTimeout: _peerInactivityTimeout,
-                peerId: networkPacket.PeerId,
-                ips: new List<IPEndPoint>());
-
-            return peer
-                .GetIncomingChannel(networkPacket.ChannelType)
-                .HandleInputPacket(pooledNetworkPacket.Value);
-        }
-
-        private bool HandleProtocolAck(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            var networkPacket = pooledNetworkPacket.Value;
-            var peer = _rawPeerManager.AddOrUpdate(
-                inactivityTimeout: _peerInactivityTimeout,
-                peerId: networkPacket.PeerId,
-                ips: new List<IPEndPoint>());
-
-            return peer
-                .GetOutcomingChannel(networkPacket.ChannelType)
-                .HandleAck(pooledNetworkPacket.Value);
-        }
-
-        private bool HandleUserDefinedAck(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            var networkPacket = pooledNetworkPacket.Value;
-            if (!_rawPeerManager.TryGetPeer(networkPacket.PeerId, out var rawPeer))
-            {
-                return false;
-            }
-
-            var channel = rawPeer
-                .GetOutcomingChannel(channelType: networkPacket.ChannelType);
-
-            return channel
-                .HandleAck(networkPacket: pooledNetworkPacket.Value);
         }
     }
 }

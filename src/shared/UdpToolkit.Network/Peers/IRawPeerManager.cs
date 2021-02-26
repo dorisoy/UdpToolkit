@@ -10,9 +10,8 @@ namespace UdpToolkit.Network.Peers
         void Remove(
             IRawPeer peer);
 
-        bool TryGetPeer(
-            Guid peerId,
-            out IRawPeer rawPeer);
+        IRawPeer TryGetPeer(
+            Guid peerId);
 
         IRawPeer AddOrUpdate(
             Guid peerId,

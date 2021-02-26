@@ -102,39 +102,42 @@ namespace UdpToolkit.Jobs
                             }
                         }
 
-                        if (_rawPeerManager.TryGetPeer(peerId, out var peer))
+                        var peer = _rawPeerManager.TryGetPeer(peerId);
+                        if (peer == null)
                         {
-                            _scheduler.Schedule(
-                                key: peer.PeerId,
-                                dueTimeMs: 1000,
-                                action: () =>
-                                {
-                                    _udpToolkitLogger.Debug($"Resend: {DateTime.UtcNow} PeerId: {peerId}");
-                                    var resendQueue = _resendQueue.Get(peer.PeerId);
-                                    for (var i = 0; i < resendQueue.Count; i++)
-                                    {
-                                        var pendingNetworkPacket = resendQueue[i];
-                                        var isDelivered = peer
-                                            .GetOutcomingChannel(pendingNetworkPacket.Value.ChannelType)
-                                            .IsDelivered(pendingNetworkPacket.Value.Id);
-
-                                        var isExpired = pendingNetworkPacket.Value
-                                            .IsExpired(resendTimeout);
-
-                                        if (!isDelivered && !isExpired)
-                                        {
-                                            udpSender.SendAsync(pendingNetworkPacket)
-                                                .GetAwaiter()
-                                                .GetResult();
-                                        }
-                                        else
-                                        {
-                                            resendQueue.RemoveAt(i);
-                                            pendingNetworkPacket?.Dispose();
-                                        }
-                                    }
-                                });
+                            continue;
                         }
+
+                        _scheduler.Schedule(
+                            key: peer.PeerId,
+                            dueTimeMs: 1000,
+                            action: () =>
+                            {
+                                _udpToolkitLogger.Debug($"Resend: {DateTime.UtcNow} PeerId: {peerId}");
+                                var resendQueue = _resendQueue.Get(peer.PeerId);
+                                for (var i = 0; i < resendQueue.Count; i++)
+                                {
+                                    var pendingNetworkPacket = resendQueue[i];
+                                    var isDelivered = peer
+                                        .GetOutcomingChannel(pendingNetworkPacket.Value.ChannelType)
+                                        .IsDelivered(pendingNetworkPacket.Value.Id);
+
+                                    var isExpired = pendingNetworkPacket.Value
+                                        .IsExpired(resendTimeout);
+
+                                    if (!isDelivered && !isExpired)
+                                    {
+                                        udpSender.SendAsync(pendingNetworkPacket)
+                                            .GetAwaiter()
+                                            .GetResult();
+                                    }
+                                    else
+                                    {
+                                        resendQueue.RemoveAt(i);
+                                        pendingNetworkPacket?.Dispose();
+                                    }
+                                }
+                            });
                     }
                 }
             }
@@ -173,11 +176,15 @@ namespace UdpToolkit.Jobs
                 case BroadcastMode.Server:
                 case BroadcastMode.AllPeers:
                 case BroadcastMode.AckToServer:
-                    var id = broadcastMode == BroadcastMode.AckToServer
+                    var peerId = broadcastMode == BroadcastMode.AckToServer
                         ? _serverSelector.GetServer().PeerId
                         : pooledNetworkPacket.Value.PeerId;
 
-                    _rawPeerManager.TryGetPeer(peerId: id, out var rawPeer);
+                    var rawPeer = _rawPeerManager.TryGetPeer(peerId: peerId);
+                    if (rawPeer == null)
+                    {
+                        return;
+                    }
 
                     await udpSender
                         .SendAsync(

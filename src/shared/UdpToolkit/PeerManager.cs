@@ -26,16 +26,14 @@ namespace UdpToolkit
             _peers.TryRemove(peer.PeerId, out _);
         }
 
-        public bool TryGetPeer(Guid peerId, out IRawPeer rawPeer)
+        public IRawPeer TryGetPeer(Guid peerId)
         {
             if (_peers.TryGetValue(peerId, out var peer))
             {
-                rawPeer = peer;
-                return true;
+                return peer;
             }
 
-            rawPeer = null;
-            return false;
+            return null;
         }
 
         IPeer IPeerManager.AddOrUpdate(
