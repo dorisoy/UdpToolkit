@@ -9,25 +9,20 @@ namespace UdpToolkit.Network.Clients
 
     public sealed class UdpSender : IUdpSender
     {
-        private const int MtuSizeLimit = 1500;
+        private const int MtuSizeLimit = 1500; // TODO detect automatic
 
         private readonly UdpClient _sender;
 
         private readonly IConnectionPool _connectionPool;
-        private readonly IRawRoomManager _rawRoomManager;
-        private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
 
         public UdpSender(
             UdpClient sender,
-            IRawRoomManager rawRoomManager,
             IObjectsPool<NetworkPacket> networkPacketPool,
             IUdpToolkitLogger udpToolkitLogger,
             IConnectionPool connectionPool)
         {
             _sender = sender;
-            _rawRoomManager = rawRoomManager;
-            _networkPacketPool = networkPacketPool;
             _udpToolkitLogger = udpToolkitLogger;
             _connectionPool = connectionPool;
             _udpToolkitLogger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
@@ -38,49 +33,19 @@ namespace UdpToolkit.Network.Clients
             _sender.Dispose();
         }
 
-        public Task SendAsync(
+        public async Task SendAsync(
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
-            return SendInternalAsync(pooledNetworkPacket);
-        }
+            var connection = _connectionPool
+                .TryGetConnection(pooledNetworkPacket.Value.ConnectionId);
 
-        public Task SendAsync(
-            int roomId,
-            PooledObject<NetworkPacket> pooledNetworkPacket,
-            BroadcastType broadcastType)
-        {
-            switch (broadcastType)
+            if (connection == null)
             {
-                case BroadcastType.Room:
-                    return HandleRoom(roomId, pooledNetworkPacket);
-                case BroadcastType.RoomExceptCaller:
-                    return HandleRoomExceptCaller(roomId, pooledNetworkPacket);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(broadcastType), broadcastType, null);
+                return;
             }
-        }
 
-        public Task SendAsync(
-            PooledObject<NetworkPacket> pooledNetworkPacket,
-            IConnection connection,
-            BroadcastType broadcastType)
-        {
-            switch (broadcastType)
-            {
-                case BroadcastType.Caller:
-                    return HandleCaller(pooledNetworkPacket, connection);
-                case BroadcastType.Server:
-                    return HandleServer(pooledNetworkPacket, connection);
-                case BroadcastType.AckToServer:
-                    return HandleAckToServer(pooledNetworkPacket, connection);
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(broadcastType), broadcastType, null);
-            }
-        }
+            SendInternalAsync(connection, pooledNetworkPacket);
 
-        private async Task SendInternalAsync(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
             var bytes = NetworkPacket.Serialize(pooledNetworkPacket.Value);
 
             if (bytes.Length > MtuSizeLimit)
@@ -90,136 +55,41 @@ namespace UdpToolkit.Network.Clients
                 return;
             }
 
-            _udpToolkitLogger.Debug($"Packet from - {_sender.Client.LocalEndPoint} to {pooledNetworkPacket.Value.IpEndPoint} sended");
-            _udpToolkitLogger.Debug($"Packet sends: {pooledNetworkPacket.Value}, Total bytes length: {bytes.Length}, Payload bytes length: {pooledNetworkPacket.Value.Serializer().Length}");
+            _udpToolkitLogger.Debug(
+                $"Packet sends from: - {_sender.Client.LocalEndPoint} to: {pooledNetworkPacket.Value.IpEndPoint} packet: {pooledNetworkPacket.Value} total bytes length: {bytes.Length}, payload bytes length: {pooledNetworkPacket.Value.Serializer().Length}");
 
             await _sender
                 .SendAsync(bytes, bytes.Length, pooledNetworkPacket.Value.IpEndPoint)
                 .ConfigureAwait(false);
         }
 
-        private Task HandleCaller(
-            PooledObject<NetworkPacket> pooledNetworkPacket,
-            IConnection connection)
-        {
-            return Send(connection, pooledNetworkPacket);
-        }
-
-        private Task HandleRoom(
-            int roomId,
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            return _rawRoomManager
-                .Apply(
-                    caller: pooledNetworkPacket.Value.ConnectionId,
-                    roomId: roomId,
-                    condition: (connectionId) => true,
-                    func: (connectionId) =>
-                    {
-                        var connection = _connectionPool.TryGetConnection(connectionId);
-                        if (connection != null)
-                        {
-                            Send(connection, pooledNetworkPacket);
-                        }
-
-                        return Task.CompletedTask;
-                    });
-        }
-
-        private Task HandleServer(
-            PooledObject<NetworkPacket> pooledNetworkPacket,
-            IConnection connection)
-        {
-            connection
-                .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
-                .HandleOutputPacket(pooledNetworkPacket.Value);
-
-            return SendInternalAsync(pooledNetworkPacket);
-        }
-
-        private Task HandleRoomExceptCaller(
-            int roomId,
-            PooledObject<NetworkPacket> pooledNetworkPacket)
-        {
-            return _rawRoomManager
-                .Apply(
-                    caller: pooledNetworkPacket.Value.ConnectionId,
-                    roomId: roomId,
-                    condition: (connectionId) => connectionId != pooledNetworkPacket.Value.ConnectionId,
-                    func: (connectionId) =>
-                    {
-                        var connection = _connectionPool.TryGetConnection(connectionId);
-                        if (connection != null)
-                        {
-                            Send(connection, pooledNetworkPacket);
-                        }
-
-                        return Task.CompletedTask;
-                    });
-        }
-
-        private Task HandleAckToServer(
-            PooledObject<NetworkPacket> pooledNetworkPacket,
-            IConnection connection)
-        {
-            connection
-                .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
-                .GetAck(pooledNetworkPacket.Value);
-
-            pooledNetworkPacket.Value.Set(ipEndPoint: connection.GetRandomIp());
-
-            return SendInternalAsync(pooledNetworkPacket);
-        }
-
-        private Task Send(
+        private void SendInternalAsync(
             IConnection connection,
-            PooledObject<NetworkPacket> originalPooledNetworkPacket)
+            PooledObject<NetworkPacket> pooledNetworkPacket)
         {
-            if (connection.ConnectionId == originalPooledNetworkPacket.Value.ConnectionId && originalPooledNetworkPacket.Value.IsReliable)
+            var networkPacket = pooledNetworkPacket.Value;
+
+            switch (networkPacket.NetworkPacketType)
             {
-                // produce ack
-                var pooledNetworkPacket = _networkPacketPool.Get();
+                case NetworkPacketType.FromServer:
+                case NetworkPacketType.FromClient:
+                case NetworkPacketType.Protocol:
+                    connection
+                        .GetOutcomingChannel(channelType: networkPacket.ChannelType)
+                        .HandleOutputPacket(pooledNetworkPacket.Value);
 
-                originalPooledNetworkPacket.Value.Set(networkPacketType: NetworkPacketType.Ack);
+                    break;
 
-                pooledNetworkPacket.Value.Set(
-                    hookId: originalPooledNetworkPacket.Value.HookId,
-                    channelType: originalPooledNetworkPacket.Value.ChannelType,
-                    networkPacketType: NetworkPacketType.Ack,
-                    connectionId: originalPooledNetworkPacket.Value.ConnectionId,
-                    id: originalPooledNetworkPacket.Value.Id,
-                    acks: originalPooledNetworkPacket.Value.Acks,
-                    serializer: originalPooledNetworkPacket.Value.Serializer,
-                    createdAt: originalPooledNetworkPacket.Value.CreatedAt,
-                    ipEndPoint: connection.GetRandomIp());
+                case NetworkPacketType.Ack:
+                    connection
+                        .GetOutcomingChannel(networkPacket.ChannelType)
+                        .GetAck(pooledNetworkPacket.Value);
 
-                connection
-                    .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
-                    .GetAck(pooledNetworkPacket.Value);
+                    break;
 
-                return SendInternalAsync(pooledNetworkPacket);
-            }
-            else
-            {
-                // produce packet
-                var pooledNetworkPacket = _networkPacketPool.Get();
-
-                pooledNetworkPacket.Value.Set(
-                    id: originalPooledNetworkPacket.Value.Id,
-                    acks: originalPooledNetworkPacket.Value.Acks,
-                    hookId: originalPooledNetworkPacket.Value.HookId,
-                    ipEndPoint: connection.GetRandomIp(),
-                    createdAt: DateTimeOffset.UtcNow,
-                    serializer: originalPooledNetworkPacket.Value.Serializer,
-                    channelType: originalPooledNetworkPacket.Value.ChannelType,
-                    connectionId: connection.ConnectionId,
-                    networkPacketType: NetworkPacketType.FromServer);
-
-                connection
-                    .GetOutcomingChannel(channelType: pooledNetworkPacket.Value.ChannelType)
-                    .HandleOutputPacket(pooledNetworkPacket.Value);
-
-                return SendInternalAsync(pooledNetworkPacket);
+                default:
+                    throw new NotSupportedException(
+                        $"NetworkPacketType {networkPacket.NetworkPacketType} - not supported!");
             }
         }
     }

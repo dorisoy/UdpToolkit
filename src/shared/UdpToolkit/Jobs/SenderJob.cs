@@ -18,6 +18,7 @@ namespace UdpToolkit.Jobs
         private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
         private readonly IConnectionPool _connectionPool;
+        private readonly RoomManager _roomManager;
         private readonly Scheduler _scheduler;
 
         public SenderJob(
@@ -27,7 +28,8 @@ namespace UdpToolkit.Jobs
             IConnectionPool connectionPool,
             Scheduler scheduler,
             ResendQueue resendQueue,
-            IUdpToolkitLogger udpToolkitLogger)
+            IUdpToolkitLogger udpToolkitLogger,
+            RoomManager roomManager)
         {
             _serverConnection = serverConnection;
             _outputQueue = outputQueue;
@@ -36,6 +38,7 @@ namespace UdpToolkit.Jobs
             _scheduler = scheduler;
             _resendQueue = resendQueue;
             _udpToolkitLogger = udpToolkitLogger;
+            _roomManager = roomManager;
         }
 
         public async Task Execute(
@@ -75,6 +78,7 @@ namespace UdpToolkit.Jobs
                                 pooledNetworkPacket: pooledNetworkPacket)
                             .ConfigureAwait(false);
 
+                        // TODO rewrite resend logic
                         var pt = pooledNetworkPacket.Value.NetworkPacketType;
 
                         if (networkPacketDto.IsReliable)
@@ -104,6 +108,7 @@ namespace UdpToolkit.Jobs
                             continue;
                         }
 
+                        // TODO raise heartbeat events (ping/pong) for sending packet instead of timers
                         _scheduler.Schedule(
                             key: peer.ConnectionId,
                             dueTimeMs: 1000,
@@ -148,41 +153,109 @@ namespace UdpToolkit.Jobs
             switch (broadcastMode)
             {
                 case BroadcastMode.Room:
-                case BroadcastMode.RoomExceptCaller:
-                    await udpSender
-                        .SendAsync(
+                    await _roomManager
+                        .ApplyAsync(
                             roomId: roomId ?? throw new ArgumentNullException(nameof(roomId)),
-                            pooledNetworkPacket: pooledNetworkPacket,
-                            broadcastType: broadcastMode?.Map() ?? throw new ArgumentNullException(nameof(broadcastMode)))
+                            condition: (connection) => true,
+                            func: (connection) => Send(connection, udpSender, pooledNetworkPacket))
+                        .ConfigureAwait(false);
+
+                    break;
+                case BroadcastMode.RoomExceptCaller:
+                    await _roomManager
+                        .ApplyAsync(
+                            roomId: roomId ?? throw new ArgumentNullException(nameof(roomId)),
+                            condition: (connection) => connection.ConnectionId != pooledNetworkPacket.Value.ConnectionId,
+                            func: (connection) => Send(connection, udpSender, pooledNetworkPacket))
+                        .ConfigureAwait(false);
+
+                    break;
+                case BroadcastMode.Caller:
+                    await Send(
+                            connection: _connectionPool.TryGetConnection(pooledNetworkPacket.Value.ConnectionId),
+                            udpSender: udpSender,
+                            originalPooledNetworkPacket: pooledNetworkPacket)
+                        .ConfigureAwait(false);
+
+                    break;
+                case BroadcastMode.Server:
+                    await udpSender
+                        .SendAsync(pooledNetworkPacket)
+                        .ConfigureAwait(false);
+
+                    break;
+                case BroadcastMode.AllPeers:
+                    await _connectionPool
+                        .Apply(
+                            condition: () => true,
+                            func: () => udpSender.SendAsync(pooledNetworkPacket))
                         .ConfigureAwait(false);
 
                     break;
 
-                case BroadcastMode.Caller:
-                case BroadcastMode.Server:
-                case BroadcastMode.AllPeers:
                 case BroadcastMode.AckToServer:
-                    var peerId = broadcastMode == BroadcastMode.AckToServer
+                    var connectionId = broadcastMode == BroadcastMode.AckToServer
                         ? _serverConnection.ConnectionId
                         : pooledNetworkPacket.Value.ConnectionId;
 
-                    var connection = _connectionPool.TryGetConnection(connectionId: peerId);
-                    if (connection == null)
-                    {
-                        return;
-                    }
+                    var connection = _connectionPool.TryGetConnection(connectionId);
+                    pooledNetworkPacket.Value.Set(
+                        ipEndPoint: connection.GetRandomIp(),
+                        networkPacketType: NetworkPacketType.Ack);
 
                     await udpSender
-                        .SendAsync(
-                            pooledNetworkPacket: pooledNetworkPacket,
-                            connection: connection,
-                            broadcastType: broadcastMode?.Map() ?? throw new ArgumentNullException(nameof(broadcastMode)))
+                        .SendAsync(pooledNetworkPacket)
                         .ConfigureAwait(false);
 
                     break;
 
                 default:
-                    throw new ArgumentOutOfRangeException();
+                    throw new NotSupportedException(broadcastMode.ToString());
+            }
+        }
+
+        private Task Send(
+            IConnection connection,
+            IUdpSender udpSender,
+            PooledObject<NetworkPacket> originalPooledNetworkPacket)
+        {
+            if (connection.ConnectionId == originalPooledNetworkPacket.Value.ConnectionId && originalPooledNetworkPacket.Value.IsReliable)
+            {
+                // produce ack
+                var pooledNetworkPacket = _networkPacketPool.Get();
+
+                originalPooledNetworkPacket.Value.Set(networkPacketType: NetworkPacketType.Ack);
+
+                pooledNetworkPacket.Value.Set(
+                    hookId: originalPooledNetworkPacket.Value.HookId,
+                    channelType: originalPooledNetworkPacket.Value.ChannelType,
+                    networkPacketType: NetworkPacketType.Ack,
+                    connectionId: originalPooledNetworkPacket.Value.ConnectionId,
+                    id: originalPooledNetworkPacket.Value.Id,
+                    acks: originalPooledNetworkPacket.Value.Acks,
+                    serializer: originalPooledNetworkPacket.Value.Serializer,
+                    createdAt: originalPooledNetworkPacket.Value.CreatedAt,
+                    ipEndPoint: connection.GetRandomIp());
+
+                return udpSender.SendAsync(pooledNetworkPacket);
+            }
+            else
+            {
+                // produce packet
+                var pooledNetworkPacket = _networkPacketPool.Get();
+
+                pooledNetworkPacket.Value.Set(
+                    id: originalPooledNetworkPacket.Value.Id,
+                    acks: originalPooledNetworkPacket.Value.Acks,
+                    hookId: originalPooledNetworkPacket.Value.HookId,
+                    ipEndPoint: connection.GetRandomIp(),
+                    createdAt: DateTimeOffset.UtcNow,
+                    serializer: originalPooledNetworkPacket.Value.Serializer,
+                    channelType: originalPooledNetworkPacket.Value.ChannelType,
+                    connectionId: connection.ConnectionId,
+                    networkPacketType: NetworkPacketType.FromServer);
+
+                return udpSender.SendAsync(pooledNetworkPacket);
             }
         }
     }

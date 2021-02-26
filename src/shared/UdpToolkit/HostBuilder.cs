@@ -94,7 +94,6 @@ namespace UdpToolkit
                     connectionPool: connectionPool,
                     udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient,
-                    rawRoomManager: roomManager,
                     networkPacketPool: networkPacketPool))
                 .ToList();
 
@@ -163,6 +162,7 @@ namespace UdpToolkit
                 receivers: receivers,
                 scheduler: scheduler,
                 sendingJob: new SenderJob(
+                    roomManager: roomManager,
                     serverConnection: remoteHostConnection,
                     udpToolkitLogger: loggerFactory.Create<SenderJob>(),
                     scheduler: scheduler,

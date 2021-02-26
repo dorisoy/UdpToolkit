@@ -19,7 +19,7 @@ namespace UdpToolkit.Network
             TimeSpan connectionTimeout);
 
         Task Apply(
-            Func<IConnection, bool> condition,
-            Func<IConnection, Task> action);
+            Func<bool> condition,
+            Func<Task> func);
     }
 }

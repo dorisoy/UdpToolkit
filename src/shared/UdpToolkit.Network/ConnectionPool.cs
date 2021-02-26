@@ -64,19 +64,18 @@ namespace UdpToolkit.Network
         }
 
         public async Task Apply(
-            Func<IConnection, bool> condition,
-            Func<IConnection, Task> action)
+            Func<bool> condition,
+            Func<Task> func)
         {
             for (var i = 0; i < _connections.Count; i++)
             {
                 var pair = _connections.ElementAt(i);
-                var peer = pair.Value;
-                if (!condition(peer))
+                if (!condition())
                 {
                     continue;
                 }
 
-                await action(pair.Value).ConfigureAwait(false);
+                await func().ConfigureAwait(false);
             }
         }
     }

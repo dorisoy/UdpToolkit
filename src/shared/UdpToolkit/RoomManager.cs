@@ -7,9 +7,9 @@ namespace UdpToolkit
     using UdpToolkit.Core;
     using UdpToolkit.Network;
 
-    public class RoomManager : IRoomManager, IRawRoomManager
+    public sealed class RoomManager : IRoomManager
     {
-        private readonly ConcurrentDictionary<int, IRawRoom> _rooms = new ConcurrentDictionary<int, IRawRoom>();
+        private readonly ConcurrentDictionary<int, List<Guid>> _rooms = new ConcurrentDictionary<int, List<Guid>>();
         private readonly IConnectionPool _connectionPool;
 
         public RoomManager(
@@ -18,70 +18,52 @@ namespace UdpToolkit
             _connectionPool = connectionPool;
         }
 
-        public void JoinOrCreate(int roomId, Guid peerId)
+        public void JoinOrCreate(
+            int roomId,
+            Guid peerId)
         {
-            var connection = _connectionPool.TryGetConnection(peerId);
-            if (connection == null)
-            {
-                return;
-            }
-
             _rooms.AddOrUpdate(
                 key: roomId,
-                addValueFactory: (id) =>
+                addValueFactory: (id) => new List<Guid>
                 {
-                    var room = new Room();
-                    room.AddPeer(connection.ConnectionId);
-
-                    return room;
+                    peerId,
                 },
                 updateValueFactory: (id, room) =>
                 {
-                    room.AddPeer(connection.ConnectionId);
+                    room.Add(peerId);
                     return room;
                 });
         }
 
-        public IEnumerable<Guid> GetRoomPeers(int roomId)
+        public List<Guid> GetRoomPeers(int roomId)
         {
-            return _rooms[roomId].GetPeers();
+            return _rooms[roomId];
         }
 
-        public void Remove(
+        public void Leave(
             int roomId,
-            IConnection connection)
+            Guid peerId)
         {
-            if (!_rooms.TryGetValue(roomId, out var room))
+            _rooms[roomId].Remove(peerId);
+        }
+
+        public Task ApplyAsync(
+            int roomId,
+            Func<IConnection, bool> condition,
+            Func<IConnection, Task> func)
+        {
+            var room = _rooms[roomId];
+            for (var i = 0; i < room.Count; i++)
             {
-                return;
+                var connectionId = room[i];
+                var connection = _connectionPool.TryGetConnection(connectionId);
+                if (condition(connection))
+                {
+                    Task.Run(() => func(connection));
+                }
             }
 
-            room.RemovePeer(connection.ConnectionId);
-        }
-
-        public Task Apply(
-            int roomId,
-            Guid caller,
-            Func<Guid, bool> condition,
-            Func<Guid, Task> func)
-        {
-            JoinOrCreate(roomId, caller);
-
-            return _rooms[roomId]
-                .Apply(
-                    condition: condition,
-                    func: func);
-        }
-
-        public void Leave(int roomId, Guid peerId)
-        {
-            var connection = _connectionPool.TryGetConnection(peerId);
-            if (connection == null)
-            {
-                return;
-            }
-
-            _rooms[roomId].RemovePeer(peerId: peerId);
+            return Task.CompletedTask;
         }
     }
 }
