@@ -11,6 +11,7 @@ namespace UdpToolkit.Network
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _inputChannels;
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _outputChannels;
         private readonly TimeSpan _connectionTimeout;
+        private readonly IPEndPoint _ipEndPoint;
 
         private Connection(
             Guid connectionId,
@@ -24,6 +25,7 @@ namespace UdpToolkit.Network
             this._connectionTimeout = connectionTimeout;
             ConnectionId = connectionId;
             IpEndPoints = ipEndPoints;
+            _ipEndPoint = IpEndPoints[_random.Next(0, IpEndPoints.Count - 1)];
         }
 
         public Guid ConnectionId { get; }
@@ -32,7 +34,7 @@ namespace UdpToolkit.Network
 
         public DateTimeOffset LastPing { get; private set; }
 
-        public DateTimeOffset LastPong { get; private set; }
+        public DateTimeOffset PingAck { get; private set; }
 
         public DateTimeOffset? LastActivityAt { get; private set; }
 
@@ -67,16 +69,16 @@ namespace UdpToolkit.Network
 
         public IEnumerable<IChannel> GetChannels() => _outputChannels.Values;
 
-        public void OnPing(
-            DateTimeOffset onPingReceive)
+        public void OnPingAck(
+            DateTimeOffset utcNow)
         {
-            LastPing = onPingReceive;
+            PingAck = utcNow;
         }
 
-        public void OnPong(
-            DateTimeOffset onPongReceive)
+        public void OnPing(
+            DateTimeOffset utcNow)
         {
-            LastPong = onPongReceive;
+            LastPing = utcNow;
         }
 
         public void OnActivity(
@@ -87,11 +89,8 @@ namespace UdpToolkit.Network
 
         public bool IsExpired() => DateTimeOffset.UtcNow - LastActivityAt > _connectionTimeout;
 
-        public TimeSpan GetRtt() => LastPong - LastPing;
+        public TimeSpan GetRtt() => PingAck - LastPing;
 
-        public IPEndPoint GetRandomIp()
-        {
-            return IpEndPoints[_random.Next(0, IpEndPoints.Count - 1)];
-        }
+        public IPEndPoint GetIp() => _ipEndPoint;
     }
 }

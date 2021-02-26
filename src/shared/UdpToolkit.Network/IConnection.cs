@@ -13,7 +13,7 @@ namespace UdpToolkit.Network
 
         DateTimeOffset LastPing { get; }
 
-        DateTimeOffset LastPong { get; }
+        DateTimeOffset PingAck { get; }
 
         DateTimeOffset? LastActivityAt { get; }
 
@@ -23,11 +23,11 @@ namespace UdpToolkit.Network
 
         IEnumerable<IChannel> GetChannels();
 
-        void OnPing(
-            DateTimeOffset onPingReceive);
+        void OnPingAck(
+            DateTimeOffset utcNow);
 
-        void OnPong(
-            DateTimeOffset onPongReceive);
+        void OnPing(
+            DateTimeOffset utcNow);
 
         void OnActivity(
             DateTimeOffset lastActivityAt);
@@ -36,6 +36,6 @@ namespace UdpToolkit.Network
 
         TimeSpan GetRtt();
 
-        IPEndPoint GetRandomIp();
+        IPEndPoint GetIp();
     }
 }

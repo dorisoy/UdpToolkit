@@ -45,7 +45,6 @@ namespace UdpToolkit
 
             var dateTimeProvider = new DateTimeProvider();
             var networkDateTimeProvider = new Network.Utils.DateTimeProvider();
-            var udpClientFactory = new UdpClientFactory();
             var scheduler = new Scheduler();
             var loggerFactory = _hostSettings.LoggerFactory;
 
@@ -56,9 +55,6 @@ namespace UdpToolkit
                 boundedCapacity: int.MaxValue);
 
             var inputQueue = new BlockingAsyncQueue<PooledObject<CallContext>>(
-                boundedCapacity: int.MaxValue);
-
-            var resendQueue = new BlockingAsyncQueue<PooledObject<CallContext>>(
                 boundedCapacity: int.MaxValue);
 
             var connectionPool = new ConnectionPool(networkDateTimeProvider);
@@ -89,8 +85,9 @@ namespace UdpToolkit
                 .ToList();
 
             var senders = outputPorts
-                .Select(udpClientFactory.Create)
+                .Select(UdpClientFactory.Create)
                 .Select(udpClient => new UdpSender(
+                    dateTimeProvider: networkDateTimeProvider,
                     connectionPool: connectionPool,
                     udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient,
@@ -111,7 +108,7 @@ namespace UdpToolkit
                 .ToList();
 
             var receivers = inputEndPoints
-                .Select(udpClientFactory.Create)
+                .Select(UdpClientFactory.Create)
                 .Select(udpClient => new UdpReceiver(
                     dateTimeProvider: networkDateTimeProvider,
                     udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
@@ -126,18 +123,6 @@ namespace UdpToolkit
             var hostConnectionId = Guid.NewGuid();
             var remoteHostConnectionId = Guid.NewGuid();
 
-            var hostClient = new HostClient(
-                inputPorts: _hostSettings.InputPorts.ToArray(),
-                callContextPool: callContextPool,
-                peerId: hostConnectionId,
-                cancellationTokenSource: new CancellationTokenSource(),
-                outputQueue: outputQueue,
-                pingDelayMs: _hostClientSettings.PingDelayInMs,
-                resendPacketsTimeout: _hostClientSettings.ResendPacketsTimeout,
-                connectionTimeout: _hostClientSettings.ConnectionTimeout,
-                dateTimeProvider: dateTimeProvider,
-                serializer: _hostSettings.Serializer);
-
             var hostConnection = connectionPool.AddOrUpdate(
                 connectionTimeout: _hostSettings.PeerInactivityTimeout,
                 connectionId: hostConnectionId,
@@ -149,6 +134,19 @@ namespace UdpToolkit
                 ips: _hostClientSettings.ServerInputPorts
                     .Select(port => new IPEndPoint(IPAddress.Parse(_hostClientSettings.ServerHost), port))
                     .ToList());
+
+            var hostClient = new HostClient(
+                remoteHostConnection: remoteHostConnection,
+                inputPorts: _hostSettings.InputPorts.ToArray(),
+                callContextPool: callContextPool,
+                hostConnection: hostConnection,
+                cancellationTokenSource: new CancellationTokenSource(),
+                outputQueue: outputQueue,
+                pingDelayMs: _hostClientSettings.PingDelayInMs,
+                resendPacketsTimeout: _hostClientSettings.ResendPacketsTimeout,
+                connectionTimeout: _hostClientSettings.ConnectionTimeout,
+                dateTimeProvider: dateTimeProvider,
+                serializer: _hostSettings.Serializer);
 
             return new Host(
                 udpToolkitLogger: loggerFactory.Create<Host>(),

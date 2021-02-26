@@ -4,7 +4,9 @@ namespace UdpToolkit.Core
 
     public interface IHostClient
     {
-        Guid PeerId { get; }
+        Guid ConnectionId { get; }
+
+        TimeSpan Rtt { get; }
 
         bool IsConnected { get; }
 

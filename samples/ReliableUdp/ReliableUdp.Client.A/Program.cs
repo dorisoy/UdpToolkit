@@ -24,6 +24,7 @@
 
             var host = BuildHost();
             var client = host.HostClient;
+
             var nickname = "Client A";
 
             host.OnProtocol<Connect>(

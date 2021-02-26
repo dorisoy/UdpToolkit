@@ -3,9 +3,9 @@
     using System.Net;
     using System.Net.Sockets;
 
-    public sealed class UdpClientFactory : IUdpClientFactory
+    public static class UdpClientFactory
     {
-        public UdpClient Create(
+        public static UdpClient Create(
             IPEndPoint localEndPoint)
         {
             var udpClient = new UdpClient();

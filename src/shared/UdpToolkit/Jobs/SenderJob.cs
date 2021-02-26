@@ -48,13 +48,6 @@ namespace UdpToolkit.Jobs
             {
                 using (pooledCallContext)
                 {
-                    // for avoiding effect on UI thread set IP at here
-                    if (pooledCallContext.Value.NetworkPacketDto.IpEndPoint == null)
-                    {
-                        var serverIp = _serverConnection.GetRandomIp();
-                        pooledCallContext.Value.NetworkPacketDto.Set(ipEndPoint: serverIp);
-                    }
-
                     var networkPacketDto = pooledCallContext.Value.NetworkPacketDto;
                     var resendTimeout = pooledCallContext.Value.ResendTimeout;
                     var peerId = pooledCallContext.Value.NetworkPacketDto.PeerId;
@@ -200,7 +193,7 @@ namespace UdpToolkit.Jobs
 
                     var connection = _connectionPool.TryGetConnection(connectionId);
                     pooledNetworkPacket.Value.Set(
-                        ipEndPoint: connection.GetRandomIp(),
+                        ipEndPoint: connection.GetIp(),
                         networkPacketType: NetworkPacketType.Ack);
 
                     await udpSender
@@ -235,7 +228,7 @@ namespace UdpToolkit.Jobs
                     acks: originalPooledNetworkPacket.Value.Acks,
                     serializer: originalPooledNetworkPacket.Value.Serializer,
                     createdAt: originalPooledNetworkPacket.Value.CreatedAt,
-                    ipEndPoint: connection.GetRandomIp());
+                    ipEndPoint: connection.GetIp());
 
                 return udpSender.SendAsync(pooledNetworkPacket);
             }
@@ -248,7 +241,7 @@ namespace UdpToolkit.Jobs
                     id: originalPooledNetworkPacket.Value.Id,
                     acks: originalPooledNetworkPacket.Value.Acks,
                     hookId: originalPooledNetworkPacket.Value.HookId,
-                    ipEndPoint: connection.GetRandomIp(),
+                    ipEndPoint: connection.GetIp(),
                     createdAt: DateTimeOffset.UtcNow,
                     serializer: originalPooledNetworkPacket.Value.Serializer,
                     channelType: originalPooledNetworkPacket.Value.ChannelType,

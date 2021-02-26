@@ -58,29 +58,33 @@ namespace UdpToolkit.Network.Clients
 
             var connectionId = pooledNetworkPacket.Value.ConnectionId;
             var connection = _connectionPool.TryGetConnection(connectionId);
+            var networkPacketType = pooledNetworkPacket.Value.NetworkPacketType;
 
-            if (pooledNetworkPacket.Value.IsProtocolEvent && pooledNetworkPacket.Value.NetworkPacketType == NetworkPacketType.Protocol)
+            if (pooledNetworkPacket.Value.IsProtocolEvent)
             {
                 switch ((ProtocolHookId)pooledNetworkPacket.Value.HookId)
                 {
                     case ProtocolHookId.P2P:
                         break;
-                    case ProtocolHookId.Ping:
+                    case ProtocolHookId.Ping when networkPacketType == NetworkPacketType.Protocol:
                         connection?.OnPing(_dateTimeProvider.GetUtcNow());
+
                         break;
-                    case ProtocolHookId.Pong:
-                        connection?.OnPong(_dateTimeProvider.GetUtcNow());
+
+                    case ProtocolHookId.Ping when networkPacketType == NetworkPacketType.Ack:
+                        connection?.OnPingAck(_dateTimeProvider.GetUtcNow());
+
                         break;
-                    case ProtocolHookId.Disconnect:
+                    case ProtocolHookId.Disconnect when networkPacketType == NetworkPacketType.Protocol:
                         _connectionPool.Remove(connection);
                         break;
-                    case ProtocolHookId.Connect:
-                        var @event = ProtocolEvent<Connect>.Deserialize(pooledNetworkPacket.Value.Serializer());
+                    case ProtocolHookId.Connect when networkPacketType == NetworkPacketType.Protocol:
+                        var connect = ProtocolEvent<Connect>.Deserialize(pooledNetworkPacket.Value.Serializer());
 
                         connection = _connectionPool.AddOrUpdate(
                             connectionTimeout: _connectionInactivityTimeout,
                             connectionId: connectionId,
-                            ips: @event.InputPorts
+                            ips: connect.InputPorts
                                 .Select(port => new IPEndPoint(pooledNetworkPacket.Value.IpEndPoint.Address, port))
                                 .ToList());
                         break;

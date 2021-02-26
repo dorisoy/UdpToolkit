@@ -19,6 +19,8 @@ namespace UdpToolkit
         private readonly int? _pingDelayMs;
         private readonly int[] _inputPorts;
         private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly IConnection _hostConnection;
+        private readonly IConnection _remoteHostConnection;
         private readonly ISerializer _serializer;
         private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
         private readonly IObjectsPool<CallContext> _callContextPool;
@@ -26,7 +28,8 @@ namespace UdpToolkit
         private readonly Task _ping;
 
         public HostClient(
-            Guid peerId,
+            IConnection hostConnection,
+            IConnection remoteHostConnection,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
             IAsyncQueue<PooledObject<CallContext>> outputQueue,
@@ -37,6 +40,7 @@ namespace UdpToolkit
             CancellationTokenSource cancellationTokenSource,
             IObjectsPool<CallContext> callContextPool)
         {
+            _hostConnection = hostConnection;
             _serializer = serializer;
             _dateTimeProvider = dateTimeProvider;
             _connectionTimeoutFromSettings = connectionTimeout;
@@ -44,12 +48,15 @@ namespace UdpToolkit
             _pingDelayMs = pingDelayMs;
             _inputPorts = inputPorts;
             _callContextPool = callContextPool;
+            _remoteHostConnection = remoteHostConnection;
             _outputQueue = outputQueue;
-            PeerId = peerId;
+
             _ping = Task.Run(() => PingHost(cancellationTokenSource.Token));
         }
 
-        public Guid PeerId { get; }
+        public Guid ConnectionId => _hostConnection.ConnectionId;
+
+        public TimeSpan Rtt => _hostConnection.GetRtt();
 
         public bool IsConnected { get; internal set; }
 
@@ -58,9 +65,9 @@ namespace UdpToolkit
         {
             var timeout = connectionTimeout ?? _connectionTimeoutFromSettings;
 
-            PublishInternal(
+            SendInternal(
                 resendTimeout: timeout,
-                @event: new Connect(PeerId, _inputPorts),
+                @event: new Connect(ConnectionId, _inputPorts),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
@@ -73,9 +80,9 @@ namespace UdpToolkit
         public void ConnectAsync(
             TimeSpan? connectionTimeout = null)
         {
-            PublishInternal(
+            SendInternal(
                 resendTimeout: connectionTimeout ?? _connectionTimeoutFromSettings,
-                @event: new Connect(PeerId, _inputPorts),
+                @event: new Connect(ConnectionId, _inputPorts),
                 networkPacketType: NetworkPacketType.Protocol,
                 broadcastMode: Core.BroadcastMode.Server,
                 hookId: (byte)ProtocolHookId.Connect,
@@ -85,9 +92,9 @@ namespace UdpToolkit
 
         public bool Disconnect()
         {
-            PublishInternal(
+            SendInternal(
                 resendTimeout: _resendPacketsTimeout,
-                @event: new Disconnect(peerId: PeerId),
+                @event: new Disconnect(peerId: ConnectionId),
                 broadcastMode: Core.BroadcastMode.Server,
                 networkPacketType: NetworkPacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
@@ -102,7 +109,7 @@ namespace UdpToolkit
             byte hookId,
             UdpMode udpMode)
         {
-            PublishInternal(
+            SendInternal(
                 networkPacketType: NetworkPacketType.FromClient,
                 broadcastMode: Core.BroadcastMode.Server,
                 resendTimeout: _resendPacketsTimeout,
@@ -112,7 +119,7 @@ namespace UdpToolkit
                 serializer: _serializer.Serialize);
         }
 
-        private void PublishInternal<TEvent>(
+        private void SendInternal<TEvent>(
             TEvent @event,
             TimeSpan resendTimeout,
             byte hookId,
@@ -135,8 +142,8 @@ namespace UdpToolkit
                 createdAt: _dateTimeProvider.UtcNow(),
                 networkPacketType: networkPacketType,
                 channelType: udpMode.Map(),
-                peerId: PeerId,
-                ipEndPoint: null,
+                peerId: ConnectionId,
+                ipEndPoint: _remoteHostConnection.GetIp(),
                 serializer: () => serializer(@event),
                 hookId: hookId);
 
@@ -158,7 +165,7 @@ namespace UdpToolkit
                 {
                     var @event = new Ping();
 
-                    PublishInternal(
+                    SendInternal(
                         resendTimeout: _resendPacketsTimeout,
                         @event: @event,
                         networkPacketType: NetworkPacketType.Protocol,

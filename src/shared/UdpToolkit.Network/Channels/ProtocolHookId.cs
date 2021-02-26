@@ -4,9 +4,8 @@ namespace UdpToolkit.Network.Channels
 
     public enum ProtocolHookId : byte
     {
-        P2P = 249,
-        Ping = 250,
-        Pong = 251,
+        P2P = 252,
+        Ping = 253,
         Disconnect = 254,
         Connect = 255,
     }

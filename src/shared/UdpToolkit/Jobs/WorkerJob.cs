@@ -107,7 +107,6 @@ namespace UdpToolkit.Jobs
             switch (protocolHookId)
             {
                 case ProtocolHookId.Ping:
-                case ProtocolHookId.Pong:
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
@@ -262,7 +261,6 @@ namespace UdpToolkit.Jobs
             switch (protocolHookId)
             {
                 case ProtocolHookId.Ping:
-                case ProtocolHookId.Pong:
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
