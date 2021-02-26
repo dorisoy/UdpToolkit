@@ -6,7 +6,7 @@ namespace UdpToolkit.Core
     public interface IRoom
     {
         void AddPeer(
-            IPeer peer);
+            Guid peerId);
 
         void RemovePeer(
             Guid peerId);

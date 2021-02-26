@@ -1,14 +1,13 @@
 namespace UdpToolkit
 {
     using System;
-    using System.Collections.Generic;
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
-    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Protocol;
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Serialization;
 

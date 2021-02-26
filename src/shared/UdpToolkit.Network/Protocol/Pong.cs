@@ -1,4 +1,4 @@
-namespace UdpToolkit.Core.ProtocolEvents
+namespace UdpToolkit.Network.Protocol
 {
     using System;
 

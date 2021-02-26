@@ -5,22 +5,23 @@ namespace UdpToolkit
     using System.Collections.Generic;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
-    using UdpToolkit.Network.Peers;
+    using UdpToolkit.Network;
 
     public class RoomManager : IRoomManager, IRawRoomManager
     {
         private readonly ConcurrentDictionary<int, IRawRoom> _rooms = new ConcurrentDictionary<int, IRawRoom>();
-        private readonly IPeerManager _peerManager;
+        private readonly IConnectionPool _connectionPool;
 
-        public RoomManager(IPeerManager peerManager)
+        public RoomManager(
+            IConnectionPool connectionPool)
         {
-            _peerManager = peerManager;
+            _connectionPool = connectionPool;
         }
 
         public void JoinOrCreate(int roomId, Guid peerId)
         {
-            var exists = _peerManager.TryGetPeer(peerId, out var peer);
-            if (!exists)
+            var connection = _connectionPool.TryGetConnection(peerId);
+            if (connection == null)
             {
                 return;
             }
@@ -30,15 +31,13 @@ namespace UdpToolkit
                 addValueFactory: (id) =>
                 {
                     var room = new Room();
-                    room.AddPeer(peer);
-                    peer.SetRoomId(roomId);
+                    room.AddPeer(connection.ConnectionId);
 
                     return room;
                 },
                 updateValueFactory: (id, room) =>
                 {
-                    peer.SetRoomId(roomId);
-                    room.AddPeer(peer);
+                    room.AddPeer(connection.ConnectionId);
                     return room;
                 });
         }
@@ -50,21 +49,21 @@ namespace UdpToolkit
 
         public void Remove(
             int roomId,
-            IRawPeer peer)
+            IConnection connection)
         {
             if (!_rooms.TryGetValue(roomId, out var room))
             {
                 return;
             }
 
-            room.RemovePeer(peer.PeerId);
+            room.RemovePeer(connection.ConnectionId);
         }
 
         public Task Apply(
             int roomId,
             Guid caller,
-            Func<IRawPeer, bool> condition,
-            Func<IRawPeer, Task> func)
+            Func<Guid, bool> condition,
+            Func<Guid, Task> func)
         {
             JoinOrCreate(roomId, caller);
 
@@ -76,13 +75,13 @@ namespace UdpToolkit
 
         public void Leave(int roomId, Guid peerId)
         {
-            var exists = _peerManager.TryGetPeer(peerId, out var peer);
-            if (!exists)
+            var connection = _connectionPool.TryGetConnection(peerId);
+            if (connection == null)
             {
                 return;
             }
 
-            _rooms[roomId].RemovePeer(peerId: peer.PeerId);
+            _rooms[roomId].RemovePeer(peerId: peerId);
         }
     }
 }

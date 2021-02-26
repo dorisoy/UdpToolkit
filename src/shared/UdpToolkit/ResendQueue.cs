@@ -19,7 +19,7 @@ namespace UdpToolkit
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
             var lazyQueue = _resendQueue.AddOrUpdate(
-                key: pooledNetworkPacket.Value.PeerId,
+                key: pooledNetworkPacket.Value.ConnectionId,
                 addValueFactory: (key) =>
                 {
                     var queue = new Lazy<List<PooledObject<NetworkPacket>>>();

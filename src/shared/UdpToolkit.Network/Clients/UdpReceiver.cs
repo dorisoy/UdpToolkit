@@ -1,35 +1,40 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
-    using System.Collections.Generic;
+    using System.Linq;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading.Tasks;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Utils;
 
     public sealed class UdpReceiver : IUdpReceiver
     {
+        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly UdpClient _receiver;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
-        private readonly IRawPeerManager _rawPeerManager;
-        private readonly TimeSpan _peerInactivityTimeout;
+        private readonly IConnectionPool _connectionPool;
+        private readonly TimeSpan _connectionInactivityTimeout;
 
         public UdpReceiver(
             UdpClient receiver,
             IObjectsPool<NetworkPacket> networkPacketPool,
-            IRawPeerManager rawPeerManager,
-            TimeSpan peerInactivityTimeout,
-            IUdpToolkitLogger udpToolkitLogger)
+            IConnectionPool connectionPool,
+            TimeSpan connectionInactivityTimeout,
+            IUdpToolkitLogger udpToolkitLogger,
+            IDateTimeProvider dateTimeProvider)
         {
             _receiver = receiver;
             _networkPacketPool = networkPacketPool;
-            _rawPeerManager = rawPeerManager;
-            _peerInactivityTimeout = peerInactivityTimeout;
+            _connectionPool = connectionPool;
+            _connectionInactivityTimeout = connectionInactivityTimeout;
             _udpToolkitLogger = udpToolkitLogger;
+            _dateTimeProvider = dateTimeProvider;
             _udpToolkitLogger.Debug($"{nameof(UdpReceiver)} - {receiver.Client.LocalEndPoint} created");
         }
 
@@ -51,15 +56,38 @@ namespace UdpToolkit.Network.Clients
                 ipEndPoint: udpReceiveResult.RemoteEndPoint,
                 pooledNetworkPacket: pooledNetworkPacket);
 
-            var peerId = pooledNetworkPacket.Value.PeerId;
-            var rawPeer = pooledNetworkPacket.Value.IsProtocolEvent
-                ? _rawPeerManager.AddOrUpdate(
-                    inactivityTimeout: _peerInactivityTimeout,
-                    peerId: peerId,
-                    ips: new List<IPEndPoint>())
-                : _rawPeerManager.TryGetPeer(peerId);
+            var connectionId = pooledNetworkPacket.Value.ConnectionId;
+            var connection = _connectionPool.TryGetConnection(connectionId);
 
-            if (ReceiveInternalAsync(rawPeer, udpReceiveResult, pooledNetworkPacket))
+            if (pooledNetworkPacket.Value.IsProtocolEvent && pooledNetworkPacket.Value.NetworkPacketType == NetworkPacketType.Protocol)
+            {
+                switch ((ProtocolHookId)pooledNetworkPacket.Value.HookId)
+                {
+                    case ProtocolHookId.P2P:
+                        break;
+                    case ProtocolHookId.Ping:
+                        connection?.OnPing(_dateTimeProvider.GetUtcNow());
+                        break;
+                    case ProtocolHookId.Pong:
+                        connection?.OnPong(_dateTimeProvider.GetUtcNow());
+                        break;
+                    case ProtocolHookId.Disconnect:
+                        _connectionPool.Remove(connection);
+                        break;
+                    case ProtocolHookId.Connect:
+                        var @event = ProtocolEvent<Connect>.Deserialize(pooledNetworkPacket.Value.Serializer());
+
+                        connection = _connectionPool.AddOrUpdate(
+                            connectionTimeout: _connectionInactivityTimeout,
+                            connectionId: connectionId,
+                            ips: @event.InputPorts
+                                .Select(port => new IPEndPoint(pooledNetworkPacket.Value.IpEndPoint.Address, port))
+                                .ToList());
+                        break;
+                }
+            }
+
+            if (ReceiveInternalAsync(connection, udpReceiveResult, pooledNetworkPacket))
             {
                 return pooledNetworkPacket;
             }
@@ -73,7 +101,7 @@ namespace UdpToolkit.Network.Clients
         }
 
         private bool ReceiveInternalAsync(
-            IRawPeer rawPeer,
+            IConnection connection,
             UdpReceiveResult udpReceiveResult,
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
@@ -86,12 +114,12 @@ namespace UdpToolkit.Network.Clients
                 case NetworkPacketType.FromServer:
                 case NetworkPacketType.FromClient:
                 case NetworkPacketType.Protocol:
-                    return rawPeer
+                    return connection
                         .GetIncomingChannel(channelType: networkPacket.ChannelType)
                         .HandleInputPacket(pooledNetworkPacket.Value);
 
                 case NetworkPacketType.Ack:
-                    return rawPeer
+                    return connection
                         .GetOutcomingChannel(networkPacket.ChannelType)
                         .HandleAck(pooledNetworkPacket.Value);
 

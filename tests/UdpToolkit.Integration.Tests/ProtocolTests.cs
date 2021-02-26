@@ -4,9 +4,9 @@ namespace UdpToolkit.Integration.Tests
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit;
-    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Integration.Tests.Utils;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Protocol;
     using Xunit;
 
     public class ProtocolTests

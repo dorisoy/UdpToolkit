@@ -7,7 +7,7 @@ namespace UdpToolkit
     public interface IRawRoom : IRoom
     {
         Task Apply(
-            Func<Peer, bool> condition,
-            Func<Peer, Task> func);
+            Func<Guid, bool> condition,
+            Func<Guid, Task> func);
     }
 }

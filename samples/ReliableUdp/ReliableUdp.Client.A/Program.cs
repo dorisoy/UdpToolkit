@@ -8,9 +8,9 @@
     using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Core;
-    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Protocol;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program

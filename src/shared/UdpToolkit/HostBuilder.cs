@@ -44,6 +44,7 @@ namespace UdpToolkit
             ValidateSettings(_hostSettings);
 
             var dateTimeProvider = new DateTimeProvider();
+            var networkDateTimeProvider = new Network.Utils.DateTimeProvider();
             var udpClientFactory = new UdpClientFactory();
             var scheduler = new Scheduler();
             var loggerFactory = _hostSettings.LoggerFactory;
@@ -60,11 +61,10 @@ namespace UdpToolkit
             var resendQueue = new BlockingAsyncQueue<PooledObject<CallContext>>(
                 boundedCapacity: int.MaxValue);
 
-            var peerManager = new PeerManager(
-                dateTimeProvider: dateTimeProvider);
+            var connectionPool = new ConnectionPool(networkDateTimeProvider);
 
             var roomManager = new RoomManager(
-                peerManager: peerManager);
+                connectionPool: connectionPool);
 
             if (!_hostClientSettings.ServerInputPorts.Any())
             {
@@ -74,17 +74,6 @@ namespace UdpToolkit
                     NetworkUtils.GetAvailablePort(),
                 };
             }
-
-            var inputIps = _hostClientSettings.ServerInputPorts
-                .Select(port =>
-                    new IPEndPoint(
-                        address: IPAddress.Parse(ipString: _hostClientSettings.ServerHost),
-                        port: port))
-                .ToArray();
-
-            var randomServerSelector = new RandomServerSelector(
-                peerManager: peerManager,
-                inputIps: inputIps);
 
             if (!_hostSettings.OutputPorts.Any())
             {
@@ -102,6 +91,7 @@ namespace UdpToolkit
             var senders = outputPorts
                 .Select(udpClientFactory.Create)
                 .Select(udpClient => new UdpSender(
+                    connectionPool: connectionPool,
                     udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient,
                     rawRoomManager: roomManager,
@@ -117,37 +107,30 @@ namespace UdpToolkit
                 };
             }
 
-            var inputPorts = _hostSettings.InputPorts
+            var inputEndPoints = _hostSettings.InputPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
                 .ToList();
 
-            var receivers = inputPorts
+            var receivers = inputEndPoints
                 .Select(udpClientFactory.Create)
                 .Select(udpClient => new UdpReceiver(
+                    dateTimeProvider: networkDateTimeProvider,
                     udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
-                    peerInactivityTimeout: _hostSettings.PeerInactivityTimeout,
-                    rawPeerManager: peerManager,
+                    connectionInactivityTimeout: _hostSettings.PeerInactivityTimeout,
+                    connectionPool: connectionPool,
                     receiver: udpClient,
                     networkPacketPool: networkPacketPool))
                 .ToList();
 
             var subscriptionManager = new SubscriptionManager();
 
-            var protocolSubscriptionManager = new ProtocolSubscriptionManager();
-            var protocolSubscriptionBootstraper = new ProtocolSubscriptionBootstraper(
-                protocolSubscriptionManager: protocolSubscriptionManager,
-                udpToolkitLogger: loggerFactory.Create<ProtocolSubscriptionBootstraper>(),
-                peerManager: peerManager,
-                dateTimeProvider: dateTimeProvider,
-                inactivityTimeout: _hostSettings.PeerInactivityTimeout);
-            protocolSubscriptionBootstraper.BootstrapSubscriptions();
-
-            var peerId = Guid.NewGuid();
+            var hostConnectionId = Guid.NewGuid();
+            var remoteHostConnectionId = Guid.NewGuid();
 
             var hostClient = new HostClient(
                 inputPorts: _hostSettings.InputPorts.ToArray(),
                 callContextPool: callContextPool,
-                peerId: peerId,
+                peerId: hostConnectionId,
                 cancellationTokenSource: new CancellationTokenSource(),
                 outputQueue: outputQueue,
                 pingDelayMs: _hostClientSettings.PingDelayInMs,
@@ -156,10 +139,17 @@ namespace UdpToolkit
                 dateTimeProvider: dateTimeProvider,
                 serializer: _hostSettings.Serializer);
 
-            _ = peerManager.AddOrUpdate(
-                inactivityTimeout: _hostSettings.PeerInactivityTimeout,
-                peerId: peerId,
-                ips: inputPorts);
+            var hostConnection = connectionPool.AddOrUpdate(
+                connectionTimeout: _hostSettings.PeerInactivityTimeout,
+                connectionId: hostConnectionId,
+                ips: inputEndPoints);
+
+            var remoteHostConnection = connectionPool.AddOrUpdate(
+                connectionTimeout: _hostSettings.PeerInactivityTimeout,
+                connectionId: remoteHostConnectionId,
+                ips: _hostClientSettings.ServerInputPorts
+                    .Select(port => new IPEndPoint(IPAddress.Parse(_hostClientSettings.ServerHost), port))
+                    .ToList());
 
             return new Host(
                 udpToolkitLogger: loggerFactory.Create<Host>(),
@@ -173,13 +163,12 @@ namespace UdpToolkit
                 receivers: receivers,
                 scheduler: scheduler,
                 sendingJob: new SenderJob(
+                    serverConnection: remoteHostConnection,
                     udpToolkitLogger: loggerFactory.Create<SenderJob>(),
                     scheduler: scheduler,
                     resendQueue: new ResendQueue(),
-                    rawPeerManager: peerManager,
-                    serverSelector: randomServerSelector,
+                    connectionPool: connectionPool,
                     networkPacketPool: networkPacketPool,
-                    protocolSubscriptionManager: protocolSubscriptionManager,
                     outputQueue: outputQueue),
                 receivingJob: new ReceiverJob(
                     hostSettings: _hostSettings,
@@ -192,7 +181,6 @@ namespace UdpToolkit
                     outputQueue: outputQueue,
                     callContextPool: callContextPool,
                     subscriptionManager: subscriptionManager,
-                    protocolSubscriptionManager: protocolSubscriptionManager,
                     roomManager: roomManager,
                     dateTimeProvider: dateTimeProvider,
                     hostSettings: _hostSettings,

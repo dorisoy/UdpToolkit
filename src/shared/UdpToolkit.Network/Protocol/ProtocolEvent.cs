@@ -1,4 +1,4 @@
-namespace UdpToolkit.Core.ProtocolEvents
+namespace UdpToolkit.Network.Protocol
 {
     public abstract class ProtocolEvent<TEvent>
         where TEvent : ProtocolEvent<TEvent>, new()

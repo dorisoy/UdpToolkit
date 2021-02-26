@@ -17,7 +17,7 @@ namespace UdpToolkit.Network.Packets
             byte hookId,
             ChannelType channelType,
             NetworkPacketType networkPacketType,
-            Guid peerId,
+            Guid connectionId,
             ushort id,
             uint acks,
             Func<byte[]> serializer,
@@ -28,7 +28,7 @@ namespace UdpToolkit.Network.Packets
             CreatedAt = createdAt;
             HookId = hookId;
             ChannelType = channelType;
-            PeerId = peerId;
+            ConnectionId = connectionId;
             NetworkPacketType = networkPacketType;
             Id = id;
             Acks = acks;
@@ -43,7 +43,7 @@ namespace UdpToolkit.Network.Packets
 
         public ChannelType ChannelType { get; private set; }
 
-        public Guid PeerId { get; private set; }
+        public Guid ConnectionId { get; private set; }
 
         public NetworkPacketType NetworkPacketType { get; private set; }
 
@@ -66,7 +66,7 @@ namespace UdpToolkit.Network.Packets
                 bw.Write(networkPacket.HookId);
                 bw.Write((byte)networkPacket.ChannelType);
                 bw.Write((byte)networkPacket.NetworkPacketType);
-                bw.Write(buffer: networkPacket.PeerId.ToByteArray());
+                bw.Write(buffer: networkPacket.ConnectionId.ToByteArray());
                 bw.Write(networkPacket.Id);
                 bw.Write(networkPacket.Acks);
                 bw.Write(buffer: networkPacket.Serializer());
@@ -86,7 +86,7 @@ namespace UdpToolkit.Network.Packets
                 var hookId = reader.ReadByte();
                 var channelType = (ChannelType)reader.ReadByte();
                 var networkPacketType = (NetworkPacketType)reader.ReadByte();
-                var peerId = new Guid(reader.ReadBytes(16));
+                var connectionId = new Guid(reader.ReadBytes(16));
                 var id = reader.ReadUInt16();
                 var acks = reader.ReadUInt32();
                 var payload = reader.ReadBytes(bytes.Length - 25);
@@ -97,7 +97,7 @@ namespace UdpToolkit.Network.Packets
                     hookId: hookId,
                     channelType: channelType,
                     networkPacketType: networkPacketType,
-                    peerId: peerId,
+                    connectionId: connectionId,
                     id: id,
                     acks: acks,
                     serializer: () => payload);
@@ -108,7 +108,7 @@ namespace UdpToolkit.Network.Packets
 
         public override string ToString()
         {
-            return $"{nameof(Id)}: {Id}, {nameof(Acks)}: {Acks}, {nameof(HookId)}: {HookId}, {nameof(ChannelType)}: {ChannelType}, {nameof(PeerId)}: {PeerId}, {nameof(NetworkPacketType)}: {NetworkPacketType}, {nameof(CreatedAt)}: {CreatedAt}, {nameof(IpEndPoint)}: {IpEndPoint}, {nameof(IsProtocolEvent)}: {IsProtocolEvent}, {nameof(IsReliable)}: {IsReliable}";
+            return $"{nameof(Id)}: {Id}, {nameof(Acks)}: {Acks}, {nameof(HookId)}: {HookId}, {nameof(ChannelType)}: {ChannelType}, {nameof(ConnectionId)}: {ConnectionId}, {nameof(NetworkPacketType)}: {NetworkPacketType}, {nameof(CreatedAt)}: {CreatedAt}, {nameof(IpEndPoint)}: {IpEndPoint}, {nameof(IsProtocolEvent)}: {IsProtocolEvent}, {nameof(IsReliable)}: {IsReliable}";
         }
 
         public void Reset()
@@ -117,7 +117,7 @@ namespace UdpToolkit.Network.Packets
             CreatedAt = default;
             HookId = default;
             ChannelType = default;
-            PeerId = default;
+            ConnectionId = default;
             NetworkPacketType = default;
             Id = default;
             Acks = default;
@@ -128,7 +128,7 @@ namespace UdpToolkit.Network.Packets
             byte? hookId = null,
             ChannelType? channelType = null,
             NetworkPacketType? networkPacketType = null,
-            Guid? peerId = null,
+            Guid? connectionId = null,
             ushort? id = null,
             uint? acks = null,
             Func<byte[]> serializer = null,
@@ -139,7 +139,7 @@ namespace UdpToolkit.Network.Packets
             CreatedAt = createdAt ?? CreatedAt;
             HookId = hookId ?? HookId;
             ChannelType = channelType ?? ChannelType;
-            PeerId = peerId ?? PeerId;
+            ConnectionId = connectionId ?? ConnectionId;
             NetworkPacketType = networkPacketType ?? NetworkPacketType;
             Id = id ?? Id;
             Acks = acks ?? Acks;

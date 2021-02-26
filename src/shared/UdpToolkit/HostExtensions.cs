@@ -2,8 +2,8 @@ namespace UdpToolkit
 {
     using System;
     using UdpToolkit.Core;
-    using UdpToolkit.Core.ProtocolEvents;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Protocol;
 
     public static class HostExtensions
     {

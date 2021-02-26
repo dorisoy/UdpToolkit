@@ -7,7 +7,6 @@ namespace UdpToolkit.Jobs
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
     using UdpToolkit.Network.Queues;
 
@@ -15,28 +14,25 @@ namespace UdpToolkit.Jobs
     {
         private readonly IUdpToolkitLogger _udpToolkitLogger;
         private readonly ResendQueue _resendQueue;
-        private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
+        private readonly IConnection _serverConnection;
         private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
-        private readonly IRawPeerManager _rawPeerManager;
-        private readonly IServerSelector _serverSelector;
+        private readonly IConnectionPool _connectionPool;
         private readonly Scheduler _scheduler;
 
         public SenderJob(
-            IProtocolSubscriptionManager protocolSubscriptionManager,
+            IConnection serverConnection,
             IAsyncQueue<PooledObject<CallContext>> outputQueue,
             IObjectsPool<NetworkPacket> networkPacketPool,
-            IRawPeerManager rawPeerManager,
-            IServerSelector serverSelector,
+            IConnectionPool connectionPool,
             Scheduler scheduler,
             ResendQueue resendQueue,
             IUdpToolkitLogger udpToolkitLogger)
         {
-            _protocolSubscriptionManager = protocolSubscriptionManager;
+            _serverConnection = serverConnection;
             _outputQueue = outputQueue;
             _networkPacketPool = networkPacketPool;
-            _rawPeerManager = rawPeerManager;
-            _serverSelector = serverSelector;
+            _connectionPool = connectionPool;
             _scheduler = scheduler;
             _resendQueue = resendQueue;
             _udpToolkitLogger = udpToolkitLogger;
@@ -52,7 +48,7 @@ namespace UdpToolkit.Jobs
                     // for avoiding effect on UI thread set IP at here
                     if (pooledCallContext.Value.NetworkPacketDto.IpEndPoint == null)
                     {
-                        var serverIp = _serverSelector.GetServer().GetRandomIp();
+                        var serverIp = _serverConnection.GetRandomIp();
                         pooledCallContext.Value.NetworkPacketDto.Set(ipEndPoint: serverIp);
                     }
 
@@ -65,7 +61,7 @@ namespace UdpToolkit.Jobs
                             hookId: networkPacketDto.HookId,
                             channelType: networkPacketDto.ChannelType,
                             networkPacketType: networkPacketDto.NetworkPacketType,
-                            peerId: networkPacketDto.PeerId,
+                            connectionId: networkPacketDto.PeerId,
                             id: networkPacketDto.Id,
                             acks: networkPacketDto.Acks,
                             serializer: networkPacketDto.Serializer,
@@ -89,7 +85,7 @@ namespace UdpToolkit.Jobs
                                 hookId: pooledNetworkPacket.Value.HookId,
                                 channelType: pooledNetworkPacket.Value.ChannelType,
                                 networkPacketType: pt,
-                                peerId: pooledNetworkPacket.Value.PeerId,
+                                connectionId: pooledNetworkPacket.Value.ConnectionId,
                                 id: pooledNetworkPacket.Value.Id,
                                 acks: pooledNetworkPacket.Value.Acks,
                                 serializer: pooledNetworkPacket.Value.Serializer,
@@ -102,19 +98,19 @@ namespace UdpToolkit.Jobs
                             }
                         }
 
-                        var peer = _rawPeerManager.TryGetPeer(peerId);
+                        var peer = _connectionPool.TryGetConnection(peerId);
                         if (peer == null)
                         {
                             continue;
                         }
 
                         _scheduler.Schedule(
-                            key: peer.PeerId,
+                            key: peer.ConnectionId,
                             dueTimeMs: 1000,
                             action: () =>
                             {
                                 _udpToolkitLogger.Debug($"Resend: {DateTime.UtcNow} PeerId: {peerId}");
-                                var resendQueue = _resendQueue.Get(peer.PeerId);
+                                var resendQueue = _resendQueue.Get(peer.ConnectionId);
                                 for (var i = 0; i < resendQueue.Count; i++)
                                 {
                                     var pendingNetworkPacket = resendQueue[i];
@@ -149,16 +145,6 @@ namespace UdpToolkit.Jobs
             BroadcastMode? broadcastMode,
             PooledObject<NetworkPacket> pooledNetworkPacket)
         {
-            if (pooledNetworkPacket.Value.IsProtocolEvent)
-            {
-                var protocolSubscription = _protocolSubscriptionManager
-                    .GetProtocolSubscription(pooledNetworkPacket.Value.HookId);
-
-                protocolSubscription?.OnOutputEvent?.Invoke(
-                    arg1: pooledNetworkPacket.Value.Serializer(),
-                    arg2: pooledNetworkPacket.Value.PeerId);
-            }
-
             switch (broadcastMode)
             {
                 case BroadcastMode.Room:
@@ -177,11 +163,11 @@ namespace UdpToolkit.Jobs
                 case BroadcastMode.AllPeers:
                 case BroadcastMode.AckToServer:
                     var peerId = broadcastMode == BroadcastMode.AckToServer
-                        ? _serverSelector.GetServer().PeerId
-                        : pooledNetworkPacket.Value.PeerId;
+                        ? _serverConnection.ConnectionId
+                        : pooledNetworkPacket.Value.ConnectionId;
 
-                    var rawPeer = _rawPeerManager.TryGetPeer(peerId: peerId);
-                    if (rawPeer == null)
+                    var connection = _connectionPool.TryGetConnection(connectionId: peerId);
+                    if (connection == null)
                     {
                         return;
                     }
@@ -189,7 +175,7 @@ namespace UdpToolkit.Jobs
                     await udpSender
                         .SendAsync(
                             pooledNetworkPacket: pooledNetworkPacket,
-                            rawPeer: rawPeer,
+                            connection: connection,
                             broadcastType: broadcastMode?.Map() ?? throw new ArgumentNullException(nameof(broadcastMode)))
                         .ConfigureAwait(false);
 

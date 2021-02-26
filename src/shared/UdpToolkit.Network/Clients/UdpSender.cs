@@ -5,7 +5,6 @@ namespace UdpToolkit.Network.Clients
     using System.Threading.Tasks;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
 
     public sealed class UdpSender : IUdpSender
@@ -14,6 +13,7 @@ namespace UdpToolkit.Network.Clients
 
         private readonly UdpClient _sender;
 
+        private readonly IConnectionPool _connectionPool;
         private readonly IRawRoomManager _rawRoomManager;
         private readonly IObjectsPool<NetworkPacket> _networkPacketPool;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
@@ -22,12 +22,14 @@ namespace UdpToolkit.Network.Clients
             UdpClient sender,
             IRawRoomManager rawRoomManager,
             IObjectsPool<NetworkPacket> networkPacketPool,
-            IUdpToolkitLogger udpToolkitLogger)
+            IUdpToolkitLogger udpToolkitLogger,
+            IConnectionPool connectionPool)
         {
             _sender = sender;
             _rawRoomManager = rawRoomManager;
             _networkPacketPool = networkPacketPool;
             _udpToolkitLogger = udpToolkitLogger;
+            _connectionPool = connectionPool;
             _udpToolkitLogger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
         }
 
@@ -60,17 +62,17 @@ namespace UdpToolkit.Network.Clients
 
         public Task SendAsync(
             PooledObject<NetworkPacket> pooledNetworkPacket,
-            IRawPeer rawPeer,
+            IConnection connection,
             BroadcastType broadcastType)
         {
             switch (broadcastType)
             {
                 case BroadcastType.Caller:
-                    return HandleCaller(pooledNetworkPacket, rawPeer);
+                    return HandleCaller(pooledNetworkPacket, connection);
                 case BroadcastType.Server:
-                    return HandleServer(pooledNetworkPacket, rawPeer);
+                    return HandleServer(pooledNetworkPacket, connection);
                 case BroadcastType.AckToServer:
-                    return HandleAckToServer(pooledNetworkPacket, rawPeer);
+                    return HandleAckToServer(pooledNetworkPacket, connection);
                 default:
                     throw new ArgumentOutOfRangeException(nameof(broadcastType), broadcastType, null);
             }
@@ -98,9 +100,9 @@ namespace UdpToolkit.Network.Clients
 
         private Task HandleCaller(
             PooledObject<NetworkPacket> pooledNetworkPacket,
-            IRawPeer rawPeer)
+            IConnection connection)
         {
-            return Send(rawPeer, pooledNetworkPacket);
+            return Send(connection, pooledNetworkPacket);
         }
 
         private Task HandleRoom(
@@ -109,17 +111,26 @@ namespace UdpToolkit.Network.Clients
         {
             return _rawRoomManager
                 .Apply(
-                    caller: pooledNetworkPacket.Value.PeerId,
+                    caller: pooledNetworkPacket.Value.ConnectionId,
                     roomId: roomId,
-                    condition: (peer) => true,
-                    func: (peer) => Send(peer, pooledNetworkPacket));
+                    condition: (connectionId) => true,
+                    func: (connectionId) =>
+                    {
+                        var connection = _connectionPool.TryGetConnection(connectionId);
+                        if (connection != null)
+                        {
+                            Send(connection, pooledNetworkPacket);
+                        }
+
+                        return Task.CompletedTask;
+                    });
         }
 
         private Task HandleServer(
             PooledObject<NetworkPacket> pooledNetworkPacket,
-            IRawPeer rawPeer)
+            IConnection connection)
         {
-            rawPeer
+            connection
                 .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
                 .HandleOutputPacket(pooledNetworkPacket.Value);
 
@@ -132,30 +143,39 @@ namespace UdpToolkit.Network.Clients
         {
             return _rawRoomManager
                 .Apply(
-                    caller: pooledNetworkPacket.Value.PeerId,
+                    caller: pooledNetworkPacket.Value.ConnectionId,
                     roomId: roomId,
-                    condition: (peer) => peer.PeerId != pooledNetworkPacket.Value.PeerId,
-                    func: (peer) => Send(peer, pooledNetworkPacket));
+                    condition: (connectionId) => connectionId != pooledNetworkPacket.Value.ConnectionId,
+                    func: (connectionId) =>
+                    {
+                        var connection = _connectionPool.TryGetConnection(connectionId);
+                        if (connection != null)
+                        {
+                            Send(connection, pooledNetworkPacket);
+                        }
+
+                        return Task.CompletedTask;
+                    });
         }
 
         private Task HandleAckToServer(
             PooledObject<NetworkPacket> pooledNetworkPacket,
-            IRawPeer rawPeer)
+            IConnection connection)
         {
-            rawPeer
+            connection
                 .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
                 .GetAck(pooledNetworkPacket.Value);
 
-            pooledNetworkPacket.Value.Set(ipEndPoint: rawPeer.GetRandomIp());
+            pooledNetworkPacket.Value.Set(ipEndPoint: connection.GetRandomIp());
 
             return SendInternalAsync(pooledNetworkPacket);
         }
 
         private Task Send(
-            IRawPeer peer,
+            IConnection connection,
             PooledObject<NetworkPacket> originalPooledNetworkPacket)
         {
-            if (peer.PeerId == originalPooledNetworkPacket.Value.PeerId && originalPooledNetworkPacket.Value.IsReliable)
+            if (connection.ConnectionId == originalPooledNetworkPacket.Value.ConnectionId && originalPooledNetworkPacket.Value.IsReliable)
             {
                 // produce ack
                 var pooledNetworkPacket = _networkPacketPool.Get();
@@ -166,14 +186,14 @@ namespace UdpToolkit.Network.Clients
                     hookId: originalPooledNetworkPacket.Value.HookId,
                     channelType: originalPooledNetworkPacket.Value.ChannelType,
                     networkPacketType: NetworkPacketType.Ack,
-                    peerId: originalPooledNetworkPacket.Value.PeerId,
+                    connectionId: originalPooledNetworkPacket.Value.ConnectionId,
                     id: originalPooledNetworkPacket.Value.Id,
                     acks: originalPooledNetworkPacket.Value.Acks,
                     serializer: originalPooledNetworkPacket.Value.Serializer,
                     createdAt: originalPooledNetworkPacket.Value.CreatedAt,
-                    ipEndPoint: peer.GetRandomIp());
+                    ipEndPoint: connection.GetRandomIp());
 
-                peer
+                connection
                     .GetOutcomingChannel(pooledNetworkPacket.Value.ChannelType)
                     .GetAck(pooledNetworkPacket.Value);
 
@@ -188,14 +208,14 @@ namespace UdpToolkit.Network.Clients
                     id: originalPooledNetworkPacket.Value.Id,
                     acks: originalPooledNetworkPacket.Value.Acks,
                     hookId: originalPooledNetworkPacket.Value.HookId,
-                    ipEndPoint: peer.GetRandomIp(),
+                    ipEndPoint: connection.GetRandomIp(),
                     createdAt: DateTimeOffset.UtcNow,
                     serializer: originalPooledNetworkPacket.Value.Serializer,
                     channelType: originalPooledNetworkPacket.Value.ChannelType,
-                    peerId: peer.PeerId,
+                    connectionId: connection.ConnectionId,
                     networkPacketType: NetworkPacketType.FromServer);
 
-                peer
+                connection
                     .GetOutcomingChannel(channelType: pooledNetworkPacket.Value.ChannelType)
                     .HandleOutputPacket(pooledNetworkPacket.Value);
 

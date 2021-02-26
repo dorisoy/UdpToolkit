@@ -17,7 +17,6 @@ namespace UdpToolkit.Jobs
         private readonly HostClient _hostClient;
         private readonly IDateTimeProvider _dateTimeProvider;
 
-        private readonly IProtocolSubscriptionManager _protocolSubscriptionManager;
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
 
@@ -31,7 +30,6 @@ namespace UdpToolkit.Jobs
             IAsyncQueue<PooledObject<CallContext>> outputQueue,
             IObjectsPool<CallContext> callContextPool,
             ISubscriptionManager subscriptionManager,
-            IProtocolSubscriptionManager protocolSubscriptionManager,
             IRoomManager roomManager,
             IDateTimeProvider dateTimeProvider,
             HostSettings hostSettings,
@@ -43,7 +41,6 @@ namespace UdpToolkit.Jobs
             _callContextPool = callContextPool;
             _dateTimeProvider = dateTimeProvider;
             _subscriptionManager = subscriptionManager;
-            _protocolSubscriptionManager = protocolSubscriptionManager;
             _hostSettings = hostSettings;
             _scheduler = scheduler;
             _hostClient = hostClient;
@@ -103,8 +100,6 @@ namespace UdpToolkit.Jobs
         {
             var networkPacket = pooledCallContext.Value.NetworkPacketDto;
             var protocolHookId = networkPacket.ProtocolHookId;
-            var protocolSubscription = _protocolSubscriptionManager
-                .GetProtocolSubscription((byte)protocolHookId);
 
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
@@ -116,10 +111,6 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
-                    protocolSubscription?.OnInputEvent?.Invoke(
-                            arg1: networkPacket.Serializer(),
-                            arg2: networkPacket.PeerId,
-                            arg3: networkPacket.IpEndPoint);
 
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         networkPacket.Serializer(),
@@ -268,9 +259,6 @@ namespace UdpToolkit.Jobs
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
 
-            var protocolSubscription = _protocolSubscriptionManager
-                .GetProtocolSubscription((byte)protocolHookId);
-
             switch (protocolHookId)
             {
                 case ProtocolHookId.Ping:
@@ -286,7 +274,6 @@ namespace UdpToolkit.Jobs
                             break;
                     }
 
-                    protocolSubscription?.OnAck?.Invoke(networkPacket.PeerId);
                     userDefinedSubscription?.OnAck?.Invoke(networkPacket.PeerId);
                     break;
             }

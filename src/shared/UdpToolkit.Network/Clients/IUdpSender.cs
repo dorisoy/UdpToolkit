@@ -3,7 +3,6 @@ namespace UdpToolkit.Network.Clients
     using System;
     using System.Threading.Tasks;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Peers;
     using UdpToolkit.Network.Pooling;
 
     public interface IUdpSender : IDisposable
@@ -13,7 +12,7 @@ namespace UdpToolkit.Network.Clients
 
         Task SendAsync(
             PooledObject<NetworkPacket> pooledNetworkPacket,
-            IRawPeer rawPeer,
+            IConnection connection,
             BroadcastType broadcastType);
 
         Task SendAsync(

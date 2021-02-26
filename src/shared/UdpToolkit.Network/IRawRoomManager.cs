@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Peers
+namespace UdpToolkit.Network
 {
     using System;
     using System.Threading.Tasks;
@@ -7,12 +7,12 @@ namespace UdpToolkit.Network.Peers
     {
         void Remove(
             int roomId,
-            IRawPeer peer);
+            IConnection connection);
 
         Task Apply(
             int roomId,
             Guid caller,
-            Func<IRawPeer, bool> condition,
-            Func<IRawPeer, Task> func);
+            Func<Guid, bool> condition,
+            Func<Guid, Task> func);
     }
 }

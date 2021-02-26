@@ -54,7 +54,7 @@ namespace UdpToolkit.Jobs
                     acks: networkPacket.Acks,
                     hookId: networkPacket.HookId,
                     channelType: networkPacket.ChannelType,
-                    peerId: networkPacket.PeerId,
+                    peerId: networkPacket.ConnectionId,
                     networkPacketType: networkPacket.NetworkPacketType,
                     serializer: networkPacket.Serializer,
                     createdAt: networkPacket.CreatedAt,
