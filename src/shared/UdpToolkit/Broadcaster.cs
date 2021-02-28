@@ -41,7 +41,7 @@ namespace UdpToolkit
             Guid caller,
             int roomId,
             byte hookId,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             ChannelType channelType,
             BroadcastMode broadcastMode)
         {
@@ -58,7 +58,7 @@ namespace UdpToolkit
                         outPacket: new OutPacket(
                             hookId: hookId,
                             channelType: channelType,
-                            networkPacketType: networkPacketType,
+                            packetType: packetType,
                             connectionId: caller,
                             serializer: serializer,
                             createdAt: utcNow,
@@ -76,7 +76,7 @@ namespace UdpToolkit
                                 outPacket: new OutPacket(
                                     hookId: hookId,
                                     channelType: channelType,
-                                    networkPacketType: networkPacketType,
+                                    packetType: packetType,
                                     connectionId: caller,
                                     serializer: serializer,
                                     createdAt: utcNow,
@@ -108,7 +108,7 @@ namespace UdpToolkit
                             outPacket: new OutPacket(
                                 hookId: hookId,
                                 channelType: channelType,
-                                networkPacketType: networkPacketType,
+                                packetType: packetType,
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
@@ -131,7 +131,7 @@ namespace UdpToolkit
                             outPacket: new OutPacket(
                                 hookId: hookId,
                                 channelType: channelType,
-                                networkPacketType: networkPacketType,
+                                packetType: packetType,
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
@@ -149,7 +149,7 @@ namespace UdpToolkit
             Func<byte[]> serializer,
             Guid caller,
             byte hookId,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             ChannelType channelType,
             BroadcastMode broadcastMode)
         {
@@ -161,7 +161,7 @@ namespace UdpToolkit
                 outPacket: new OutPacket(
                     hookId: hookId,
                     channelType: channelType,
-                    networkPacketType: networkPacketType,
+                    packetType: packetType,
                     connectionId: caller,
                     serializer: serializer,
                     createdAt: utcNow,

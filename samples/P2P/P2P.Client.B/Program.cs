@@ -47,7 +47,7 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {

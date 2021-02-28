@@ -56,7 +56,7 @@ namespace UdpToolkit.Integration.Tests
             string actualPayload = null;
             serverHost.On<Ping>(
                 broadcastMode: BroadcastMode.Caller,
-                onEvent: (peerId, ping) =>
+                onEvent: (connectionId, ping) =>
                 {
                     actualPayload = "pong";
                     waitCallback.Set();
@@ -110,7 +110,7 @@ namespace UdpToolkit.Integration.Tests
             string actualPayload = null;
             client2Host.On<Ping>(
                 broadcastMode: BroadcastMode.Caller,
-                onEvent: (peerId, ping) =>
+                onEvent: (connectionId, ping) =>
                 {
                     actualPayload = "pong";
                     waitCallback.Set();

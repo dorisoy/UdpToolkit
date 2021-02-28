@@ -10,7 +10,7 @@ namespace UdpToolkit.Network.Packets
         public OutPacket(
             byte hookId,
             ChannelType channelType,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             Guid connectionId,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
@@ -21,7 +21,7 @@ namespace UdpToolkit.Network.Packets
             HookId = hookId;
             ChannelType = channelType;
             ConnectionId = connectionId;
-            NetworkPacketType = networkPacketType;
+            PacketType = packetType;
             IpEndPoint = ipEndPoint;
         }
 
@@ -31,7 +31,7 @@ namespace UdpToolkit.Network.Packets
 
         public Guid ConnectionId { get; }
 
-        public NetworkPacketType NetworkPacketType { get; }
+        public PacketType PacketType { get; }
 
         public Func<byte[]> Serializer { get; }
 
@@ -46,19 +46,19 @@ namespace UdpToolkit.Network.Packets
         public static byte[] Serialize(
             ushort id,
             uint acks,
-            ref OutPacket networkPacket)
+            ref OutPacket outPacket)
         {
             using (var ms = new MemoryStream())
             {
                 var bw = new BinaryWriter(ms);
 
-                bw.Write(networkPacket.HookId);
-                bw.Write((byte)networkPacket.ChannelType);
-                bw.Write((byte)networkPacket.NetworkPacketType);
-                bw.Write(buffer: networkPacket.ConnectionId.ToByteArray());
+                bw.Write(outPacket.HookId);
+                bw.Write((byte)outPacket.ChannelType);
+                bw.Write((byte)outPacket.PacketType);
+                bw.Write(buffer: outPacket.ConnectionId.ToByteArray());
                 bw.Write(id);
                 bw.Write(acks);
-                bw.Write(buffer: networkPacket.Serializer());
+                bw.Write(buffer: outPacket.Serializer());
 
                 bw.Flush();
                 return ms.ToArray();

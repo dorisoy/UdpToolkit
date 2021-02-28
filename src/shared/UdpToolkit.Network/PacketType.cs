@@ -1,6 +1,6 @@
 namespace UdpToolkit.Network
 {
-    public enum NetworkPacketType : byte
+    public enum PacketType : byte
     {
         FromClient = 0,
         Protocol = 1,

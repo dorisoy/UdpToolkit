@@ -13,14 +13,14 @@ namespace UdpToolkit.Network.Protocol
         }
 
         public Connect(
-            Guid peerId,
+            Guid connectionId,
             int[] inputPorts)
         {
-            PeerId = peerId;
+            ConnectionId = connectionId;
             InputPorts = inputPorts;
         }
 
-        public Guid PeerId { get; }
+        public Guid ConnectionId { get; }
 
         public int[] InputPorts { get; }
 
@@ -29,7 +29,7 @@ namespace UdpToolkit.Network.Protocol
             using (var ms = new MemoryStream())
             {
                 var bw = new BinaryWriter(ms);
-                bw.Write(buffer: connect.PeerId.ToByteArray());
+                bw.Write(buffer: connect.ConnectionId.ToByteArray());
                 for (var i = 0; i < connect.InputPorts.Length; i++)
                 {
                     bw.Write(connect.InputPorts[i]);
@@ -45,7 +45,7 @@ namespace UdpToolkit.Network.Protocol
             using (var reader = new BinaryReader(new MemoryStream(bytes)))
             {
                 return new Connect(
-                    peerId: new Guid(reader.ReadBytes(16)),
+                    connectionId: new Guid(reader.ReadBytes(16)),
                     inputPorts: ReadPorts(reader).ToArray());
             }
         }

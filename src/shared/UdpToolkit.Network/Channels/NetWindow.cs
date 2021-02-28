@@ -4,7 +4,7 @@ namespace UdpToolkit.Network.Channels
     {
         private readonly int _windowSize;
         private readonly ushort?[] _ids;
-        private readonly PacketData?[] _networkPackets;
+        private readonly PacketData?[] _packetsData;
 
         private ushort _maxId;
 
@@ -12,7 +12,7 @@ namespace UdpToolkit.Network.Channels
         {
             _windowSize = windowSize;
             _ids = new ushort?[windowSize];
-            _networkPackets = new PacketData?[windowSize];
+            _packetsData = new PacketData?[windowSize];
         }
 
         public int Size => _windowSize;
@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Channels
             var index = (int)id % _windowSize;
             if (_ids[index] == id)
             {
-                var packet = _networkPackets[index];
+                var packet = _packetsData[index];
                 if (!packet.HasValue)
                 {
                     return false;
@@ -48,20 +48,20 @@ namespace UdpToolkit.Network.Channels
 
         public bool IsDelivered(ushort id)
         {
-            return _networkPackets[id].HasValue && _networkPackets[id].Value.Acked;
+            return _packetsData[id].HasValue && _packetsData[id].Value.Acked;
         }
 
         public bool AcceptAck(
             ushort id,
             uint acks)
         {
-            var packet = _networkPackets[id];
+            var packet = _packetsData[id];
             if (!packet.HasValue)
             {
                 return false;
             }
 
-            _networkPackets[id] = new PacketData(
+            _packetsData[id] = new PacketData(
                 id: id,
                 acks: acks,
                 acked: true);
@@ -77,7 +77,7 @@ namespace UdpToolkit.Network.Channels
             var index = (int)id % _windowSize;
             _ids[index] = id;
 
-            _networkPackets[index] = new PacketData(
+            _packetsData[index] = new PacketData(
                 id: id,
                 acks: acks,
                 acked: acked);

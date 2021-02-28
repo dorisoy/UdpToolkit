@@ -19,7 +19,7 @@ namespace UdpToolkit.Core
 
         public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
-        public TimeSpan PeerInactivityTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan InactivityTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
         public string Host { get; set; } = "127.0.0.1";
     }

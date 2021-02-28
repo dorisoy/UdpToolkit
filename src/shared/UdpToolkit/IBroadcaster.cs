@@ -12,7 +12,7 @@ namespace UdpToolkit
             Guid caller,
             int roomId,
             byte hookId,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             ChannelType channelType,
             BroadcastMode broadcastMode);
 
@@ -20,7 +20,7 @@ namespace UdpToolkit
             Func<byte[]> serializer,
             Guid caller,
             byte hookId,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             ChannelType channelType,
             BroadcastMode broadcastMode);
     }
