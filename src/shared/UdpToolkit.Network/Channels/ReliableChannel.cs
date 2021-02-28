@@ -1,9 +1,7 @@
 namespace UdpToolkit.Network.Channels
 {
     using System;
-    using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Pooling;
 
     public sealed class ReliableChannel : IChannel
     {
@@ -17,12 +15,11 @@ namespace UdpToolkit.Network.Channels
         }
 
         public bool HandleInputPacket(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             lock (_locker)
             {
-                var id = networkPacket.Id;
-                var acks = networkPacket.Acks;
                 if (!_netWindow.CanSet(id))
                 {
                     return false;
@@ -37,52 +34,42 @@ namespace UdpToolkit.Network.Channels
             }
         }
 
-        public void GetAck(
-            NetworkPacket networkPacket)
-        {
-            lock (_locker)
-            {
-                networkPacket.Set(
-                    serializer: Array.Empty<byte>,
-                    networkPacketType: NetworkPacketType.Ack);
-            }
-        }
-
         public bool IsDelivered(
-            ushort networkPacketId)
+            ushort id)
         {
             lock (_locker)
             {
-                return _netWindow.IsDelivered(networkPacketId);
+                return _netWindow.IsDelivered(id);
             }
         }
 
         public void HandleOutputPacket(
-            NetworkPacket networkPacket)
+            out ushort id,
+            out uint acks)
         {
             lock (_locker)
             {
-                if (!_netWindow.PacketExists(id: networkPacket.Id))
-                {
-                    networkPacket.Set(id: _netWindow.Next(), acks: FillAcks());
-                    _netWindow.InsertPacketData(
-                        id: networkPacket.Id,
-                        acks: networkPacket.Acks,
-                        acked: false);
-                }
+                id = _netWindow.Next();
+                acks = FillAcks();
+
+                _netWindow.InsertPacketData(
+                    id: id,
+                    acks: acks,
+                    acked: false);
             }
         }
 
         public bool HandleAck(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             lock (_locker)
             {
-                if (!_netWindow.IsDelivered(networkPacket.Id))
+                if (!_netWindow.IsDelivered(id))
                 {
                     return _netWindow.AcceptAck(
-                        id: networkPacket.Id,
-                        acks: networkPacket.Acks);
+                        id: id,
+                        acks: acks);
                 }
 
                 return false;

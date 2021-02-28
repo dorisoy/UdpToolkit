@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
@@ -24,6 +25,15 @@
 
             var host = BuildHost();
             var client = host.HostClient;
+
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
+                    await Task.Delay(1000).ConfigureAwait(false);
+                }
+            });
 
             var nickname = "Client A";
 
@@ -74,7 +84,7 @@
 
             var isConnected = client
                 .Connect();
-
+#pragma warning disable
             client.Send(
                 @event: new JoinEvent(roomId: 11, nickname: nickname),
                 hookId: 0,
@@ -107,7 +117,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerInputPorts = new[] { 7000, 7001 };
-                    settings.PingDelayInMs = null; // pass null for disable pings
+                    settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
                 .Build();
         }

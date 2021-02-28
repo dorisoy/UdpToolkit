@@ -1,10 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-    using System.Collections.Generic;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Pooling;
-
     public sealed class NetWindow
     {
         private readonly int _windowSize;

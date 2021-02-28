@@ -32,9 +32,9 @@ namespace UdpToolkit.Network
 
         public List<IPEndPoint> IpEndPoints { get; }
 
-        public DateTimeOffset LastPing { get; private set; }
+        public DateTimeOffset LastHeartbeat { get; private set; }
 
-        public DateTimeOffset PingAck { get; private set; }
+        public DateTimeOffset? LastHeartbeatAck { get; private set; }
 
         public DateTimeOffset? LastActivityAt { get; private set; }
 
@@ -69,16 +69,16 @@ namespace UdpToolkit.Network
 
         public IEnumerable<IChannel> GetChannels() => _outputChannels.Values;
 
-        public void OnPingAck(
+        public void OnHeartbeatAck(
             DateTimeOffset utcNow)
         {
-            PingAck = utcNow;
+            LastHeartbeatAck = utcNow;
         }
 
-        public void OnPing(
+        public void OnHeartbeat(
             DateTimeOffset utcNow)
         {
-            LastPing = utcNow;
+            LastHeartbeat = utcNow;
         }
 
         public void OnActivity(
@@ -89,7 +89,9 @@ namespace UdpToolkit.Network
 
         public bool IsExpired() => DateTimeOffset.UtcNow - LastActivityAt > _connectionTimeout;
 
-        public TimeSpan GetRtt() => PingAck - LastPing;
+        public TimeSpan GetRtt() => LastHeartbeatAck.HasValue
+            ? LastHeartbeatAck.Value - LastHeartbeat
+            : TimeSpan.Zero;
 
         public IPEndPoint GetIp() => _ipEndPoint;
     }

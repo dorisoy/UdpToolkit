@@ -5,16 +5,23 @@
     [MessagePackObject]
     public class MoveEvent
     {
-        public MoveEvent(int id, int roomId)
+        public MoveEvent(
+            int roomId,
+            int id,
+            string @from)
         {
             Id = id;
             RoomId = roomId;
+            From = @from;
         }
 
         [Key(0)]
-        public int RoomId { get; set; }
+        public int RoomId { get; }
 
         [Key(1)]
-        public int Id { get; set; }
+        public int Id { get; }
+
+        [Key(2)]
+        public string From { get; }
     }
 }

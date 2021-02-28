@@ -13,6 +13,6 @@ namespace UdpToolkit.Core
 
         public IEnumerable<int> ServerInputPorts { get; set; } = Array.Empty<int>();
 
-        public int? PingDelayInMs { get; set; } = 2000;
+        public int? HeartbeatDelayInMs { get; set; } = 2000;
     }
 }

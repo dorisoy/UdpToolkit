@@ -1,25 +1,22 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-    using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Pooling;
 
     public interface IChannel
     {
         bool HandleInputPacket(
-            NetworkPacket networkPacket);
+            ushort id,
+            uint acks);
 
         void HandleOutputPacket(
-            NetworkPacket networkPacket);
+            out ushort id,
+            out uint acks);
 
         bool HandleAck(
-            NetworkPacket networkPacket);
-
-        void GetAck(
-            NetworkPacket networkPacket);
+            ushort id,
+            uint acks);
 
         bool IsDelivered(
-            ushort networkPacketId);
+            ushort id);
     }
 }

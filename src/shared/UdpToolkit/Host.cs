@@ -9,7 +9,7 @@ namespace UdpToolkit
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public sealed class Host : IHost
@@ -18,8 +18,8 @@ namespace UdpToolkit
 
         private readonly HostSettings _hostSettings;
 
-        private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
-        private readonly IAsyncQueue<PooledObject<CallContext>> _inputQueue;
+        private readonly IAsyncQueue<CallContext> _outputQueue;
+        private readonly IAsyncQueue<CallContext> _inputQueue;
 
         private readonly IEnumerable<IUdpSender> _senders;
         private readonly IEnumerable<IUdpReceiver> _receivers;
@@ -27,7 +27,6 @@ namespace UdpToolkit
         private readonly ISubscriptionManager _subscriptionManager;
 
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IObjectsPool<CallContext> _callContextPool;
 
         private readonly SenderJob _sendingJob;
         private readonly ReceiverJob _receivingJob;
@@ -35,13 +34,12 @@ namespace UdpToolkit
 
         public Host(
             HostSettings hostSettings,
-            IAsyncQueue<PooledObject<CallContext>> outputQueue,
-            IAsyncQueue<PooledObject<CallContext>> inputQueue,
+            IAsyncQueue<CallContext> outputQueue,
+            IAsyncQueue<CallContext> inputQueue,
             IEnumerable<IUdpSender> senders,
             IEnumerable<IUdpReceiver> receivers,
             ISubscriptionManager subscriptionManager,
             IDateTimeProvider dateTimeProvider,
-            IObjectsPool<CallContext> callContextPool,
             IScheduler scheduler,
             SenderJob sendingJob,
             ReceiverJob receivingJob,
@@ -54,7 +52,6 @@ namespace UdpToolkit
             _receivers = receivers;
             _subscriptionManager = subscriptionManager;
             _dateTimeProvider = dateTimeProvider;
-            _callContextPool = callContextPool;
             _sendingJob = sendingJob;
             _receivingJob = receivingJob;
             _workerJob = workerJob;
@@ -130,26 +127,21 @@ namespace UdpToolkit
             BroadcastMode broadcastMode,
             IPEndPoint ipEndPoint = null)
         {
-            var pooledCallContext = _callContextPool.Get();
+            var utcNow = _dateTimeProvider.UtcNow();
 
-            pooledCallContext.Value.Set(
+            _outputQueue.Produce(new CallContext(
                 resendTimeout: _hostSettings.ResendPacketsTimeout,
-                createdAt: _dateTimeProvider.UtcNow(),
+                createdAt: utcNow,
                 roomId: roomId,
-                broadcastMode: broadcastMode);
-
-            pooledCallContext.Value.NetworkPacketDto.Set(
-                hookId: hookId,
-                channelType: udpMode.Map(),
-                networkPacketType: NetworkPacketType.FromServer,
-                peerId: default,
-                id: default,
-                acks: default,
-                serializer: () => _hostSettings.Serializer.Serialize(@event),
-                createdAt: _dateTimeProvider.UtcNow(),
-                ipEndPoint: ipEndPoint);
-
-            _outputQueue.Produce(pooledCallContext);
+                broadcastMode: broadcastMode,
+                networkPacket: new NetworkPacket(
+                    hookId: hookId,
+                    channelType: udpMode.Map(),
+                    networkPacketType: NetworkPacketType.FromServer,
+                    connectionId: default,
+                    serializer: () => _hostSettings.Serializer.Serialize(@event),
+                    createdAt: utcNow,
+                    ipEndPoint: ipEndPoint)));
         }
 
         public void Dispose()

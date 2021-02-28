@@ -6,7 +6,7 @@ namespace UdpToolkit
     using UdpToolkit.Core;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Protocol;
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Serialization;
@@ -16,42 +16,39 @@ namespace UdpToolkit
         private readonly TimeSpan _connectionTimeoutFromSettings;
         private readonly TimeSpan _resendPacketsTimeout;
 
-        private readonly int? _pingDelayMs;
+        private readonly int? _heartbeatDelayMs;
         private readonly int[] _inputPorts;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnection _hostConnection;
         private readonly IConnection _remoteHostConnection;
         private readonly ISerializer _serializer;
-        private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
-        private readonly IObjectsPool<CallContext> _callContextPool;
+        private readonly IAsyncQueue<CallContext> _outputQueue;
 
-        private readonly Task _ping;
+        private Task _heartbeatTask;
 
         public HostClient(
             IConnection hostConnection,
             IConnection remoteHostConnection,
             ISerializer serializer,
             IDateTimeProvider dateTimeProvider,
-            IAsyncQueue<PooledObject<CallContext>> outputQueue,
+            IAsyncQueue<CallContext> outputQueue,
             TimeSpan connectionTimeout,
             TimeSpan resendPacketsTimeout,
-            int? pingDelayMs,
+            int? heartbeatDelayMs,
             int[] inputPorts,
-            CancellationTokenSource cancellationTokenSource,
-            IObjectsPool<CallContext> callContextPool)
+            CancellationTokenSource cancellationTokenSource)
         {
             _hostConnection = hostConnection;
             _serializer = serializer;
             _dateTimeProvider = dateTimeProvider;
             _connectionTimeoutFromSettings = connectionTimeout;
             _resendPacketsTimeout = resendPacketsTimeout;
-            _pingDelayMs = pingDelayMs;
+            _heartbeatDelayMs = heartbeatDelayMs;
             _inputPorts = inputPorts;
-            _callContextPool = callContextPool;
+            _cancellationTokenSource = cancellationTokenSource;
             _remoteHostConnection = remoteHostConnection;
             _outputQueue = outputQueue;
-
-            _ping = Task.Run(() => PingHost(cancellationTokenSource.Token));
         }
 
         public Guid ConnectionId => _hostConnection.ConnectionId;
@@ -74,6 +71,8 @@ namespace UdpToolkit
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
 
+            _heartbeatTask = Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
+
             return SpinWait.SpinUntil(() => IsConnected, TimeSpan.FromMilliseconds(timeout.TotalMilliseconds * 1.2));
         }
 
@@ -88,6 +87,8 @@ namespace UdpToolkit
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
+
+            _heartbeatTask = Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
         }
 
         public bool Disconnect()
@@ -125,57 +126,48 @@ namespace UdpToolkit
             byte hookId,
             UdpMode udpMode,
             NetworkPacketType networkPacketType,
-            Core.BroadcastMode broadcastMode,
+            BroadcastMode broadcastMode,
             Func<TEvent, byte[]> serializer)
         {
-            var pooledCallContext = _callContextPool.Get();
-
-            pooledCallContext.Value.Set(
+            var utcNow = _dateTimeProvider.UtcNow();
+            _outputQueue.Produce(new CallContext(
+                resendTimeout: resendTimeout,
+                createdAt: utcNow,
                 roomId: null,
                 broadcastMode: broadcastMode,
-                resendTimeout: resendTimeout,
-                createdAt: _dateTimeProvider.UtcNow());
-
-            pooledCallContext.Value.NetworkPacketDto.Set(
-                id: default,
-                acks: default,
-                createdAt: _dateTimeProvider.UtcNow(),
-                networkPacketType: networkPacketType,
-                channelType: udpMode.Map(),
-                peerId: ConnectionId,
-                ipEndPoint: _remoteHostConnection.GetIp(),
-                serializer: () => serializer(@event),
-                hookId: hookId);
-
-            _outputQueue.Produce(pooledCallContext);
+                networkPacket: new NetworkPacket(
+                    hookId: hookId,
+                    channelType: udpMode.Map(),
+                    networkPacketType: networkPacketType,
+                    connectionId: ConnectionId,
+                    serializer: () => serializer(@event),
+                    createdAt: utcNow,
+                    ipEndPoint: _remoteHostConnection.GetIp())));
         }
 
-        private async Task PingHost(
+        private async Task StartHeartbeat(
             CancellationToken token)
         {
-            if (!_pingDelayMs.HasValue)
+            if (!_heartbeatDelayMs.HasValue)
             {
                 return;
             }
 
-            var pingDelay = _pingDelayMs.Value;
+            var heartbeatDelayMs = _heartbeatDelayMs.Value;
             while (!token.IsCancellationRequested)
             {
-                if (IsConnected)
-                {
-                    var @event = new Ping();
+                var @event = new Heartbeat();
 
-                    SendInternal(
-                        resendTimeout: _resendPacketsTimeout,
-                        @event: @event,
-                        networkPacketType: NetworkPacketType.Protocol,
-                        broadcastMode: Core.BroadcastMode.Server,
-                        hookId: (byte)ProtocolHookId.Ping,
-                        udpMode: UdpMode.ReliableUdp,
-                        serializer: ProtocolEvent<Ping>.Serialize);
-                }
+                SendInternal(
+                    resendTimeout: _resendPacketsTimeout,
+                    @event: @event,
+                    networkPacketType: NetworkPacketType.Protocol,
+                    broadcastMode: Core.BroadcastMode.Server,
+                    hookId: (byte)ProtocolHookId.Heartbeat,
+                    udpMode: UdpMode.ReliableUdp,
+                    serializer: ProtocolEvent<Heartbeat>.Serialize);
 
-                await Task.Delay(pingDelay, token).ConfigureAwait(false);
+                await Task.Delay(heartbeatDelayMs, token).ConfigureAwait(false);
             }
         }
     }

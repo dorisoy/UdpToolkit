@@ -1,7 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using UdpToolkit.Network.Packets;
-
     public sealed class SequencedChannel : IChannel
     {
         private readonly object _locker = new object();
@@ -14,15 +12,16 @@ namespace UdpToolkit.Network.Channels
         }
 
         public bool HandleInputPacket(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             lock (_locker)
             {
-                var packetId = networkPacket.Id;
-                var flag = packetId != _lastReceivedNumber;
-                if (NetworkUtils.SequenceGreaterThan(packetId, _sequenceNumber) && flag)
+                var flag = id != _lastReceivedNumber;
+                if (NetworkUtils.SequenceGreaterThan(id, _sequenceNumber) && flag)
                 {
-                    _lastReceivedNumber = packetId;
+                    _lastReceivedNumber = id;
+                    _sequenceNumber = _lastReceivedNumber;
                     return true;
                 }
 
@@ -30,29 +29,26 @@ namespace UdpToolkit.Network.Channels
             }
         }
 
-        public void GetAck(
-            NetworkPacket networkPacket)
-        {
-        }
-
-        public bool IsDelivered(ushort networkPacketId)
+        public bool IsDelivered(
+            ushort id)
         {
             return true;
         }
 
         public void HandleOutputPacket(
-            NetworkPacket networkPacket)
+            out ushort id,
+            out uint acks)
         {
             lock (_locker)
             {
-                networkPacket.Set(
-                    id: ++_sequenceNumber,
-                    acks: 0);
+                id = ++_sequenceNumber;
+                acks = default;
             }
         }
 
         public bool HandleAck(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             return true;
         }

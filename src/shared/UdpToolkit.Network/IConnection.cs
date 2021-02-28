@@ -11,9 +11,9 @@ namespace UdpToolkit.Network
 
         List<IPEndPoint> IpEndPoints { get; }
 
-        DateTimeOffset LastPing { get; }
+        DateTimeOffset LastHeartbeat { get; }
 
-        DateTimeOffset PingAck { get; }
+        DateTimeOffset? LastHeartbeatAck { get; }
 
         DateTimeOffset? LastActivityAt { get; }
 
@@ -23,10 +23,10 @@ namespace UdpToolkit.Network
 
         IEnumerable<IChannel> GetChannels();
 
-        void OnPingAck(
+        void OnHeartbeatAck(
             DateTimeOffset utcNow);
 
-        void OnPing(
+        void OnHeartbeat(
             DateTimeOffset utcNow);
 
         void OnActivity(

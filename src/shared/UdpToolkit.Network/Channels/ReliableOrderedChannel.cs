@@ -8,29 +8,28 @@ namespace UdpToolkit.Network.Channels
     public sealed class ReliableOrderedChannel : IChannel
     {
         public bool HandleInputPacket(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             throw new System.NotImplementedException();
         }
 
-        public void GetAck(
-            NetworkPacket networkPacket)
-        {
-        }
-
         public bool IsDelivered(
-            ushort networkPacketId)
+            ushort id)
         {
             throw new NotImplementedException();
         }
 
         public void HandleOutputPacket(
-            NetworkPacket networkPacket)
+            out ushort id,
+            out uint acks)
         {
+            throw new System.NotImplementedException();
         }
 
         public bool HandleAck(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             throw new System.NotImplementedException();
         }

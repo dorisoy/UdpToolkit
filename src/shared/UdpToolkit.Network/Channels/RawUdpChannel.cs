@@ -5,29 +5,35 @@ namespace UdpToolkit.Network.Channels
     public sealed class RawUdpChannel : IChannel
     {
         public bool HandleInputPacket(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             return true;
         }
 
         public void GetAck(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
         }
 
         public bool IsDelivered(
-            ushort networkPacketId)
+            ushort id)
         {
             return true;
         }
 
         public void HandleOutputPacket(
-            NetworkPacket networkPacket)
+            out ushort id,
+            out uint acks)
         {
+            id = default;
+            acks = default;
         }
 
         public bool HandleAck(
-            NetworkPacket networkPacket)
+            ushort id,
+            uint acks)
         {
             return true;
         }

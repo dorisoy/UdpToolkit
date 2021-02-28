@@ -55,7 +55,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerInputPorts = new[] { 7000, 7001 };
-                    settings.PingDelayInMs = null; // pass null for disable pings
+                    settings.HeartbeatDelayInMs = null; // pass null for disable heartbeat
                 })
                 .Build();
         }

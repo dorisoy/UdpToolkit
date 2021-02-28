@@ -7,6 +7,5 @@ namespace UdpToolkit.Core
         Server = 2,
         AllPeers = 3,
         RoomExceptCaller = 4,
-        AckToServer = 5,
     }
 }

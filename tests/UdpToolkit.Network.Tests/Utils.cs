@@ -6,11 +6,10 @@ namespace UdpToolkit.Network.Tests
     using System.Net;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Pooling;
 
     public static class Utils
     {
-        public static PooledObject<NetworkPacket> CreatePacket(byte hookId, ChannelType channelType, NetworkPacketType networkPacketType, ushort id) => throw new NotImplementedException();
+        public static NetworkPacket CreatePacket(byte hookId, ChannelType channelType, NetworkPacketType networkPacketType, ushort id) => throw new NotImplementedException();
 
         public static IEnumerable<NetworkPacket> CreatePackets(byte hookId, int count, ChannelType channelType, NetworkPacketType networkPacketType) => throw new NotImplementedException();
 

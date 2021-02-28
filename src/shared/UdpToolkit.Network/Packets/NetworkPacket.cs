@@ -4,22 +4,14 @@ namespace UdpToolkit.Network.Packets
     using System.IO;
     using System.Net;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Pooling;
 
-    public sealed class NetworkPacket : IResetteble
+    public readonly struct NetworkPacket
     {
-        [Obsolete("Deserialization only")]
-        public NetworkPacket()
-        {
-        }
-
-        private NetworkPacket(
+        public NetworkPacket(
             byte hookId,
             ChannelType channelType,
             NetworkPacketType networkPacketType,
             Guid connectionId,
-            ushort id,
-            uint acks,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
             IPEndPoint ipEndPoint)
@@ -30,34 +22,31 @@ namespace UdpToolkit.Network.Packets
             ChannelType = channelType;
             ConnectionId = connectionId;
             NetworkPacketType = networkPacketType;
-            Id = id;
-            Acks = acks;
             IpEndPoint = ipEndPoint;
         }
 
-        public ushort Id { get; private set; }
+        public byte HookId { get; }
 
-        public uint Acks { get; private set; }
+        public ChannelType ChannelType { get; }
 
-        public byte HookId { get; private set; }
+        public Guid ConnectionId { get; }
 
-        public ChannelType ChannelType { get; private set; }
+        public NetworkPacketType NetworkPacketType { get; }
 
-        public Guid ConnectionId { get; private set; }
+        public Func<byte[]> Serializer { get; }
 
-        public NetworkPacketType NetworkPacketType { get; private set; }
+        public DateTimeOffset CreatedAt { get; }
 
-        public Func<byte[]> Serializer { get; private set; }
-
-        public DateTimeOffset CreatedAt { get; private set; }
-
-        public IPEndPoint IpEndPoint { get; private set; }
+        public IPEndPoint IpEndPoint { get; }
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
 
         public bool IsReliable => ChannelType == ChannelType.ReliableUdp || ChannelType == ChannelType.ReliableOrderedUdp;
 
-        public static byte[] Serialize(NetworkPacket networkPacket)
+        public static byte[] Serialize(
+            ushort id,
+            uint acks,
+            ref NetworkPacket networkPacket)
         {
             using (var ms = new MemoryStream())
             {
@@ -67,8 +56,8 @@ namespace UdpToolkit.Network.Packets
                 bw.Write((byte)networkPacket.ChannelType);
                 bw.Write((byte)networkPacket.NetworkPacketType);
                 bw.Write(buffer: networkPacket.ConnectionId.ToByteArray());
-                bw.Write(networkPacket.Id);
-                bw.Write(networkPacket.Acks);
+                bw.Write(id);
+                bw.Write(acks);
                 bw.Write(buffer: networkPacket.Serializer());
 
                 bw.Flush();
@@ -76,10 +65,11 @@ namespace UdpToolkit.Network.Packets
             }
         }
 
-        public static void Deserialize(
+        public static NetworkPacket Deserialize(
             byte[] bytes,
             IPEndPoint ipEndPoint,
-            PooledObject<NetworkPacket> pooledNetworkPacket)
+            out ushort id,
+            out uint acks)
         {
             using (var reader = new BinaryReader(new MemoryStream(bytes)))
             {
@@ -87,67 +77,19 @@ namespace UdpToolkit.Network.Packets
                 var channelType = (ChannelType)reader.ReadByte();
                 var networkPacketType = (NetworkPacketType)reader.ReadByte();
                 var connectionId = new Guid(reader.ReadBytes(16));
-                var id = reader.ReadUInt16();
-                var acks = reader.ReadUInt32();
+                id = reader.ReadUInt16();
+                acks = reader.ReadUInt32();
                 var payload = reader.ReadBytes(bytes.Length - 25);
 
-                pooledNetworkPacket.Value.Set(
-                    ipEndPoint: ipEndPoint,
-                    createdAt: DateTimeOffset.UtcNow,
+                return new NetworkPacket(
                     hookId: hookId,
                     channelType: channelType,
                     networkPacketType: networkPacketType,
                     connectionId: connectionId,
-                    id: id,
-                    acks: acks,
-                    serializer: () => payload);
+                    serializer: () => payload,
+                    createdAt: DateTimeOffset.UtcNow,
+                    ipEndPoint: ipEndPoint);
             }
         }
-
-        public bool IsExpired(TimeSpan resendTimeout) => DateTimeOffset.UtcNow - CreatedAt > resendTimeout;
-
-        public override string ToString()
-        {
-            return $"{nameof(Id)}: {Id}, {nameof(Acks)}: {Acks}, {nameof(HookId)}: {HookId}, {nameof(ChannelType)}: {ChannelType}, {nameof(ConnectionId)}: {ConnectionId}, {nameof(NetworkPacketType)}: {NetworkPacketType}, {nameof(CreatedAt)}: {CreatedAt}, {nameof(IpEndPoint)}: {IpEndPoint}, {nameof(IsProtocolEvent)}: {IsProtocolEvent}, {nameof(IsReliable)}: {IsReliable}";
-        }
-
-        public void Reset()
-        {
-            Serializer = default;
-            CreatedAt = default;
-            HookId = default;
-            ChannelType = default;
-            ConnectionId = default;
-            NetworkPacketType = default;
-            Id = default;
-            Acks = default;
-            IpEndPoint = default;
-        }
-
-        public void Set(
-            byte? hookId = null,
-            ChannelType? channelType = null,
-            NetworkPacketType? networkPacketType = null,
-            Guid? connectionId = null,
-            ushort? id = null,
-            uint? acks = null,
-            Func<byte[]> serializer = null,
-            DateTimeOffset? createdAt = null,
-            IPEndPoint ipEndPoint = null)
-        {
-            Serializer = serializer ?? Serializer;
-            CreatedAt = createdAt ?? CreatedAt;
-            HookId = hookId ?? HookId;
-            ChannelType = channelType ?? ChannelType;
-            ConnectionId = connectionId ?? ConnectionId;
-            NetworkPacketType = networkPacketType ?? NetworkPacketType;
-            Id = id ?? Id;
-            Acks = acks ?? Acks;
-            IpEndPoint = ipEndPoint ?? IpEndPoint;
-        }
-
-#pragma warning disable
-        public static NetworkPacket Create() => new NetworkPacket();
-#pragma warning restore
     }
 }

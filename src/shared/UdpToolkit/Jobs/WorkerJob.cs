@@ -5,7 +5,7 @@ namespace UdpToolkit.Jobs
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public sealed class WorkerJob
@@ -20,15 +20,12 @@ namespace UdpToolkit.Jobs
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
 
-        private readonly IObjectsPool<CallContext> _callContextPool;
-
-        private readonly IAsyncQueue<PooledObject<CallContext>> _inputQueue;
-        private readonly IAsyncQueue<PooledObject<CallContext>> _outputQueue;
+        private readonly IAsyncQueue<CallContext> _inputQueue;
+        private readonly IAsyncQueue<CallContext> _outputQueue;
 
         public WorkerJob(
-            IAsyncQueue<PooledObject<CallContext>> inputQueue,
-            IAsyncQueue<PooledObject<CallContext>> outputQueue,
-            IObjectsPool<CallContext> callContextPool,
+            IAsyncQueue<CallContext> inputQueue,
+            IAsyncQueue<CallContext> outputQueue,
             ISubscriptionManager subscriptionManager,
             IRoomManager roomManager,
             IDateTimeProvider dateTimeProvider,
@@ -38,7 +35,6 @@ namespace UdpToolkit.Jobs
             IUdpToolkitLogger udpToolkitLogger)
         {
             _inputQueue = inputQueue;
-            _callContextPool = callContextPool;
             _dateTimeProvider = dateTimeProvider;
             _subscriptionManager = subscriptionManager;
             _hostSettings = hostSettings;
@@ -53,14 +49,11 @@ namespace UdpToolkit.Jobs
 
         public void Execute()
         {
-            foreach (var pooledCallContext in _inputQueue.Consume())
+            foreach (var callContext in _inputQueue.Consume())
             {
                 try
                 {
-                    using (pooledCallContext)
-                    {
-                        ExecuteInternal(pooledCallContext);
-                    }
+                    ExecuteInternal(callContext);
                 }
                 catch (Exception ex)
                 {
@@ -70,25 +63,25 @@ namespace UdpToolkit.Jobs
         }
 
         private void ExecuteInternal(
-            PooledObject<CallContext> pooledCallContext)
+            CallContext callContext)
         {
-            switch (pooledCallContext.Value.NetworkPacketDto.NetworkPacketType)
+            switch (callContext.NetworkPacket.NetworkPacketType)
             {
                 case NetworkPacketType.FromServer:
                 case NetworkPacketType.FromClient:
-                    HandleUserDefinedEvent(pooledCallContext);
+                    HandleUserDefinedEvent(ref callContext);
                     break;
                 case NetworkPacketType.Protocol:
-                    HandleProtocolEvent(pooledCallContext);
+                    HandleProtocolEvent(ref callContext);
                     break;
                 case NetworkPacketType.Ack:
-                    if (pooledCallContext.Value.NetworkPacketDto.IsProtocolEvent)
+                    if (callContext.NetworkPacket.IsProtocolEvent)
                     {
-                        HandleProtocolAck(pooledCallContext);
+                        HandleProtocolAck(ref callContext);
                     }
                     else
                     {
-                        HandleUserDefinedAck(pooledCallContext);
+                        HandleUserDefinedAck(ref callContext);
                     }
 
                     break;
@@ -96,55 +89,34 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleProtocolEvent(
-            PooledObject<CallContext> pooledCallContext)
+            ref CallContext callContext)
         {
-            var networkPacket = pooledCallContext.Value.NetworkPacketDto;
-            var protocolHookId = networkPacket.ProtocolHookId;
+            var networkPacket = callContext.NetworkPacket;
+            var protocolHookId = (ProtocolHookId)networkPacket.HookId;
 
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
 
             switch (protocolHookId)
             {
-                case ProtocolHookId.Ping:
+                case ProtocolHookId.Heartbeat:
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
 
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         networkPacket.Serializer(),
-                        networkPacket.PeerId,
+                        networkPacket.ConnectionId,
                         _hostSettings.Serializer);
 
                     break;
             }
-
-            var protocolAck = _callContextPool.Get();
-
-            protocolAck.Value.Set(
-                resendTimeout: _hostSettings.ResendPacketsTimeout,
-                createdAt: _dateTimeProvider.UtcNow(),
-                roomId: null,
-                broadcastMode: Core.BroadcastMode.Caller);
-
-            protocolAck.Value.NetworkPacketDto.Set(
-                id: networkPacket.Id,
-                acks: networkPacket.Acks,
-                hookId: networkPacket.HookId,
-                channelType: networkPacket.ChannelType,
-                peerId: networkPacket.PeerId,
-                networkPacketType: networkPacket.NetworkPacketType,
-                serializer: networkPacket.Serializer,
-                createdAt: networkPacket.CreatedAt,
-                ipEndPoint: networkPacket.IpEndPoint);
-
-            _outputQueue.Produce(protocolAck);
         }
 
         private void HandleUserDefinedEvent(
-            PooledObject<CallContext> pooledCallContext)
+            ref CallContext callContext)
         {
-            var networkPacket = pooledCallContext.Value.NetworkPacketDto;
+            var networkPacket = callContext.NetworkPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(networkPacket.HookId);
 
@@ -157,110 +129,57 @@ namespace UdpToolkit.Jobs
 
             var roomId = userDefinedSubscription.OnEvent(
                     networkPacket.Serializer(),
-                    networkPacket.PeerId,
+                    networkPacket.ConnectionId,
                     _hostSettings.Serializer,
                     _roomManager,
                     _scheduler);
 
             switch (networkPacket.NetworkPacketType)
             {
-                case NetworkPacketType.FromClient when networkPacket.IsReliable:
-                    // ack to client
-                    var pooledClientAck = _callContextPool.Get();
-
-                    pooledClientAck.Value.Set(
-                        resendTimeout: _hostSettings.ResendPacketsTimeout,
-                        createdAt: _dateTimeProvider.UtcNow(),
-                        roomId: roomId,
-                        broadcastMode: BroadcastMode.Caller);
-
-                    pooledClientAck.Value.NetworkPacketDto.Set(
-                        id: networkPacket.Id,
-                        acks: networkPacket.Acks,
-                        hookId: networkPacket.HookId,
-                        channelType: networkPacket.ChannelType,
-                        peerId: networkPacket.PeerId,
-                        networkPacketType: NetworkPacketType.Ack,
-                        serializer: networkPacket.Serializer,
-                        createdAt: networkPacket.CreatedAt,
-                        ipEndPoint: networkPacket.IpEndPoint);
-
-                    _outputQueue.Produce(pooledClientAck);
-                    break;
-                case NetworkPacketType.FromServer when networkPacket.IsReliable:
-                    // ack to server
-                    var pooledServerAck = _callContextPool.Get();
-
-                    pooledServerAck.Value.Set(
-                        resendTimeout: _hostSettings.ResendPacketsTimeout,
-                        createdAt: _dateTimeProvider.UtcNow(),
-                        roomId: roomId,
-                        broadcastMode: BroadcastMode.AckToServer);
-
-                    pooledServerAck.Value.NetworkPacketDto.Set(
-                        id: networkPacket.Id,
-                        acks: networkPacket.Acks,
-                        hookId: networkPacket.HookId,
-                        channelType: networkPacket.ChannelType,
-                        peerId: networkPacket.PeerId,
-                        networkPacketType: networkPacket.NetworkPacketType,
-                        serializer: networkPacket.Serializer,
-                        createdAt: networkPacket.CreatedAt,
-                        ipEndPoint: networkPacket.IpEndPoint);
-
-                    _outputQueue.Produce(pooledServerAck);
-                    break;
-
                 case NetworkPacketType.FromServer when networkPacket.ChannelType == ChannelType.Sequenced:
                     // release call context?
                     break;
                 case NetworkPacketType.FromClient when networkPacket.ChannelType == ChannelType.Sequenced:
-                    var pooledFromServer = _callContextPool.Get();
 
-                    pooledFromServer.Value.Set(
+                    _outputQueue.Produce(new CallContext(
                         resendTimeout: _hostSettings.ResendPacketsTimeout,
                         createdAt: _dateTimeProvider.UtcNow(),
                         roomId: roomId,
-                        broadcastMode: userDefinedSubscription.BroadcastMode);
-
-                    pooledFromServer.Value.NetworkPacketDto.Set(
-                        id: networkPacket.Id,
-                        acks: networkPacket.Acks,
-                        hookId: networkPacket.HookId,
-                        channelType: networkPacket.ChannelType,
-                        peerId: networkPacket.PeerId,
-                        networkPacketType: networkPacket.NetworkPacketType,
-                        serializer: networkPacket.Serializer,
-                        createdAt: networkPacket.CreatedAt,
-                        ipEndPoint: networkPacket.IpEndPoint);
-
-                    _outputQueue.Produce(pooledFromServer);
+                        broadcastMode: userDefinedSubscription.BroadcastMode,
+                        networkPacket: new NetworkPacket(
+                            hookId: networkPacket.HookId,
+                            channelType: networkPacket.ChannelType,
+                            networkPacketType: NetworkPacketType.FromServer,
+                            connectionId: networkPacket.ConnectionId,
+                            createdAt: networkPacket.CreatedAt,
+                            serializer: networkPacket.Serializer,
+                            ipEndPoint: networkPacket.IpEndPoint)));
 
                     break;
             }
         }
 
         private void HandleUserDefinedAck(
-            PooledObject<CallContext> pooledCallContext)
+            ref CallContext callContext)
         {
-            var networkPacket = pooledCallContext.Value.NetworkPacketDto;
+            var networkPacket = callContext.NetworkPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(networkPacket.HookId);
 
-            userDefinedSubscription?.OnAck?.Invoke(networkPacket.PeerId);
+            userDefinedSubscription?.OnAck?.Invoke(networkPacket.ConnectionId);
         }
 
         private void HandleProtocolAck(
-            PooledObject<CallContext> pooledCallContext)
+            ref CallContext callContext)
         {
-            var networkPacket = pooledCallContext.Value.NetworkPacketDto;
-            var protocolHookId = networkPacket.ProtocolHookId;
+            var networkPacket = callContext.NetworkPacket;
+            var protocolHookId = (ProtocolHookId)networkPacket.HookId;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
 
             switch (protocolHookId)
             {
-                case ProtocolHookId.Ping:
+                case ProtocolHookId.Heartbeat:
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
@@ -272,7 +191,7 @@ namespace UdpToolkit.Jobs
                             break;
                     }
 
-                    userDefinedSubscription?.OnAck?.Invoke(networkPacket.PeerId);
+                    userDefinedSubscription?.OnAck?.Invoke(networkPacket.ConnectionId);
                     break;
             }
         }

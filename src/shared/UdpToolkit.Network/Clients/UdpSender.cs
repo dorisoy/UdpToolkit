@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Clients
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Pooling;
+    using UdpToolkit.Network.Queues;
     using UdpToolkit.Network.Utils;
 
     public sealed class UdpSender : IUdpSender
@@ -17,18 +17,23 @@ namespace UdpToolkit.Network.Clients
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnectionPool _connectionPool;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
+        private readonly ResendQueue _resendQueue;
+        private readonly TimeSpan _resendTimeout;
 
         public UdpSender(
             UdpClient sender,
-            IObjectsPool<NetworkPacket> networkPacketPool,
             IUdpToolkitLogger udpToolkitLogger,
             IConnectionPool connectionPool,
-            IDateTimeProvider dateTimeProvider)
+            IDateTimeProvider dateTimeProvider,
+            ResendQueue resendQueue,
+            TimeSpan resendTimeout)
         {
             _sender = sender;
             _udpToolkitLogger = udpToolkitLogger;
             _connectionPool = connectionPool;
             _dateTimeProvider = dateTimeProvider;
+            _resendQueue = resendQueue;
+            _resendTimeout = resendTimeout;
             _udpToolkitLogger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
         }
 
@@ -37,69 +42,116 @@ namespace UdpToolkit.Network.Clients
             _sender.Dispose();
         }
 
-        public async Task SendAsync(
-            PooledObject<NetworkPacket> pooledNetworkPacket)
+        public Task SendAsync(
+            ref NetworkPacket networkPacket)
         {
             var connection = _connectionPool
-                .TryGetConnection(pooledNetworkPacket.Value.ConnectionId);
+                .TryGetConnection(networkPacket.ConnectionId);
 
             if (connection == null)
             {
-                pooledNetworkPacket.Dispose();
-                return;
+                return Task.CompletedTask;
             }
 
-            var networkPacketType = pooledNetworkPacket.Value.NetworkPacketType;
+            var networkPacketType = networkPacket.NetworkPacketType;
 
-            if (pooledNetworkPacket.Value.IsProtocolEvent)
+            if (networkPacket.IsProtocolEvent)
             {
-                switch ((ProtocolHookId)pooledNetworkPacket.Value.HookId)
+                switch ((ProtocolHookId)networkPacket.HookId)
                 {
                     case ProtocolHookId.P2P:
                         break;
-                    case ProtocolHookId.Ping when networkPacketType == NetworkPacketType.Protocol:
-                        connection?.OnPing(_dateTimeProvider.GetUtcNow());
+                    case ProtocolHookId.Heartbeat when networkPacketType == NetworkPacketType.Protocol:
+                        connection?.OnHeartbeat(_dateTimeProvider.GetUtcNow());
+                        ResendPackages(connection);
 
                         break;
-                    case ProtocolHookId.Ping when networkPacketType == NetworkPacketType.Ack:
-                        connection?.OnPingAck(_dateTimeProvider.GetUtcNow());
+                    case ProtocolHookId.Heartbeat when networkPacketType == NetworkPacketType.Ack:
+                        connection?.OnHeartbeatAck(_dateTimeProvider.GetUtcNow());
 
                         break;
                     case ProtocolHookId.Disconnect:
                         break;
                     case ProtocolHookId.Connect:
                         break;
+                    case ProtocolHookId.Heartbeat:
+                        break;
                     default:
                         throw new ArgumentOutOfRangeException();
                 }
             }
 
-            SendInternalAsync(connection, pooledNetworkPacket);
+            SendInternal(connection, ref networkPacket, out var id, out var acks);
 
-            var bytes = NetworkPacket.Serialize(pooledNetworkPacket.Value);
+            var bytes = NetworkPacket.Serialize(id, acks, ref networkPacket);
 
             if (bytes.Length > MtuSizeLimit)
             {
                 _udpToolkitLogger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
 
-                pooledNetworkPacket.Dispose();
-                return;
+                return Task.CompletedTask;
             }
 
-            _udpToolkitLogger.Debug(
-                $"Packet sends from: - {_sender.Client.LocalEndPoint} to: {pooledNetworkPacket.Value.IpEndPoint} packet: {pooledNetworkPacket.Value} total bytes length: {bytes.Length}, payload bytes length: {pooledNetworkPacket.Value.Serializer().Length}");
+            if (networkPacket.HookId != 253)
+            {
+                _udpToolkitLogger.Debug(
+                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {networkPacket.IpEndPoint} packetId: {id} channel: {networkPacket.ChannelType} hookId: {networkPacket.HookId} packetType {networkPacket.NetworkPacketType}");
+            }
 
-            await _sender
-                .SendAsync(bytes, bytes.Length, pooledNetworkPacket.Value.IpEndPoint)
-                .ConfigureAwait(false);
+            if (networkPacket.IsReliable && networkPacket.NetworkPacketType != NetworkPacketType.Ack && networkPacket.HookId != 253)
+            {
+                _resendQueue.Add(connection.ConnectionId, new ResendPacket(
+                    hookId: networkPacket.HookId,
+                    payload: bytes,
+                    to: networkPacket.IpEndPoint,
+                    createdAt: networkPacket.CreatedAt,
+                    id: id,
+                    channelType: networkPacket.ChannelType));
+            }
+
+            return _sender
+                .SendAsync(bytes, bytes.Length, networkPacket.IpEndPoint);
         }
 
-        private void SendInternalAsync(
-            IConnection connection,
-            PooledObject<NetworkPacket> pooledNetworkPacket)
+        private void ResendPackages(
+            IConnection connection)
         {
-            var networkPacket = pooledNetworkPacket.Value;
+            // _udpToolkitLogger.Debug("Heartbeat");
+            var resendQueue = _resendQueue.Get(connection.ConnectionId);
+            for (var i = 0; i < resendQueue.Count; i++)
+            {
+                var networkPacket = resendQueue[i];
 
+                var isDelivered = connection
+                    .GetOutcomingChannel(networkPacket.ChannelType)
+                    .IsDelivered(networkPacket.Id);
+
+                var isExpired = networkPacket
+                    .IsExpired(_resendTimeout);
+
+                if (!isDelivered && !isExpired)
+                {
+                    if (networkPacket.HookId != 253)
+                    {
+                        _udpToolkitLogger.Debug(
+                            $"Resend from: - {_sender.Client.LocalEndPoint} to: {networkPacket.To} packetId: {networkPacket.Id} channel: {networkPacket.ChannelType}");
+                    }
+
+                    _sender.SendAsync(networkPacket.Payload, networkPacket.Payload.Length, networkPacket.To);
+                }
+                else
+                {
+                    resendQueue.RemoveAt(i);
+                }
+            }
+        }
+
+        private bool SendInternal(
+            IConnection connection,
+            ref NetworkPacket networkPacket,
+            out ushort id,
+            out uint acks)
+        {
             switch (networkPacket.NetworkPacketType)
             {
                 case NetworkPacketType.FromServer:
@@ -107,16 +159,18 @@ namespace UdpToolkit.Network.Clients
                 case NetworkPacketType.Protocol:
                     connection
                         .GetOutcomingChannel(channelType: networkPacket.ChannelType)
-                        .HandleOutputPacket(pooledNetworkPacket.Value);
+                        .HandleOutputPacket(out id, out acks);
 
-                    break;
+                    return true;
 
                 case NetworkPacketType.Ack:
                     connection
-                        .GetOutcomingChannel(networkPacket.ChannelType)
-                        .GetAck(pooledNetworkPacket.Value);
+                        .GetOutcomingChannel(networkPacket.ChannelType);
 
-                    break;
+                    id = default;
+                    acks = default;
+
+                    return false;
 
                 default:
                     throw new NotSupportedException(
