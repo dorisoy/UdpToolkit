@@ -10,13 +10,6 @@ namespace UdpToolkit
     public sealed class RoomManager : IRoomManager
     {
         private readonly ConcurrentDictionary<int, List<Guid>> _rooms = new ConcurrentDictionary<int, List<Guid>>();
-        private readonly IConnectionPool _connectionPool;
-
-        public RoomManager(
-            IConnectionPool connectionPool)
-        {
-            _connectionPool = connectionPool;
-        }
 
         public void JoinOrCreate(
             int roomId,
@@ -30,12 +23,16 @@ namespace UdpToolkit
                 },
                 updateValueFactory: (id, room) =>
                 {
-                    room.Add(peerId);
+                    if (!room.Contains(peerId))
+                    {
+                        room.Add(peerId);
+                    }
+
                     return room;
                 });
         }
 
-        public List<Guid> GetRoomPeers(int roomId)
+        public List<Guid> GetRoom(int roomId)
         {
             return _rooms[roomId];
         }
@@ -45,25 +42,6 @@ namespace UdpToolkit
             Guid peerId)
         {
             _rooms[roomId].Remove(peerId);
-        }
-
-        public Task ApplyAsync(
-            int roomId,
-            Func<IConnection, bool> condition,
-            Func<IConnection, Task> func)
-        {
-            var room = _rooms[roomId];
-            for (var i = 0; i < room.Count; i++)
-            {
-                var connectionId = room[i];
-                var connection = _connectionPool.TryGetConnection(connectionId);
-                if (condition(connection))
-                {
-                    Task.Run(() => func(connection));
-                }
-            }
-
-            return Task.CompletedTask;
         }
     }
 }

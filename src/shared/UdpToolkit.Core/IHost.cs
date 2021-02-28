@@ -20,10 +20,10 @@ namespace UdpToolkit.Core
 
         void SendCore<TEvent>(
             TEvent @event,
+            Guid caller,
             int roomId,
             byte hookId,
             UdpMode udpMode,
-            BroadcastMode broadcastMode,
-            IPEndPoint ipEndPoint = null);
+            BroadcastMode broadcastMode);
     }
 }

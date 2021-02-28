@@ -1,15 +1,15 @@
 namespace UdpToolkit
 {
+    using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Threading.Tasks;
+    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Jobs;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public sealed class Host : IHost
@@ -18,46 +18,45 @@ namespace UdpToolkit
 
         private readonly HostSettings _hostSettings;
 
-        private readonly IAsyncQueue<CallContext> _outputQueue;
-        private readonly IAsyncQueue<CallContext> _inputQueue;
+        private readonly IAsyncQueue<InContext> _inputQueue;
 
         private readonly IEnumerable<IUdpSender> _senders;
         private readonly IEnumerable<IUdpReceiver> _receivers;
 
         private readonly ISubscriptionManager _subscriptionManager;
 
-        private readonly IDateTimeProvider _dateTimeProvider;
-
-        private readonly SenderJob _sendingJob;
+        private readonly HostSenderJob _hostSendingJob;
         private readonly ReceiverJob _receivingJob;
         private readonly WorkerJob _workerJob;
+        private readonly ClientSenderJob _clientSenderJob;
+        private readonly IBroadcaster _broadcaster;
 
         public Host(
             HostSettings hostSettings,
-            IAsyncQueue<CallContext> outputQueue,
-            IAsyncQueue<CallContext> inputQueue,
+            IAsyncQueue<InContext> inputQueue,
             IEnumerable<IUdpSender> senders,
             IEnumerable<IUdpReceiver> receivers,
             ISubscriptionManager subscriptionManager,
-            IDateTimeProvider dateTimeProvider,
             IScheduler scheduler,
-            SenderJob sendingJob,
+            HostSenderJob hostSendingJob,
             ReceiverJob receivingJob,
             WorkerJob workerJob,
-            IUdpToolkitLogger udpToolkitLogger)
+            ClientSenderJob clientSenderJob,
+            IUdpToolkitLogger udpToolkitLogger,
+            IBroadcaster broadcaster)
         {
             Scheduler = scheduler;
             _hostSettings = hostSettings;
             _senders = senders;
             _receivers = receivers;
             _subscriptionManager = subscriptionManager;
-            _dateTimeProvider = dateTimeProvider;
-            _sendingJob = sendingJob;
+            _hostSendingJob = hostSendingJob;
             _receivingJob = receivingJob;
             _workerJob = workerJob;
             _udpToolkitLogger = udpToolkitLogger;
+            _broadcaster = broadcaster;
+            _clientSenderJob = clientSenderJob;
             _inputQueue = inputQueue;
-            _outputQueue = outputQueue;
         }
 
         public IHostClient HostClient => _workerJob.HostClient;
@@ -66,14 +65,14 @@ namespace UdpToolkit
 
         public async Task RunAsync()
         {
-            var senders = _senders
+            var hostSenders = _senders
                 .Select(
                     sender => TaskUtils.RestartOnFail(
-                        job: () => _sendingJob.Execute(sender),
+                        job: () => _hostSendingJob.Execute(sender),
                         logger: (exception) =>
                         {
                             _udpToolkitLogger.Error($"Exception on send task: {exception}");
-                            _udpToolkitLogger.Warning("Restart sender...");
+                            _udpToolkitLogger.Warning("Restart host sender...");
                         },
                         token: default))
                 .ToList();
@@ -90,14 +89,27 @@ namespace UdpToolkit
                         token: default))
                 .ToList();
 
+            var clientSenders = _senders
+                .Select(
+                    sender => TaskUtils.RestartOnFail(
+                        job: () => _clientSenderJob.ExecuteAsync(sender),
+                        logger: (exception) =>
+                        {
+                            _udpToolkitLogger.Error($"Exception on receive task: {exception}");
+                            _udpToolkitLogger.Warning("Restart client sender...");
+                        },
+                        token: default))
+                .ToList();
+
             var workers = Enumerable
                 .Range(0, _hostSettings.Workers)
                 .Select(_ => Task.Run(_workerJob.Execute))
                 .ToList();
 
-            var tasks = senders
+            var tasks = hostSenders
                 .Concat(receivers)
-                .Concat(workers);
+                .Concat(workers)
+                .Concat(clientSenders);
 
             _udpToolkitLogger.Information($"{nameof(Host)} running...");
 
@@ -109,7 +121,6 @@ namespace UdpToolkit
         public void Stop()
         {
             _inputQueue.Stop();
-            _outputQueue.Stop();
         }
 
         public void OnCore(
@@ -121,27 +132,20 @@ namespace UdpToolkit
 
         public void SendCore<TEvent>(
             TEvent @event,
+            Guid caller,
             int roomId,
             byte hookId,
             UdpMode udpMode,
-            BroadcastMode broadcastMode,
-            IPEndPoint ipEndPoint = null)
+            BroadcastMode broadcastMode)
         {
-            var utcNow = _dateTimeProvider.UtcNow();
-
-            _outputQueue.Produce(new CallContext(
-                resendTimeout: _hostSettings.ResendPacketsTimeout,
-                createdAt: utcNow,
+            _broadcaster.Broadcast(
+                serializer: () => _hostSettings.Serializer.Serialize(@event),
+                networkPacketType: NetworkPacketType.FromServer,
+                caller: caller,
                 roomId: roomId,
-                broadcastMode: broadcastMode,
-                networkPacket: new NetworkPacket(
-                    hookId: hookId,
-                    channelType: udpMode.Map(),
-                    networkPacketType: NetworkPacketType.FromServer,
-                    connectionId: default,
-                    serializer: () => _hostSettings.Serializer.Serialize(@event),
-                    createdAt: utcNow,
-                    ipEndPoint: ipEndPoint)));
+                hookId: hookId,
+                channelType: udpMode.Map(),
+                broadcastMode: broadcastMode);
         }
 
         public void Dispose()
@@ -157,7 +161,7 @@ namespace UdpToolkit
             }
 
             _inputQueue.Dispose();
-            _outputQueue.Dispose();
+            _broadcaster.Dispose();
         }
     }
 }

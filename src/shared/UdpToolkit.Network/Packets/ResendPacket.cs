@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Queues
+namespace UdpToolkit.Network.Packets
 {
     using System;
     using System.Net;

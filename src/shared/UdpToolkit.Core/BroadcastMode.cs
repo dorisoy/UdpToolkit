@@ -5,7 +5,7 @@ namespace UdpToolkit.Core
         Caller = 0,
         Room = 1,
         Server = 2,
-        AllPeers = 3,
+        AllConnections = 3,
         RoomExceptCaller = 4,
     }
 }

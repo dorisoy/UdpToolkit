@@ -42,13 +42,13 @@ namespace UdpToolkit.Network.Clients
             _receiver.Dispose();
         }
 
-        public async Task<ValueTuple<NetworkPacket, bool>> ReceiveAsync()
+        public async Task<ValueTuple<InPacket, bool>> ReceiveAsync()
         {
             var udpReceiveResult = await _receiver
                 .ReceiveAsync()
                 .ConfigureAwait(false);
 
-            var networkPacket = NetworkPacket.Deserialize(
+            var networkPacket = InPacket.Deserialize(
                 bytes: udpReceiveResult.Buffer,
                 ipEndPoint: udpReceiveResult.RemoteEndPoint,
                 out var id,

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Jobs
 {
     using System.Threading.Tasks;
+    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
@@ -10,12 +11,12 @@ namespace UdpToolkit.Jobs
     {
         private readonly HostSettings _hostSettings;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IAsyncQueue<CallContext> _inputQueue;
+        private readonly IAsyncQueue<InContext> _inputQueue;
 
         public ReceiverJob(
             HostSettings hostSettings,
             IDateTimeProvider dateTimeProvider,
-            IAsyncQueue<CallContext> inputQueue)
+            IAsyncQueue<InContext> inputQueue)
         {
             _hostSettings = hostSettings;
             _dateTimeProvider = dateTimeProvider;
@@ -31,7 +32,7 @@ namespace UdpToolkit.Jobs
                     .ReceiveAsync()
                     .ConfigureAwait(false);
 
-                var networkPacket = valueTuple.Item1;
+                var inPacket = valueTuple.Item1;
                 var success = valueTuple.Item2;
 
                 if (!success)
@@ -40,12 +41,10 @@ namespace UdpToolkit.Jobs
                 }
 
                 _inputQueue.Produce(
-                    new CallContext(
+                    new InContext(
                         resendTimeout: _hostSettings.ResendPacketsTimeout,
                         createdAt: _dateTimeProvider.UtcNow(),
-                        roomId: null,
-                        broadcastMode: null,
-                        networkPacket: networkPacket));
+                        inPacket: inPacket));
             }
         }
     }

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Jobs
 {
     using System;
+    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
@@ -12,37 +13,31 @@ namespace UdpToolkit.Jobs
     {
         private readonly IUdpToolkitLogger _udpToolkitLogger;
 
-        private readonly Scheduler _scheduler;
         private readonly HostSettings _hostSettings;
         private readonly HostClient _hostClient;
-        private readonly IDateTimeProvider _dateTimeProvider;
 
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
 
-        private readonly IAsyncQueue<CallContext> _inputQueue;
-        private readonly IAsyncQueue<CallContext> _outputQueue;
+        private readonly IAsyncQueue<InContext> _inputQueue;
+        private readonly IBroadcaster _broadcaster;
 
         public WorkerJob(
-            IAsyncQueue<CallContext> inputQueue,
-            IAsyncQueue<CallContext> outputQueue,
+            IAsyncQueue<InContext> inputQueue,
             ISubscriptionManager subscriptionManager,
             IRoomManager roomManager,
-            IDateTimeProvider dateTimeProvider,
             HostSettings hostSettings,
-            Scheduler scheduler,
             HostClient hostClient,
-            IUdpToolkitLogger udpToolkitLogger)
+            IUdpToolkitLogger udpToolkitLogger,
+            IBroadcaster broadcaster)
         {
             _inputQueue = inputQueue;
-            _dateTimeProvider = dateTimeProvider;
             _subscriptionManager = subscriptionManager;
             _hostSettings = hostSettings;
-            _scheduler = scheduler;
             _hostClient = hostClient;
             _udpToolkitLogger = udpToolkitLogger;
+            _broadcaster = broadcaster;
             _roomManager = roomManager;
-            _outputQueue = outputQueue;
         }
 
         public IHostClient HostClient => _hostClient;
@@ -63,25 +58,25 @@ namespace UdpToolkit.Jobs
         }
 
         private void ExecuteInternal(
-            CallContext callContext)
+            InContext inContext)
         {
-            switch (callContext.NetworkPacket.NetworkPacketType)
+            switch (inContext.InPacket.NetworkPacketType)
             {
                 case NetworkPacketType.FromServer:
                 case NetworkPacketType.FromClient:
-                    HandleUserDefinedEvent(ref callContext);
+                    HandleUserDefinedEvent(ref inContext);
                     break;
                 case NetworkPacketType.Protocol:
-                    HandleProtocolEvent(ref callContext);
+                    HandleProtocolEvent(ref inContext);
                     break;
                 case NetworkPacketType.Ack:
-                    if (callContext.NetworkPacket.IsProtocolEvent)
+                    if (inContext.InPacket.IsProtocolEvent)
                     {
-                        HandleProtocolAck(ref callContext);
+                        HandleProtocolAck(ref inContext);
                     }
                     else
                     {
-                        HandleUserDefinedAck(ref callContext);
+                        HandleUserDefinedAck(ref inContext);
                     }
 
                     break;
@@ -89,9 +84,9 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleProtocolEvent(
-            ref CallContext callContext)
+            ref InContext inContext)
         {
-            var networkPacket = callContext.NetworkPacket;
+            var networkPacket = inContext.InPacket;
             var protocolHookId = (ProtocolHookId)networkPacket.HookId;
 
             var userDefinedSubscription = _subscriptionManager
@@ -114,9 +109,9 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleUserDefinedEvent(
-            ref CallContext callContext)
+            ref InContext inContext)
         {
-            var networkPacket = callContext.NetworkPacket;
+            var networkPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(networkPacket.HookId);
 
@@ -131,38 +126,25 @@ namespace UdpToolkit.Jobs
                     networkPacket.Serializer(),
                     networkPacket.ConnectionId,
                     _hostSettings.Serializer,
-                    _roomManager,
-                    _scheduler);
+                    _roomManager);
 
-            switch (networkPacket.NetworkPacketType)
+            if (networkPacket.NetworkPacketType == NetworkPacketType.FromClient)
             {
-                case NetworkPacketType.FromServer when networkPacket.ChannelType == ChannelType.Sequenced:
-                    // release call context?
-                    break;
-                case NetworkPacketType.FromClient when networkPacket.ChannelType == ChannelType.Sequenced:
-
-                    _outputQueue.Produce(new CallContext(
-                        resendTimeout: _hostSettings.ResendPacketsTimeout,
-                        createdAt: _dateTimeProvider.UtcNow(),
-                        roomId: roomId,
-                        broadcastMode: userDefinedSubscription.BroadcastMode,
-                        networkPacket: new NetworkPacket(
-                            hookId: networkPacket.HookId,
-                            channelType: networkPacket.ChannelType,
-                            networkPacketType: NetworkPacketType.FromServer,
-                            connectionId: networkPacket.ConnectionId,
-                            createdAt: networkPacket.CreatedAt,
-                            serializer: networkPacket.Serializer,
-                            ipEndPoint: networkPacket.IpEndPoint)));
-
-                    break;
+                _broadcaster.Broadcast(
+                    networkPacketType: NetworkPacketType.FromServer,
+                    serializer: networkPacket.Serializer,
+                    caller: networkPacket.ConnectionId,
+                    roomId: roomId,
+                    hookId: networkPacket.HookId,
+                    channelType: networkPacket.ChannelType,
+                    broadcastMode: userDefinedSubscription.BroadcastMode);
             }
         }
 
         private void HandleUserDefinedAck(
-            ref CallContext callContext)
+            ref InContext inContext)
         {
-            var networkPacket = callContext.NetworkPacket;
+            var networkPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(networkPacket.HookId);
 
@@ -170,9 +152,9 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleProtocolAck(
-            ref CallContext callContext)
+            ref InContext inContext)
         {
-            var networkPacket = callContext.NetworkPacket;
+            var networkPacket = inContext.InPacket;
             var protocolHookId = (ProtocolHookId)networkPacket.HookId;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);

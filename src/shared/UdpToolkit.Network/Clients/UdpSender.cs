@@ -43,21 +43,21 @@ namespace UdpToolkit.Network.Clients
         }
 
         public Task SendAsync(
-            ref NetworkPacket networkPacket)
+            ref OutPacket outPacket)
         {
             var connection = _connectionPool
-                .TryGetConnection(networkPacket.ConnectionId);
+                .TryGetConnection(outPacket.ConnectionId);
 
             if (connection == null)
             {
                 return Task.CompletedTask;
             }
 
-            var networkPacketType = networkPacket.NetworkPacketType;
+            var networkPacketType = outPacket.NetworkPacketType;
 
-            if (networkPacket.IsProtocolEvent)
+            if (outPacket.IsProtocolEvent)
             {
-                switch ((ProtocolHookId)networkPacket.HookId)
+                switch ((ProtocolHookId)outPacket.HookId)
                 {
                     case ProtocolHookId.P2P:
                         break;
@@ -81,9 +81,9 @@ namespace UdpToolkit.Network.Clients
                 }
             }
 
-            SendInternal(connection, ref networkPacket, out var id, out var acks);
+            SendInternal(connection, ref outPacket, out var id, out var acks);
 
-            var bytes = NetworkPacket.Serialize(id, acks, ref networkPacket);
+            var bytes = OutPacket.Serialize(id, acks, ref outPacket);
 
             if (bytes.Length > MtuSizeLimit)
             {
@@ -92,31 +92,31 @@ namespace UdpToolkit.Network.Clients
                 return Task.CompletedTask;
             }
 
-            if (networkPacket.HookId != 253)
+            if (outPacket.HookId != 253)
             {
                 _udpToolkitLogger.Debug(
-                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {networkPacket.IpEndPoint} packetId: {id} channel: {networkPacket.ChannelType} hookId: {networkPacket.HookId} packetType {networkPacket.NetworkPacketType}");
+                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {outPacket.IpEndPoint} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.NetworkPacketType}");
             }
 
-            if (networkPacket.IsReliable && networkPacket.NetworkPacketType != NetworkPacketType.Ack && networkPacket.HookId != 253)
+            if (outPacket.IsReliable && outPacket.NetworkPacketType != NetworkPacketType.Ack && outPacket.HookId != 253)
             {
                 _resendQueue.Add(connection.ConnectionId, new ResendPacket(
-                    hookId: networkPacket.HookId,
+                    hookId: outPacket.HookId,
                     payload: bytes,
-                    to: networkPacket.IpEndPoint,
-                    createdAt: networkPacket.CreatedAt,
+                    to: outPacket.IpEndPoint,
+                    createdAt: outPacket.CreatedAt,
                     id: id,
-                    channelType: networkPacket.ChannelType));
+                    channelType: outPacket.ChannelType));
             }
 
             return _sender
-                .SendAsync(bytes, bytes.Length, networkPacket.IpEndPoint);
+                .SendAsync(bytes, bytes.Length, outPacket.IpEndPoint);
         }
 
         private void ResendPackages(
             IConnection connection)
         {
-            // _udpToolkitLogger.Debug("Heartbeat");
+            _udpToolkitLogger.Debug("Heartbeat");
             var resendQueue = _resendQueue.Get(connection.ConnectionId);
             for (var i = 0; i < resendQueue.Count; i++)
             {
@@ -148,7 +148,7 @@ namespace UdpToolkit.Network.Clients
 
         private bool SendInternal(
             IConnection connection,
-            ref NetworkPacket networkPacket,
+            ref OutPacket networkPacket,
             out ushort id,
             out uint acks)
         {

@@ -24,9 +24,17 @@
             var nickname = "Client B";
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent) => joinEvent.RoomId,
-                hookId: 0,
-                broadcastMode: BroadcastMode.Room);
+                onEvent: (peerId, joinEvent) =>
+                {
+                    Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
+                    return joinEvent.RoomId;
+                },
+                onAck: (peerId) =>
+                {
+                    Log.Logger.Information($"{nickname} joined to room!");
+                },
+                broadcastMode: BroadcastMode.RoomExceptCaller,
+                hookId: 0);
 
             host.On<MoveEvent>(
                 onEvent: (peerId, move) =>

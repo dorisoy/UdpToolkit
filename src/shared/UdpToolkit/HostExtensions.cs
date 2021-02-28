@@ -23,7 +23,7 @@ namespace UdpToolkit
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
+                    onEvent: (bytes, peerId, serializer, roomManager) =>
                     {
                         var l = bytes.Length;
                         try
@@ -48,8 +48,7 @@ namespace UdpToolkit
             BroadcastMode broadcastMode,
             byte hookId,
             Action<Guid> onAck = null,
-            Action<Guid> onTimeout = null,
-            ScheduledCall<TEvent> scheduleCall = null)
+            Action<Guid> onTimeout = null)
         {
 #pragma warning disable
             if (host == null) throw new ArgumentNullException(nameof(host));
@@ -59,14 +58,10 @@ namespace UdpToolkit
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, peerId, serializer, roomManager, scheduler) =>
+                    onEvent: (bytes, peerId, serializer, roomManager) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
                         var roomId = onEvent.Invoke(peerId, @event, roomManager);
-                        if (scheduleCall != null)
-                        {
-                            scheduler.Schedule(roomId, scheduleCall.TimerId, scheduleCall.Delay, () => scheduleCall.Action(peerId, @event, roomManager));
-                        }
 
                         return roomId;
                     },

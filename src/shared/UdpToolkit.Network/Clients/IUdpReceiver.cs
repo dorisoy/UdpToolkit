@@ -6,6 +6,6 @@ namespace UdpToolkit.Network.Clients
 
     public interface IUdpReceiver : IDisposable
     {
-        Task<ValueTuple<NetworkPacket, bool>> ReceiveAsync();
+        Task<ValueTuple<InPacket, bool>> ReceiveAsync();
     }
 }

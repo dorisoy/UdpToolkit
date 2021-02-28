@@ -31,7 +31,7 @@
 
                     return joinEvent.RoomId;
                 },
-                broadcastMode: BroadcastMode.Room,
+                broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 0);
 
             host.On<MoveEvent>(

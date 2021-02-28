@@ -5,9 +5,9 @@ namespace UdpToolkit.Network.Packets
     using System.Net;
     using UdpToolkit.Network.Channels;
 
-    public readonly struct NetworkPacket
+    public readonly struct InPacket
     {
-        public NetworkPacket(
+        public InPacket(
             byte hookId,
             ChannelType channelType,
             NetworkPacketType networkPacketType,
@@ -43,29 +43,7 @@ namespace UdpToolkit.Network.Packets
 
         public bool IsReliable => ChannelType == ChannelType.ReliableUdp || ChannelType == ChannelType.ReliableOrderedUdp;
 
-        public static byte[] Serialize(
-            ushort id,
-            uint acks,
-            ref NetworkPacket networkPacket)
-        {
-            using (var ms = new MemoryStream())
-            {
-                var bw = new BinaryWriter(ms);
-
-                bw.Write(networkPacket.HookId);
-                bw.Write((byte)networkPacket.ChannelType);
-                bw.Write((byte)networkPacket.NetworkPacketType);
-                bw.Write(buffer: networkPacket.ConnectionId.ToByteArray());
-                bw.Write(id);
-                bw.Write(acks);
-                bw.Write(buffer: networkPacket.Serializer());
-
-                bw.Flush();
-                return ms.ToArray();
-            }
-        }
-
-        public static NetworkPacket Deserialize(
+        public static InPacket Deserialize(
             byte[] bytes,
             IPEndPoint ipEndPoint,
             out ushort id,
@@ -81,7 +59,7 @@ namespace UdpToolkit.Network.Packets
                 acks = reader.ReadUInt32();
                 var payload = reader.ReadBytes(bytes.Length - 25);
 
-                return new NetworkPacket(
+                return new InPacket(
                     hookId: hookId,
                     channelType: channelType,
                     networkPacketType: networkPacketType,

@@ -33,6 +33,7 @@
                 .CreateLogger();
 
             var host = BuildHost();
+            var scheduler = host.Scheduler;
 
             host.On<JoinEvent>(
                 onEvent: (peerId, joinEvent, roomManager) =>
@@ -42,29 +43,32 @@
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
+                    scheduler.Schedule(
+                        roomId: joinEvent.RoomId,
+                        timerId: Timers.JoinTimeout,
+                        dueTime: TimeSpan.FromMilliseconds(20_000),
+                        action: () =>
+                        {
+                            var peers = roomManager
+                                .GetRoom(joinEvent.RoomId);
+
+                            var spawnPositions = peers
+                                .Select(id => new { id, position = Positions.Dequeue() })
+                                .ToDictionary(pair => pair.id, pair => pair.position);
+
+                            Log.Logger.Information($"Scheduled event!");
+                            host.SendCore(
+                                @event: new StartGame(joinEvent.RoomId, spawnPositions),
+                                caller: peerId,
+                                roomId: joinEvent.RoomId,
+                                hookId: 1,
+                                udpMode: UdpMode.ReliableUdp,
+                                broadcastMode: BroadcastMode.Room);
+                        });
+
                     return joinEvent.RoomId;
                 },
-                scheduleCall: new ScheduledCall<JoinEvent>(
-                    timerId: Timers.JoinTimeout,
-                    action: (peerId, joinEvent, roomManager) =>
-                    {
-                        var peers = roomManager
-                            .GetRoomPeers(joinEvent.RoomId);
-
-                        var spawnPositions = peers
-                            .Select(id => new { id, position = Positions.Dequeue() })
-                            .ToDictionary(pair => pair.id, pair => pair.position);
-
-                        Log.Logger.Information($"Scheduled event!");
-                        host.SendCore(
-                            @event: new StartGame(joinEvent.RoomId, spawnPositions),
-                            roomId: joinEvent.RoomId,
-                            hookId: 1,
-                            udpMode: UdpMode.ReliableUdp,
-                            broadcastMode: BroadcastMode.Room);
-                    },
-                    delay: TimeSpan.FromMilliseconds(20_000)),
-                broadcastMode: BroadcastMode.Room,
+                broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 0);
 
             host.On<StartGame>(

@@ -2,7 +2,6 @@
 {
     using System;
     using System.Linq;
-    using System.Threading;
     using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
@@ -62,7 +61,7 @@
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
-                broadcastMode: BroadcastMode.Room,
+                broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 0);
 
             host.On<StartGame>(

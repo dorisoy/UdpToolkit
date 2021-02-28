@@ -9,7 +9,7 @@ namespace UdpToolkit.Core
             int roomId,
             Guid peerId);
 
-        List<Guid> GetRoomPeers(
+        List<Guid> GetRoom(
             int roomId);
 
         void Leave(

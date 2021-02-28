@@ -18,8 +18,7 @@ namespace UdpToolkit.Network
             List<IPEndPoint> ips,
             TimeSpan connectionTimeout);
 
-        Task Apply(
-            Func<bool> condition,
-            Func<Task> func);
+        void Apply(
+            Action<IConnection> action);
     }
 }

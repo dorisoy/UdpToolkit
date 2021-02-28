@@ -4,11 +4,11 @@ namespace UdpToolkit
     using System.Linq;
     using System.Net;
     using System.Threading;
+    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Jobs;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public sealed class HostBuilder : IHostBuilder
@@ -47,16 +47,18 @@ namespace UdpToolkit
             var scheduler = new Scheduler();
             var loggerFactory = _hostSettings.LoggerFactory;
 
-            var outputQueue = new BlockingAsyncQueue<CallContext>(
+            var hostOutQueue = new BlockingAsyncQueue<HostOutContext>(
                 boundedCapacity: int.MaxValue);
 
-            var inputQueue = new BlockingAsyncQueue<CallContext>(
+            var clientOutQueue = new BlockingAsyncQueue<ClientOutContext>(
+                boundedCapacity: int.MaxValue);
+
+            var inputQueue = new BlockingAsyncQueue<InContext>(
                 boundedCapacity: int.MaxValue);
 
             var connectionPool = new ConnectionPool(networkDateTimeProvider);
 
-            var roomManager = new RoomManager(
-                connectionPool: connectionPool);
+            var roomManager = new RoomManager();
 
             if (!_hostClientSettings.ServerInputPorts.Any())
             {
@@ -130,34 +132,41 @@ namespace UdpToolkit
                     receiver: udpClient))
                 .ToList();
 
+            var broadcaster = new Broadcaster(
+                remoteHostConnection: remoteHostConnection,
+                clientOutQueue: clientOutQueue,
+                hostOutQueue: hostOutQueue,
+                dateTimeProvider: dateTimeProvider,
+                roomManager: roomManager,
+                connectionPool: connectionPool,
+                hostSettings: _hostSettings);
+
             var hostClient = new HostClient(
                 remoteHostConnection: remoteHostConnection,
                 inputPorts: _hostSettings.InputPorts.ToArray(),
                 hostConnection: hostConnection,
                 cancellationTokenSource: new CancellationTokenSource(),
-                outputQueue: outputQueue,
+                broadcaster: broadcaster,
                 heartbeatDelayMs: _hostClientSettings.HeartbeatDelayInMs,
                 resendPacketsTimeout: _hostClientSettings.ResendPacketsTimeout,
                 connectionTimeout: _hostClientSettings.ConnectionTimeout,
-                dateTimeProvider: dateTimeProvider,
                 serializer: _hostSettings.Serializer);
 
             var subscriptionManager = new SubscriptionManager();
 
             return new Host(
                 udpToolkitLogger: loggerFactory.Create<Host>(),
-                dateTimeProvider: dateTimeProvider,
                 hostSettings: _hostSettings,
                 subscriptionManager: subscriptionManager,
-                outputQueue: outputQueue,
                 inputQueue: inputQueue,
                 senders: senders,
                 receivers: receivers,
                 scheduler: scheduler,
-                sendingJob: new SenderJob(
-                    roomManager: roomManager,
-                    connectionPool: connectionPool,
-                    outputQueue: outputQueue),
+                broadcaster: broadcaster,
+                clientSenderJob: new ClientSenderJob(
+                    clientOutQueue: clientOutQueue),
+                hostSendingJob: new HostSenderJob(
+                    hostOutQueue: hostOutQueue),
                 receivingJob: new ReceiverJob(
                     hostSettings: _hostSettings,
                     dateTimeProvider: dateTimeProvider,
@@ -165,12 +174,10 @@ namespace UdpToolkit
                 workerJob: new WorkerJob(
                     udpToolkitLogger: loggerFactory.Create<WorkerJob>(),
                     inputQueue: inputQueue,
-                    outputQueue: outputQueue,
                     subscriptionManager: subscriptionManager,
                     roomManager: roomManager,
-                    dateTimeProvider: dateTimeProvider,
+                    broadcaster: broadcaster,
                     hostSettings: _hostSettings,
-                    scheduler: scheduler,
                     hostClient: hostClient));
         }
 
