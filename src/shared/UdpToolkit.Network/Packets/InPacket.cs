@@ -10,7 +10,7 @@ namespace UdpToolkit.Network.Packets
         public InPacket(
             byte hookId,
             ChannelType channelType,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             Guid connectionId,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
@@ -21,7 +21,7 @@ namespace UdpToolkit.Network.Packets
             HookId = hookId;
             ChannelType = channelType;
             ConnectionId = connectionId;
-            NetworkPacketType = networkPacketType;
+            PacketType = packetType;
             IpEndPoint = ipEndPoint;
         }
 
@@ -31,7 +31,7 @@ namespace UdpToolkit.Network.Packets
 
         public Guid ConnectionId { get; }
 
-        public NetworkPacketType NetworkPacketType { get; }
+        public PacketType PacketType { get; }
 
         public Func<byte[]> Serializer { get; }
 
@@ -53,7 +53,7 @@ namespace UdpToolkit.Network.Packets
             {
                 var hookId = reader.ReadByte();
                 var channelType = (ChannelType)reader.ReadByte();
-                var networkPacketType = (NetworkPacketType)reader.ReadByte();
+                var packetType = (PacketType)reader.ReadByte();
                 var connectionId = new Guid(reader.ReadBytes(16));
                 id = reader.ReadUInt16();
                 acks = reader.ReadUInt32();
@@ -62,7 +62,7 @@ namespace UdpToolkit.Network.Packets
                 return new InPacket(
                     hookId: hookId,
                     channelType: channelType,
-                    networkPacketType: networkPacketType,
+                    packetType: packetType,
                     connectionId: connectionId,
                     serializer: () => payload,
                     createdAt: DateTimeOffset.UtcNow,

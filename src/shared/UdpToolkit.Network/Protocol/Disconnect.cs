@@ -10,19 +10,19 @@ namespace UdpToolkit.Network.Protocol
         {
         }
 
-        public Disconnect(Guid peerId)
+        public Disconnect(Guid connectionId)
         {
-            PeerId = peerId;
+            ConnectionId = connectionId;
         }
 
-        public Guid PeerId { get; }
+        public Guid ConnectionId { get; }
 
         protected override byte[] SerializeInternal(Disconnect disconnect)
         {
             using (var ms = new MemoryStream())
             {
                 var bw = new BinaryWriter(ms);
-                bw.Write(buffer: disconnect.PeerId.ToByteArray());
+                bw.Write(buffer: disconnect.ConnectionId.ToByteArray());
 
                 bw.Flush();
                 return ms.ToArray();
@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Protocol
             using (var reader = new BinaryReader(new MemoryStream(bytes)))
             {
                 return new Disconnect(
-                    peerId: new Guid(reader.ReadBytes(16)));
+                    connectionId: new Guid(reader.ReadBytes(16)));
             }
         }
     }

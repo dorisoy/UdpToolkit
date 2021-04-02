@@ -36,10 +36,10 @@
             var scheduler = host.Scheduler;
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent, roomManager) =>
+                onEvent: (connectionId, joinEvent, roomManager) =>
                 {
                     roomManager
-                        .JoinOrCreate(joinEvent.RoomId, peerId);
+                        .JoinOrCreate(joinEvent.RoomId, connectionId);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
@@ -59,7 +59,7 @@
                             Log.Logger.Information($"Scheduled event!");
                             host.SendCore(
                                 @event: new StartGame(joinEvent.RoomId, spawnPositions),
-                                caller: peerId,
+                                caller: connectionId,
                                 roomId: joinEvent.RoomId,
                                 hookId: 1,
                                 udpMode: UdpMode.ReliableUdp,
@@ -72,13 +72,13 @@
                 hookId: 0);
 
             host.On<StartGame>(
-                onEvent: (peerId, startGame) =>
+                onEvent: (connectionId, startGame) =>
                 {
                     Log.Logger.Information("Game started!");
 
                     return startGame.RoomId;
                 },
-                onAck: (peerId) =>
+                onAck: (connectionId) =>
                 {
                     Log.Logger.Information("Game started ack!");
                 },
@@ -102,7 +102,7 @@
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

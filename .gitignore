@@ -11,6 +11,8 @@
 [Bb]uild/
 [Cc]lient_build/
 [Ss]erver_build/
+[Bb]enchmarks_build/
+[Bb]enchmarkDotNet.Artifacts
 [Uu]nity_package/
 ./src/unity/UdpToolkit.Unity/Assets/Plugins/
 

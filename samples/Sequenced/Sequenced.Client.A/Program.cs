@@ -1,6 +1,7 @@
 ﻿namespace Sequenced.Client.A
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Sequenced.Contracts;
     using Serilog;
@@ -12,8 +13,11 @@
 
     public static class Program
     {
+        private static int integer = 0;
+
         public static async Task Main(string[] args)
         {
+            LockFree();
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
                 .WriteTo.Console()
@@ -24,12 +28,12 @@
             var nickname = "Client A";
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent) =>
+                onEvent: (connectionId, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                     return joinEvent.RoomId;
                 },
-                onAck: (peerId) =>
+                onAck: (connectionId) =>
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
@@ -37,7 +41,7 @@
                 hookId: 0);
 
             host.On<MoveEvent>(
-                onEvent: (peerId, move) =>
+                onEvent: (connectionId, move) =>
                 {
                     Log.Debug($"Id {move.Id} - from - {move.From}");
                     return move.RoomId;
@@ -61,17 +65,18 @@
 
             await Task.Delay(20_000).ConfigureAwait(false);
 
-            for (var i = 0; i < 5; i++)
+            for (; ;)
             {
                 client.Send(
                     @event: new MoveEvent(
-                        id: i,
+                        id: 1,
                         roomId: 0,
                         from: nickname),
                     hookId: 1,
                     udpMode: UdpMode.Sequenced);
+                Thread.Sleep(100);
             }
-
+#pragma warning disable
             Console.WriteLine($"IsConnected - {isConnected}");
 
             Console.WriteLine("Press any key...");
@@ -91,7 +96,7 @@
                     settings.OutputPorts = new[] { 4000, 4001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {
@@ -102,6 +107,15 @@
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
                 .Build();
+        }
+
+        private static void LockFree()
+        {
+            Interlocked.CompareExchange(ref integer, value: 7, comparand: 0);
+            Interlocked.Increment(ref integer);
+            Interlocked.Decrement(ref integer);
+            Interlocked.Add(ref integer, 7);
+            Interlocked.Add(ref integer, -7);   
         }
     }
 }

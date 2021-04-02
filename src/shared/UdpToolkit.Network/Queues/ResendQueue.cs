@@ -16,19 +16,19 @@ namespace UdpToolkit.Network.Queues
 
         public void Add(
             Guid connectionId,
-            ResendPacket networkPacket)
+            ResendPacket resendPAcket)
         {
             var lazyQueue = _resendQueue.AddOrUpdate(
                 key: connectionId,
                 addValueFactory: (key) =>
                 {
                     var queue = new Lazy<List<ResendPacket>>();
-                    queue.Value.Add(networkPacket);
+                    queue.Value.Add(resendPAcket);
                     return queue;
                 },
                 updateValueFactory: (key, queue) =>
                 {
-                    queue.Value.Add(networkPacket);
+                    queue.Value.Add(resendPAcket);
                     return queue;
                 });
 

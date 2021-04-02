@@ -37,7 +37,7 @@
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

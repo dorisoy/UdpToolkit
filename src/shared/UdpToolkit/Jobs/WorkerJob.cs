@@ -44,6 +44,7 @@ namespace UdpToolkit.Jobs
 
         public void Execute()
         {
+            // TODO Select queue by hashed connectionId
             foreach (var callContext in _inputQueue.Consume())
             {
                 try
@@ -60,16 +61,16 @@ namespace UdpToolkit.Jobs
         private void ExecuteInternal(
             InContext inContext)
         {
-            switch (inContext.InPacket.NetworkPacketType)
+            switch (inContext.InPacket.PacketType)
             {
-                case NetworkPacketType.FromServer:
-                case NetworkPacketType.FromClient:
+                case PacketType.FromServer:
+                case PacketType.FromClient:
                     HandleUserDefinedEvent(ref inContext);
                     break;
-                case NetworkPacketType.Protocol:
+                case PacketType.Protocol:
                     HandleProtocolEvent(ref inContext);
                     break;
-                case NetworkPacketType.Ack:
+                case PacketType.Ack:
                     if (inContext.InPacket.IsProtocolEvent)
                     {
                         HandleProtocolAck(ref inContext);
@@ -86,8 +87,8 @@ namespace UdpToolkit.Jobs
         private void HandleProtocolEvent(
             ref InContext inContext)
         {
-            var networkPacket = inContext.InPacket;
-            var protocolHookId = (ProtocolHookId)networkPacket.HookId;
+            var inPacket = inContext.InPacket;
+            var protocolHookId = (ProtocolHookId)inPacket.HookId;
 
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
@@ -100,8 +101,8 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.Connect:
 
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
-                        networkPacket.Serializer(),
-                        networkPacket.ConnectionId,
+                        inPacket.Serializer(),
+                        inPacket.ConnectionId,
                         _hostSettings.Serializer);
 
                     break;
@@ -111,32 +112,32 @@ namespace UdpToolkit.Jobs
         private void HandleUserDefinedEvent(
             ref InContext inContext)
         {
-            var networkPacket = inContext.InPacket;
+            var inPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
-                .GetSubscription(networkPacket.HookId);
+                .GetSubscription(inPacket.HookId);
 
             if (userDefinedSubscription == null)
             {
-                _udpToolkitLogger.Error($"Subscription with id {networkPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
+                _udpToolkitLogger.Error($"Subscription with id {inPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
 
                 return;
             }
 
             var roomId = userDefinedSubscription.OnEvent(
-                    networkPacket.Serializer(),
-                    networkPacket.ConnectionId,
+                    inPacket.Serializer(),
+                    inPacket.ConnectionId,
                     _hostSettings.Serializer,
                     _roomManager);
 
-            if (networkPacket.NetworkPacketType == NetworkPacketType.FromClient)
+            if (inPacket.PacketType == PacketType.FromClient)
             {
                 _broadcaster.Broadcast(
-                    networkPacketType: NetworkPacketType.FromServer,
-                    serializer: networkPacket.Serializer,
-                    caller: networkPacket.ConnectionId,
+                    packetType: PacketType.FromServer,
+                    serializer: inPacket.Serializer,
+                    caller: inPacket.ConnectionId,
                     roomId: roomId,
-                    hookId: networkPacket.HookId,
-                    channelType: networkPacket.ChannelType,
+                    hookId: inPacket.HookId,
+                    channelType: inPacket.ChannelType,
                     broadcastMode: userDefinedSubscription.BroadcastMode);
             }
         }
@@ -144,18 +145,18 @@ namespace UdpToolkit.Jobs
         private void HandleUserDefinedAck(
             ref InContext inContext)
         {
-            var networkPacket = inContext.InPacket;
+            var inPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
-                .GetSubscription(networkPacket.HookId);
+                .GetSubscription(inPacket.HookId);
 
-            userDefinedSubscription?.OnAck?.Invoke(networkPacket.ConnectionId);
+            userDefinedSubscription?.OnAck?.Invoke(inPacket.ConnectionId);
         }
 
         private void HandleProtocolAck(
             ref InContext inContext)
         {
-            var networkPacket = inContext.InPacket;
-            var protocolHookId = (ProtocolHookId)networkPacket.HookId;
+            var inPacket = inContext.InPacket;
+            var protocolHookId = (ProtocolHookId)inPacket.HookId;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);
 
@@ -173,7 +174,7 @@ namespace UdpToolkit.Jobs
                             break;
                     }
 
-                    userDefinedSubscription?.OnAck?.Invoke(networkPacket.ConnectionId);
+                    userDefinedSubscription?.OnAck?.Invoke(inPacket.ConnectionId);
                     break;
             }
         }

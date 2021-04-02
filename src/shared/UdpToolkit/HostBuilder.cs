@@ -110,12 +110,12 @@ namespace UdpToolkit
             var remoteHostConnectionId = Guid.NewGuid();
 
             var hostConnection = connectionPool.AddOrUpdate(
-                connectionTimeout: _hostSettings.PeerInactivityTimeout,
+                connectionTimeout: _hostSettings.InactivityTimeout,
                 connectionId: hostConnectionId,
                 ips: inputEndPoints);
 
             var remoteHostConnection = connectionPool.AddOrUpdate(
-                connectionTimeout: _hostSettings.PeerInactivityTimeout,
+                connectionTimeout: _hostSettings.InactivityTimeout,
                 connectionId: remoteHostConnectionId,
                 ips: _hostClientSettings.ServerInputPorts
                     .Select(port => new IPEndPoint(IPAddress.Parse(_hostClientSettings.ServerHost), port))
@@ -127,7 +127,7 @@ namespace UdpToolkit
                     remoteHostConnection: remoteHostConnection,
                     dateTimeProvider: networkDateTimeProvider,
                     udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
-                    connectionInactivityTimeout: _hostSettings.PeerInactivityTimeout,
+                    connectionInactivityTimeout: _hostSettings.InactivityTimeout,
                     connectionPool: connectionPool,
                     receiver: udpClient))
                 .ToList();

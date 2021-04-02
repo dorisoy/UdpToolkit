@@ -48,44 +48,44 @@ namespace UdpToolkit.Network.Clients
                 .ReceiveAsync()
                 .ConfigureAwait(false);
 
-            var networkPacket = InPacket.Deserialize(
+            var inPacket = InPacket.Deserialize(
                 bytes: udpReceiveResult.Buffer,
                 ipEndPoint: udpReceiveResult.RemoteEndPoint,
                 out var id,
                 out var acks);
 
-            var connectionId = networkPacket.ConnectionId;
+            var connectionId = inPacket.ConnectionId;
             var connection = _connectionPool.TryGetConnection(connectionId);
 
-            var networkPacketType = networkPacket.NetworkPacketType;
+            var packetType = inPacket.PacketType;
 
-            if (networkPacket.IsProtocolEvent)
+            if (inPacket.IsProtocolEvent)
             {
-                switch ((ProtocolHookId)networkPacket.HookId)
+                switch ((ProtocolHookId)inPacket.HookId)
                 {
                     case ProtocolHookId.P2P:
                         break;
 
-                    case ProtocolHookId.Heartbeat when networkPacketType == NetworkPacketType.Protocol:
+                    case ProtocolHookId.Heartbeat when packetType == PacketType.Protocol:
                         connection?.OnHeartbeat(_dateTimeProvider.GetUtcNow());
 
                         break;
 
-                    case ProtocolHookId.Heartbeat when networkPacketType == NetworkPacketType.Ack:
+                    case ProtocolHookId.Heartbeat when packetType == PacketType.Ack:
                         connection?.OnHeartbeatAck(_dateTimeProvider.GetUtcNow());
 
                         break;
-                    case ProtocolHookId.Disconnect when networkPacketType == NetworkPacketType.Protocol:
+                    case ProtocolHookId.Disconnect when packetType == PacketType.Protocol:
                         _connectionPool.Remove(connection);
                         break;
-                    case ProtocolHookId.Connect when networkPacketType == NetworkPacketType.Protocol:
-                        var connect = ProtocolEvent<Connect>.Deserialize(networkPacket.Serializer());
+                    case ProtocolHookId.Connect when packetType == PacketType.Protocol:
+                        var connect = ProtocolEvent<Connect>.Deserialize(inPacket.Serializer());
 
                         connection = _connectionPool.AddOrUpdate(
                             connectionTimeout: _connectionInactivityTimeout,
                             connectionId: connectionId,
                             ips: connect.InputPorts
-                                .Select(port => new IPEndPoint(networkPacket.IpEndPoint.Address, port))
+                                .Select(port => new IPEndPoint(inPacket.IpEndPoint.Address, port))
                                 .ToList());
                         break;
                 }
@@ -96,31 +96,31 @@ namespace UdpToolkit.Network.Clients
                 return (default, false);
             }
 
-            if (networkPacket.HookId != 253)
+            if (inPacket.HookId != 253)
             {
                 _udpToolkitLogger.Debug(
-                    $"Received from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {networkPacket.HookId} packetType {networkPacket.NetworkPacketType}");
+                    $"Received from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {inPacket.HookId} packetType {inPacket.PacketType}");
             }
 
-            switch (networkPacket.NetworkPacketType)
+            switch (inPacket.PacketType)
             {
-                case NetworkPacketType.FromServer:
-                case NetworkPacketType.FromClient:
-                case NetworkPacketType.Protocol:
+                case PacketType.FromServer:
+                case PacketType.FromClient:
+                case PacketType.Protocol:
                     var handled1 = connection
-                        .GetIncomingChannel(channelType: networkPacket.ChannelType)
+                        .GetIncomingChannel(channelType: inPacket.ChannelType)
                         .HandleInputPacket(id, acks);
 
                     if (!handled1)
                     {
-                        if (networkPacket.IsReliable)
+                        if (inPacket.IsReliable)
                         {
-                            var bytes = AckPacket.Serialize(id, acks, ref networkPacket);
+                            var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
-                            if (networkPacket.HookId != 253)
+                            if (inPacket.HookId != 253)
                             {
                                 _udpToolkitLogger.Debug(
-                                    $"Sended from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {networkPacket.HookId} packetType {NetworkPacketType.Ack}");
+                                    $"Sended from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}");
                             }
 
                             await _receiver
@@ -131,17 +131,17 @@ namespace UdpToolkit.Network.Clients
                         return (default, false);
                     }
 
-                    if (networkPacket.IsReliable)
+                    if (inPacket.IsReliable)
                     {
-                        var bytes = AckPacket.Serialize(id, acks, ref networkPacket);
+                        var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
-                        if (networkPacket.HookId != 253)
+                        if (inPacket.HookId != 253)
                         {
                             _udpToolkitLogger.Debug(
-                                $"Sended from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {networkPacket.HookId} packetType {NetworkPacketType.Ack}");
+                                $"Sended from: - {udpReceiveResult.RemoteEndPoint} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}");
                         }
 
-                        var ip = networkPacketType == NetworkPacketType.FromServer
+                        var ip = packetType == PacketType.FromServer
                             ? _remoteHostConnection.GetIp()
                             : connection.GetIp();
 
@@ -150,20 +150,20 @@ namespace UdpToolkit.Network.Clients
                             .ConfigureAwait(false);
                     }
 
-                    return (networkPacket, true);
+                    return (inPacket, true);
 
-                case NetworkPacketType.Ack:
+                case PacketType.Ack:
                     var handled = connection
-                        .GetOutcomingChannel(networkPacket.ChannelType)
+                        .GetOutcomingChannel(inPacket.ChannelType)
                         .HandleAck(id, acks);
 
                     return handled
-                        ? (networkPacket, true)
+                        ? (inPacket, true)
                         : (default, false);
 
                 default:
                     throw new NotSupportedException(
-                        $"NetworkPacketType {networkPacket.NetworkPacketType} - not supported!");
+                        $"NetworkPacketType {inPacket.PacketType} - not supported!");
             }
         }
     }

@@ -7,13 +7,13 @@ namespace UdpToolkit.Core
     {
         void JoinOrCreate(
             int roomId,
-            Guid peerId);
+            Guid connectionId);
 
         List<Guid> GetRoom(
             int roomId);
 
         void Leave(
             int roomId,
-            Guid peerId);
+            Guid connectionId);
     }
 }

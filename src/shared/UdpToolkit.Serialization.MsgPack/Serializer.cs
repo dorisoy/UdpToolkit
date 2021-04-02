@@ -14,5 +14,14 @@
         {
             return MessagePackSerializer.Deserialize<T>(bytes);
         }
+
+        public void Foo()
+        {
+            var result = 1 + 3;
+            Console.WriteLine(result);
+        }
     }
 }
+
+// Func<byte[]> Serialize() { ... };
+// |protocol (connect|disconnect) memory stream bin formatter (allocation free, !fast, !3d party lib) |framework message pack (allocation free, fast)|

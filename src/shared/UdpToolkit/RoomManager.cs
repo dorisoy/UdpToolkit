@@ -13,19 +13,19 @@ namespace UdpToolkit
 
         public void JoinOrCreate(
             int roomId,
-            Guid peerId)
+            Guid connectionId)
         {
             _rooms.AddOrUpdate(
                 key: roomId,
                 addValueFactory: (id) => new List<Guid>
                 {
-                    peerId,
+                    connectionId,
                 },
                 updateValueFactory: (id, room) =>
                 {
-                    if (!room.Contains(peerId))
+                    if (!room.Contains(connectionId))
                     {
-                        room.Add(peerId);
+                        room.Add(connectionId);
                     }
 
                     return room;
@@ -39,9 +39,9 @@ namespace UdpToolkit
 
         public void Leave(
             int roomId,
-            Guid peerId)
+            Guid connectionId)
         {
-            _rooms[roomId].Remove(peerId);
+            _rooms[roomId].Remove(connectionId);
         }
     }
 }

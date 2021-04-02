@@ -140,7 +140,7 @@ namespace UdpToolkit
         {
             _broadcaster.Broadcast(
                 serializer: () => _hostSettings.Serializer.Serialize(@event),
-                networkPacketType: NetworkPacketType.FromServer,
+                packetType: PacketType.FromServer,
                 caller: caller,
                 roomId: roomId,
                 hookId: hookId,

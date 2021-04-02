@@ -16,7 +16,7 @@ namespace UdpToolkit.Network.Queues
 
         public void Produce(TEvent @event)
         {
-            _input.Add(@event);
+            _input.TryAdd(@event);
         }
 
         public void Stop()

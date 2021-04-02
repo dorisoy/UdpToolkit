@@ -11,7 +11,7 @@ namespace UdpToolkit.Network.Packets
             byte hookId,
             ChannelType channelType,
             Guid connectionId,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
             IPEndPoint ipEndPoint)
@@ -19,7 +19,7 @@ namespace UdpToolkit.Network.Packets
             HookId = hookId;
             ChannelType = channelType;
             ConnectionId = connectionId;
-            NetworkPacketType = networkPacketType;
+            PacketType = packetType;
             CreatedAt = createdAt;
             IpEndPoint = ipEndPoint;
         }
@@ -30,7 +30,7 @@ namespace UdpToolkit.Network.Packets
 
         public Guid ConnectionId { get; }
 
-        public NetworkPacketType NetworkPacketType { get; }
+        public PacketType PacketType { get; }
 
         public DateTimeOffset CreatedAt { get; }
 
@@ -47,7 +47,7 @@ namespace UdpToolkit.Network.Packets
 
                 bw.Write(inPacket.HookId);
                 bw.Write((byte)inPacket.ChannelType);
-                bw.Write((byte)NetworkPacketType.Ack);
+                bw.Write((byte)PacketType.Ack);
                 bw.Write(buffer: inPacket.ConnectionId.ToByteArray());
                 bw.Write(id);
                 bw.Write(acks);

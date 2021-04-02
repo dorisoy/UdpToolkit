@@ -59,7 +59,7 @@ namespace UdpToolkit
 
             SendInternal(
                 @event: new Connect(ConnectionId, _inputPorts),
-                networkPacketType: NetworkPacketType.Protocol,
+                packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
@@ -74,7 +74,7 @@ namespace UdpToolkit
         {
             SendInternal(
                 @event: new Connect(ConnectionId, _inputPorts),
-                networkPacketType: NetworkPacketType.Protocol,
+                packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
@@ -85,8 +85,8 @@ namespace UdpToolkit
         public bool Disconnect()
         {
             SendInternal(
-                @event: new Disconnect(peerId: ConnectionId),
-                networkPacketType: NetworkPacketType.Protocol,
+                @event: new Disconnect(connectionId: ConnectionId),
+                packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Disconnect>.Serialize);
@@ -100,7 +100,7 @@ namespace UdpToolkit
             UdpMode udpMode)
         {
             SendInternal(
-                networkPacketType: NetworkPacketType.FromClient,
+                packetType: PacketType.FromClient,
                 @event: @event,
                 hookId: hookId,
                 udpMode: udpMode,
@@ -111,14 +111,14 @@ namespace UdpToolkit
             TEvent @event,
             byte hookId,
             UdpMode udpMode,
-            NetworkPacketType networkPacketType,
+            PacketType packetType,
             Func<TEvent, byte[]> serializer)
         {
             _broadcaster.Broadcast(
                 serializer: () => serializer(@event),
                 caller: ConnectionId,
                 hookId: hookId,
-                networkPacketType: networkPacketType,
+                packetType: packetType,
                 broadcastMode: BroadcastMode.Server,
                 channelType: udpMode.Map());
         }
@@ -138,7 +138,7 @@ namespace UdpToolkit
 
                 SendInternal(
                     @event: @event,
-                    networkPacketType: NetworkPacketType.Protocol,
+                    packetType: PacketType.Protocol,
                     hookId: (byte)ProtocolHookId.Heartbeat,
                     udpMode: UdpMode.ReliableUdp,
                     serializer: ProtocolEvent<Heartbeat>.Serialize);

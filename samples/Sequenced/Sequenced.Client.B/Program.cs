@@ -24,12 +24,12 @@
             var nickname = "Client B";
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent) =>
+                onEvent: (connectionId, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                     return joinEvent.RoomId;
                 },
-                onAck: (peerId) =>
+                onAck: (connectionId) =>
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
@@ -37,7 +37,7 @@
                 hookId: 0);
 
             host.On<MoveEvent>(
-                onEvent: (peerId, move) =>
+                onEvent: (connectionId, move) =>
                 {
                     Log.Debug($"Id {move.Id} - from - {move.From}");
                     return move.RoomId;
@@ -91,7 +91,7 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {

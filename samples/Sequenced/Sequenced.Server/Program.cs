@@ -22,10 +22,10 @@
             var host = BuildHost();
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent, roomManager) =>
+                onEvent: (connectionId, joinEvent, roomManager) =>
                 {
                     roomManager
-                        .JoinOrCreate(joinEvent.RoomId, peerId);
+                        .JoinOrCreate(joinEvent.RoomId, connectionId);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
@@ -35,7 +35,7 @@
                 hookId: 0);
 
             host.On<MoveEvent>(
-                onEvent: (peerId, moveEvent) =>
+                onEvent: (connectionId, moveEvent) =>
                 {
                     Log.Logger.Information("Moved!");
 
@@ -61,7 +61,7 @@
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

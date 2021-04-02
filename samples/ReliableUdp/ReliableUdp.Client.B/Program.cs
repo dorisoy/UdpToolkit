@@ -36,36 +36,36 @@
             });
 
             host.OnProtocol<Connect>(
-                onProtocolEvent: (peerId, connected) =>
+                onProtocolEvent: (connectionId, connected) =>
                 {
                     Log.Logger.Information($"Must be raised only on server side");
                 },
-                onAck: (peerId) =>
+                onAck: (connectionId) =>
                 {
-                    Log.Logger.Information($"{nickname} connected with peerId - {peerId}");
+                    Log.Logger.Information($"{nickname} connected with connectionId - {connectionId}");
                 },
-                onTimeout: (peerId) =>
+                onTimeout: (connectionId) =>
                 {
-                    Log.Logger.Information($"Connection timeout - {peerId}");
+                    Log.Logger.Information($"Connection timeout - {connectionId}");
                 },
                 protocolHookId: ProtocolHookId.Connect);
 
             host.On<JoinEvent>(
-                onEvent: (peerId, joinEvent) =>
+                onEvent: (connectionId, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                     return joinEvent.RoomId;
                 },
-                onAck: (peerId) =>
+                onAck: (connectionId) =>
                 {
                     Log.Logger.Information($"{nickname} joined to room!");
                 },
-                onTimeout: (peerId) => { },
+                onTimeout: (connectionId) => { },
                 broadcastMode: BroadcastMode.Room,
                 hookId: 0);
 
             host.On<StartGame>(
-                onEvent: (peerId, startGame) =>
+                onEvent: (connectionId, startGame) =>
                 {
                     var positions = startGame.Positions
                         .Select(pair => pair.Key + "|" + pair.Value.x + pair.Value.y + pair.Value.z)
@@ -109,7 +109,7 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.PeerInactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {

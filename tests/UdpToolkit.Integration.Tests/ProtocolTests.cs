@@ -28,12 +28,12 @@ namespace UdpToolkit.Integration.Tests
 
             var waitCallback = new ManualResetEvent(initialState: false);
 
-            Guid? receivedPeerId = null;
+            Guid? receivedConnectionId = null;
 
             clientHost.OnProtocol<Connect>(
                 onProtocolEvent: (guid, @event) =>
                 {
-                    receivedPeerId = guid;
+                    receivedConnectionId = guid;
                     waitCallback.Set();
                 },
                 onAck: (id) => { },
@@ -50,8 +50,8 @@ namespace UdpToolkit.Integration.Tests
 
             waitCallback.WaitOne(timeout: waitCallBackTimeout);
 
-            Assert.True(receivedPeerId.HasValue);
-            Assert.NotEqual(Guid.Empty, receivedPeerId.Value);
+            Assert.True(receivedConnectionId.HasValue);
+            Assert.NotEqual(Guid.Empty, receivedConnectionId.Value);
         }
 
         [Fact(Timeout = 10_000)]
