@@ -4,19 +4,17 @@ namespace UdpToolkit.Core
 
     public interface IHostClient
     {
-        Guid ConnectionId { get; }
+        event Action OnConnectionTimeout;
 
-        TimeSpan Rtt { get; }
+        Guid ConnectionId { get; }
 
         bool IsConnected { get; }
 
-        bool Connect(
-            TimeSpan? connectionTimeout = null);
+        TimeSpan Rtt { get; }
 
-        void ConnectAsync(
-            TimeSpan? connectionTimeout = null);
+        void Connect();
 
-        bool Disconnect();
+        void Disconnect();
 
         void Send<TEvent>(
             TEvent @event,

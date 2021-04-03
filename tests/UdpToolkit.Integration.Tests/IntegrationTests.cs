@@ -45,11 +45,11 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: serverInputPorts);
 
 #pragma warning disable CS4014
-            Task.Run(() => serverHost.RunAsync());
-            Task.Run(() => clientHost.RunAsync());
+            Task.Run(() => serverHost.Run());
+            Task.Run(() => clientHost.Run());
 #pragma warning restore CS4014
 
-            clientHost.HostClient.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
+            clientHost.HostClient.Connect();
 
             var waitCallback = new ManualResetEvent(initialState: false);
 
@@ -101,11 +101,11 @@ namespace UdpToolkit.Integration.Tests
                 serverInputPorts: Array.Empty<int>());
 
 #pragma warning disable CS4014
-            Task.Run(() => client1Host.RunAsync());
-            Task.Run(() => client2Host.RunAsync());
+            Task.Run(() => client1Host.Run());
+            Task.Run(() => client2Host.Run());
 #pragma warning restore CS4014
 
-            client1Host.HostClient.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
+            client1Host.HostClient.Connect();
 
             string actualPayload = null;
             client2Host.On<Ping>(
@@ -143,7 +143,7 @@ namespace UdpToolkit.Integration.Tests
 
             var host = serverHost;
 #pragma warning disable CS4014
-            Task.Run(() => host.RunAsync());
+            Task.Run(() => host.Run());
 #pragma warning restore CS4014
 
             serverHost.Stop();

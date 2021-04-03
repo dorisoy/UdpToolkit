@@ -41,12 +41,12 @@ namespace UdpToolkit.Integration.Tests
                 protocolHookId: ProtocolHookId.Connect);
 
 #pragma warning disable 4014
-            Task.Run(() => serverHost.RunAsync());
-            Task.Run(() => clientHost.RunAsync());
+            Task.Run(() => serverHost.Run());
+            Task.Run(() => clientHost.Run());
 #pragma warning restore 4014
 
             var client = clientHost.HostClient;
-            client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
+            client.Connect();
 
             waitCallback.WaitOne(timeout: waitCallBackTimeout);
 
@@ -95,12 +95,12 @@ namespace UdpToolkit.Integration.Tests
                 protocolHookId: ProtocolHookId.Disconnect);
 
 #pragma warning disable 4014
-            Task.Run(() => serverHost.RunAsync());
-            Task.Run(() => clientHost.RunAsync());
+            Task.Run(() => serverHost.Run());
+            Task.Run(() => clientHost.Run());
 #pragma warning restore 4014
 
             var client = clientHost.HostClient;
-            client.Connect(connectionTimeout: TimeSpan.FromSeconds(5));
+            client.Connect();
 
             waitCallback1.WaitOne(timeout: waitCallBackTimeout);
 

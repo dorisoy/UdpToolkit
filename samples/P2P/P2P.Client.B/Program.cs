@@ -1,6 +1,7 @@
 ﻿namespace P2P.Client.B
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
@@ -22,13 +23,11 @@
             var client = host.HostClient;
 
 #pragma warning disable CS4014
-            Task.Run(() => host.RunAsync());
+            Task.Run(() => host.Run());
 #pragma warning restore CS4014
 
-            var isConnected = client
-                .Connect();
-
-            Console.WriteLine($"IsConnected - {isConnected}");
+            var connectionTimeout = TimeSpan.FromSeconds(120);
+            SpinWait.SpinUntil(() => client.IsConnected, connectionTimeout);
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -47,11 +46,10 @@
                     settings.OutputPorts = new[] { 6000, 6001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerInputPorts = new[] { 7000, 7001 };

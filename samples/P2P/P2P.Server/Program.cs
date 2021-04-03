@@ -11,7 +11,7 @@
 
     public static class Program
     {
-        public static async Task Main()
+        public static void Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
@@ -20,9 +20,8 @@
 
             var host = BuildHost();
 
-            await host
-                .RunAsync()
-                .ConfigureAwait(false);
+            host
+                .Run();
         }
 
         private static IHost BuildHost() =>
@@ -37,7 +36,7 @@
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

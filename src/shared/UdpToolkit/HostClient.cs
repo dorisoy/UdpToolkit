@@ -11,51 +11,48 @@ namespace UdpToolkit
 
     public sealed class HostClient : IHostClient
     {
-        private readonly TimeSpan _connectionTimeoutFromSettings;
-        private readonly TimeSpan _resendPacketsTimeout;
-
         private readonly int? _heartbeatDelayMs;
         private readonly int[] _inputPorts;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly TimeSpan _connectionTimeout;
+        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnection _hostConnection;
-        private readonly IConnection _remoteHostConnection;
         private readonly ISerializer _serializer;
-        private readonly IBroadcaster _broadcaster;
+        private readonly IClientBroadcaster _clientBroadcaster;
 
-        private Task _heartbeatTask;
+        private DateTimeOffset _startConnect;
 
         public HostClient(
             IConnection hostConnection,
-            IConnection remoteHostConnection,
             ISerializer serializer,
-            TimeSpan connectionTimeout,
-            TimeSpan resendPacketsTimeout,
             int? heartbeatDelayMs,
             int[] inputPorts,
             CancellationTokenSource cancellationTokenSource,
-            IBroadcaster broadcaster)
+            IClientBroadcaster clientBroadcaster,
+            TimeSpan connectionTimeout,
+            IDateTimeProvider dateTimeProvider)
         {
             _hostConnection = hostConnection;
             _serializer = serializer;
-            _connectionTimeoutFromSettings = connectionTimeout;
-            _resendPacketsTimeout = resendPacketsTimeout;
             _heartbeatDelayMs = heartbeatDelayMs;
             _inputPorts = inputPorts;
             _cancellationTokenSource = cancellationTokenSource;
-            _broadcaster = broadcaster;
-            _remoteHostConnection = remoteHostConnection;
+            _clientBroadcaster = clientBroadcaster;
+            _connectionTimeout = connectionTimeout;
+            _dateTimeProvider = dateTimeProvider;
         }
+
+        public event Action OnConnectionTimeout;
 
         public Guid ConnectionId => _hostConnection.ConnectionId;
 
-        public TimeSpan Rtt => _hostConnection.GetRtt();
-
         public bool IsConnected { get; internal set; }
 
-        public bool Connect(
-            TimeSpan? connectionTimeout = null)
+        public TimeSpan Rtt => _hostConnection.GetRtt();
+
+        public void Connect()
         {
-            var timeout = connectionTimeout ?? _connectionTimeoutFromSettings;
+            _startConnect = _dateTimeProvider.UtcNow();
 
             SendInternal(
                 @event: new Connect(ConnectionId, _inputPorts),
@@ -64,34 +61,19 @@ namespace UdpToolkit
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
 
-            _heartbeatTask = Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
-
-            return SpinWait.SpinUntil(() => IsConnected, TimeSpan.FromMilliseconds(timeout.TotalMilliseconds * 1.2));
+            Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
         }
 
-        public void ConnectAsync(
-            TimeSpan? connectionTimeout = null)
+        public void Disconnect()
         {
-            SendInternal(
-                @event: new Connect(ConnectionId, _inputPorts),
-                packetType: PacketType.Protocol,
-                hookId: (byte)ProtocolHookId.Connect,
-                udpMode: UdpMode.ReliableUdp,
-                serializer: ProtocolEvent<Connect>.Serialize);
+            _cancellationTokenSource.Cancel();
 
-            _heartbeatTask = Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
-        }
-
-        public bool Disconnect()
-        {
             SendInternal(
                 @event: new Disconnect(connectionId: ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Disconnect>.Serialize);
-
-            return SpinWait.SpinUntil(() => !IsConnected, TimeSpan.FromMilliseconds(_resendPacketsTimeout.TotalMilliseconds * 1.2));
         }
 
         public void Send<TEvent>(
@@ -114,7 +96,7 @@ namespace UdpToolkit
             PacketType packetType,
             Func<TEvent, byte[]> serializer)
         {
-            _broadcaster.Broadcast(
+            _clientBroadcaster.Broadcast(
                 serializer: () => serializer(@event),
                 caller: ConnectionId,
                 hookId: hookId,
@@ -134,6 +116,15 @@ namespace UdpToolkit
             var heartbeatDelayMs = _heartbeatDelayMs.Value;
             while (!token.IsCancellationRequested)
             {
+                if (!IsConnected)
+                {
+                    if (_dateTimeProvider.UtcNow() - _startConnect > _connectionTimeout)
+                    {
+                        OnConnectionTimeout?.Invoke();
+                        return;
+                    }
+                }
+
                 var @event = new Heartbeat();
 
                 SendInternal(

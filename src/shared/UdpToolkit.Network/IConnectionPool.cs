@@ -3,20 +3,21 @@ namespace UdpToolkit.Network
     using System;
     using System.Collections.Generic;
     using System.Net;
-    using System.Threading.Tasks;
 
-    public interface IConnectionPool
+    public interface IConnectionPool : IDisposable
     {
         void Remove(
             IConnection connection);
 
-        IConnection TryGetConnection(
-            Guid connectionId);
+        bool TryGetConnection(
+            Guid connectionId,
+            out IConnection connection);
 
         IConnection AddOrUpdate(
             Guid connectionId,
-            List<IPEndPoint> ips,
-            TimeSpan connectionTimeout);
+            bool keepAlive,
+            DateTimeOffset lastHeartbeat,
+            List<IPEndPoint> ips);
 
         void Apply(
             Action<IConnection> action);

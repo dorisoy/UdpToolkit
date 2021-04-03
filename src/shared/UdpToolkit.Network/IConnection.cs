@@ -9,30 +9,25 @@ namespace UdpToolkit.Network
     {
         Guid ConnectionId { get; }
 
+        bool KeepAlive { get; }
+
         List<IPEndPoint> IpEndPoints { get; }
 
         DateTimeOffset LastHeartbeat { get; }
 
         DateTimeOffset? LastHeartbeatAck { get; }
 
-        DateTimeOffset? LastActivityAt { get; }
+        IChannel GetIncomingChannel(
+            ChannelType channelType);
 
-        IChannel GetIncomingChannel(ChannelType channelType);
-
-        IChannel GetOutcomingChannel(ChannelType channelType);
-
-        IEnumerable<IChannel> GetChannels();
+        IChannel GetOutcomingChannel(
+            ChannelType channelType);
 
         void OnHeartbeatAck(
             DateTimeOffset utcNow);
 
         void OnHeartbeat(
             DateTimeOffset utcNow);
-
-        void OnActivity(
-            DateTimeOffset lastActivityAt);
-
-        bool IsExpired();
 
         TimeSpan GetRtt();
 

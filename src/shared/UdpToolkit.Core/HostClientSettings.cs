@@ -5,8 +5,6 @@ namespace UdpToolkit.Core
 
     public class HostClientSettings
     {
-        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(15);
-
         public TimeSpan ConnectionTimeout { get; set; } = TimeSpan.FromSeconds(15);
 
         public string ServerHost { get; set; } = "127.0.0.1";

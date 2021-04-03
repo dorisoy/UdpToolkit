@@ -3,7 +3,7 @@ namespace UdpToolkit.Core
     using System;
     using System.Collections.Generic;
 
-    public interface IRoomManager
+    public interface IRoomManager : IDisposable
     {
         void JoinOrCreate(
             int roomId,

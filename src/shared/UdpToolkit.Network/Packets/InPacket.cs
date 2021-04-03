@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Packets
 {
     using System;
+    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using UdpToolkit.Network.Channels;
@@ -41,15 +42,25 @@ namespace UdpToolkit.Network.Packets
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
 
+        public bool IsEmpty => HookId == default
+                               && ChannelType == default
+                               && ConnectionId == default
+                               && PacketType == default
+                               && Serializer == default
+                               && CreatedAt == default
+                               && IpEndPoint == default;
+
         public bool IsReliable => ChannelType == ChannelType.ReliableUdp || ChannelType == ChannelType.ReliableOrderedUdp;
 
         public static InPacket Deserialize(
-            byte[] bytes,
+            Memory<byte> bytes,
             IPEndPoint ipEndPoint,
+            int bytesReceived,
             out ushort id,
             out uint acks)
         {
-            using (var reader = new BinaryReader(new MemoryStream(bytes)))
+            var arr = bytes.Slice(0, bytesReceived).ToArray();
+            using (var reader = new BinaryReader(new MemoryStream(arr)))
             {
                 var hookId = reader.ReadByte();
                 var channelType = (ChannelType)reader.ReadByte();

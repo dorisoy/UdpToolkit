@@ -5,12 +5,11 @@ namespace UdpToolkit
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
 
-    public interface IBroadcaster : IDisposable
+    public interface IClientBroadcaster : IDisposable
     {
         void Broadcast(
             Func<byte[]> serializer,
             Guid caller,
-            int roomId,
             byte hookId,
             PacketType packetType,
             ChannelType channelType,

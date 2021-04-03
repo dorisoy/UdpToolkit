@@ -1,63 +1,39 @@
 namespace UdpToolkit.Jobs
 {
     using System;
+    using System.Threading.Tasks;
     using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Packets;
-    using UdpToolkit.Network.Queues;
+    using UdpToolkit.Serialization;
 
     public sealed class WorkerJob
     {
         private readonly IUdpToolkitLogger _udpToolkitLogger;
-
-        private readonly HostSettings _hostSettings;
-        private readonly HostClient _hostClient;
-
+        private readonly ISerializer _serializer;
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
-
-        private readonly IAsyncQueue<InContext> _inputQueue;
         private readonly IBroadcaster _broadcaster;
 
         public WorkerJob(
-            IAsyncQueue<InContext> inputQueue,
             ISubscriptionManager subscriptionManager,
             IRoomManager roomManager,
-            HostSettings hostSettings,
-            HostClient hostClient,
+            ISerializer serializer,
             IUdpToolkitLogger udpToolkitLogger,
             IBroadcaster broadcaster)
         {
-            _inputQueue = inputQueue;
             _subscriptionManager = subscriptionManager;
-            _hostSettings = hostSettings;
-            _hostClient = hostClient;
+            _serializer = serializer;
             _udpToolkitLogger = udpToolkitLogger;
             _broadcaster = broadcaster;
             _roomManager = roomManager;
         }
 
-        public IHostClient HostClient => _hostClient;
+        public static event Action<bool> OnConnectionChanged;
 
-        public void Execute()
-        {
-            foreach (var callContext in _inputQueue.Consume())
-            {
-                try
-                {
-                    ExecuteInternal(callContext);
-                }
-                catch (Exception ex)
-                {
-                    _udpToolkitLogger.Warning($"WorkerError - {ex}");
-                }
-            }
-        }
-
-        private void ExecuteInternal(
+        public Task Execute(
             InContext inContext)
         {
             switch (inContext.InPacket.PacketType)
@@ -81,6 +57,8 @@ namespace UdpToolkit.Jobs
 
                     break;
             }
+
+            return Task.CompletedTask;
         }
 
         private void HandleProtocolEvent(
@@ -102,7 +80,7 @@ namespace UdpToolkit.Jobs
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         inPacket.Serializer(),
                         inPacket.ConnectionId,
-                        _hostSettings.Serializer);
+                        _serializer);
 
                     break;
             }
@@ -125,7 +103,7 @@ namespace UdpToolkit.Jobs
             var roomId = userDefinedSubscription.OnEvent(
                     inPacket.Serializer(),
                     inPacket.ConnectionId,
-                    _hostSettings.Serializer,
+                    _serializer,
                     _roomManager);
 
             if (inPacket.PacketType == PacketType.FromClient)
@@ -169,7 +147,7 @@ namespace UdpToolkit.Jobs
                     {
                         case ProtocolHookId.Connect:
                         case ProtocolHookId.Disconnect:
-                            _hostClient.IsConnected = protocolHookId == ProtocolHookId.Connect;
+                            OnConnectionChanged?.Invoke(protocolHookId == ProtocolHookId.Connect);
                             break;
                     }
 

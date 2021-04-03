@@ -3,13 +3,34 @@ namespace UdpToolkit
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Threading.Tasks;
+    using System.Linq;
+    using System.Threading;
     using UdpToolkit.Core;
-    using UdpToolkit.Network;
+    using UdpToolkit.Logging;
 
     public sealed class RoomManager : IRoomManager
     {
-        private readonly ConcurrentDictionary<int, List<Guid>> _rooms = new ConcurrentDictionary<int, List<Guid>>();
+        private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TimeSpan _roomTtl;
+        private readonly Timer _houseKeeper;
+        private readonly IUdpToolkitLogger _logger;
+
+        public RoomManager(
+            IDateTimeProvider dateTimeProvider,
+            TimeSpan roomTtl,
+            TimeSpan scanFrequency,
+            IUdpToolkitLogger logger)
+        {
+            _dateTimeProvider = dateTimeProvider;
+            _roomTtl = roomTtl;
+            _logger = logger;
+            _houseKeeper = new Timer(
+                callback: ScanForCleaningInactiveConnections,
+                state: null,
+                dueTime: TimeSpan.FromSeconds(10),
+                period: scanFrequency);
+        }
 
         public void JoinOrCreate(
             int roomId,
@@ -17,15 +38,18 @@ namespace UdpToolkit
         {
             _rooms.AddOrUpdate(
                 key: roomId,
-                addValueFactory: (id) => new List<Guid>
-                {
-                    connectionId,
-                },
+                addValueFactory: (id) => new Room(
+                    id: id,
+                    connections: new List<Guid>
+                    {
+                        connectionId,
+                    },
+                    createdAt: _dateTimeProvider.UtcNow()),
                 updateValueFactory: (id, room) =>
                 {
-                    if (!room.Contains(connectionId))
+                    if (!room.Connections.Contains(connectionId))
                     {
-                        room.Add(connectionId);
+                        room.Connections.Add(connectionId);
                     }
 
                     return room;
@@ -34,14 +58,55 @@ namespace UdpToolkit
 
         public List<Guid> GetRoom(int roomId)
         {
-            return _rooms[roomId];
+            return _rooms[roomId].Connections;
         }
 
         public void Leave(
             int roomId,
             Guid connectionId)
         {
-            _rooms[roomId].Remove(connectionId);
+            _rooms[roomId].Connections.Remove(connectionId);
+        }
+
+        private void ScanForCleaningInactiveConnections(object state)
+        {
+            var now = _dateTimeProvider.UtcNow();
+            for (var i = 0; i < _rooms.Count; i++)
+            {
+                var room = _rooms.ElementAt(i);
+
+                var ttlDiff = now - room.Value.CreatedAt;
+                _logger.Debug($"Ttl diff - {ttlDiff} ttl {_roomTtl} created at - {room.Value.CreatedAt}");
+                if (ttlDiff > _roomTtl)
+                {
+                    _logger.Debug($"Remove room {room.Key}");
+                    _rooms.TryRemove(room.Key, out _);
+                }
+            }
+        }
+
+        private readonly struct Room
+        {
+            public Room(
+                int id,
+                List<Guid> connections,
+                DateTimeOffset createdAt)
+            {
+                Connections = connections;
+                CreatedAt = createdAt;
+                Id = id;
+            }
+
+            public int Id { get; }
+
+            public List<Guid> Connections { get; }
+
+            public DateTimeOffset CreatedAt { get; }
+        }
+
+        public void Dispose()
+        {
+            _houseKeeper?.Dispose();
         }
     }
 }

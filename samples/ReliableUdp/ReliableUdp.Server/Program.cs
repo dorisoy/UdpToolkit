@@ -3,7 +3,6 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
     using Serilog.Events;
@@ -25,7 +24,7 @@
                 new Vector3(5, 5, 5),
             });
 
-        public static async Task Main()
+        public static void Main()
         {
             Log.Logger = new LoggerConfiguration()
                 .MinimumLevel.Is(LogEventLevel.Debug)
@@ -85,9 +84,9 @@
                 broadcastMode: BroadcastMode.Room,
                 hookId: 1);
 
-            await host
-                .RunAsync()
-                .ConfigureAwait(false);
+            host.Run();
+
+            Console.ReadLine();
         }
 
         private static IHost BuildHost() =>
@@ -102,7 +101,7 @@
                     settings.OutputPorts = new[] { 8000, 8001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(30);
                 })
                 .Build();
     }

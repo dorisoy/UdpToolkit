@@ -10,25 +10,28 @@ namespace UdpToolkit.Network
         private readonly Random _random = new Random();
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _inputChannels;
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _outputChannels;
-        private readonly TimeSpan _connectionTimeout;
         private readonly IPEndPoint _ipEndPoint;
 
         private Connection(
             Guid connectionId,
+            bool keepAlive,
             List<IPEndPoint> ipEndPoints,
-            TimeSpan connectionTimeout,
+            DateTimeOffset lastHeartbeat,
             IReadOnlyDictionary<ChannelType, IChannel> inputChannels,
             IReadOnlyDictionary<ChannelType, IChannel> outputChannels)
         {
             _inputChannels = inputChannels;
             _outputChannels = outputChannels;
-            this._connectionTimeout = connectionTimeout;
             ConnectionId = connectionId;
             IpEndPoints = ipEndPoints;
+            KeepAlive = keepAlive;
+            LastHeartbeat = lastHeartbeat;
             _ipEndPoint = IpEndPoints[_random.Next(0, IpEndPoints.Count - 1)];
         }
 
         public Guid ConnectionId { get; }
+
+        public bool KeepAlive { get; }
 
         public List<IPEndPoint> IpEndPoints { get; }
 
@@ -36,17 +39,17 @@ namespace UdpToolkit.Network
 
         public DateTimeOffset? LastHeartbeatAck { get; private set; }
 
-        public DateTimeOffset? LastActivityAt { get; private set; }
-
         public static IConnection New(
             Guid connectionId,
-            List<IPEndPoint> ipEndPoints,
-            TimeSpan connectionTimeout)
+            bool keepAlive,
+            DateTimeOffset lastHeartbeat,
+            List<IPEndPoint> ipEndPoints)
         {
             return new Connection(
                 connectionId: connectionId,
+                keepAlive: keepAlive,
+                lastHeartbeat: lastHeartbeat,
                 ipEndPoints: ipEndPoints,
-                connectionTimeout: connectionTimeout,
                 outputChannels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),
@@ -67,8 +70,6 @@ namespace UdpToolkit.Network
 
         public IChannel GetOutcomingChannel(ChannelType channelType) => _outputChannels[channelType];
 
-        public IEnumerable<IChannel> GetChannels() => _outputChannels.Values;
-
         public void OnHeartbeatAck(
             DateTimeOffset utcNow)
         {
@@ -80,14 +81,6 @@ namespace UdpToolkit.Network
         {
             LastHeartbeat = utcNow;
         }
-
-        public void OnActivity(
-            DateTimeOffset lastActivityAt)
-        {
-            LastActivityAt = lastActivityAt;
-        }
-
-        public bool IsExpired() => DateTimeOffset.UtcNow - LastActivityAt > _connectionTimeout;
 
         public TimeSpan GetRtt() => LastHeartbeatAck.HasValue
             ? LastHeartbeatAck.Value - LastHeartbeat

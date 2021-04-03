@@ -2,6 +2,7 @@ namespace UdpToolkit.Core
 {
     using System;
     using System.Collections.Generic;
+    using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging;
     using UdpToolkit.Serialization;
 
@@ -17,9 +18,17 @@ namespace UdpToolkit.Core
 
         public IUdpToolkitLoggerFactory LoggerFactory { get; set; }
 
-        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan RoomsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
-        public TimeSpan InactivityTimeout { get; set; } = TimeSpan.FromSeconds(15);
+        public TimeSpan RoomTtl { get; set; } = TimeSpan.FromMinutes(2);
+
+        public TimeSpan ConnectionTtl { get; set; } = TimeSpan.FromSeconds(30);
+
+        public TimeSpan ConnectionsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
+
+        public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
+        public ExecutorType ExecutorType { get; set; } = ExecutorType.ThreadBasedExecutor;
 
         public string Host { get; set; } = "127.0.0.1";
     }

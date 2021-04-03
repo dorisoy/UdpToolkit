@@ -9,13 +9,11 @@ namespace UdpToolkit.Contexts
         public HostOutContext(
             int roomId,
             BroadcastMode broadcastMode,
-            TimeSpan resendTimeout,
             DateTimeOffset createdAt,
             OutPacket outPacket)
         {
             RoomId = roomId;
             BroadcastMode = broadcastMode;
-            ResendTimeout = resendTimeout;
             CreatedAt = createdAt;
             OutPacket = outPacket;
         }
@@ -23,8 +21,6 @@ namespace UdpToolkit.Contexts
         public int RoomId { get; }
 
         public BroadcastMode BroadcastMode { get; }
-
-        public TimeSpan ResendTimeout { get; }
 
         public DateTimeOffset CreatedAt { get; }
 

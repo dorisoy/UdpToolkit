@@ -1,6 +1,7 @@
 ﻿namespace Sequenced.Client.A
 {
     using System;
+    using System.Threading;
     using System.Threading.Tasks;
     using Sequenced.Contracts;
     using Serilog;
@@ -46,11 +47,14 @@
                 broadcastMode: BroadcastMode.RoomExceptCaller);
 
 #pragma warning disable CS4014
-            Task.Run(() => host.RunAsync());
+            Task.Run(() => host.Run());
 #pragma warning restore CS4014
 
-            var isConnected = client
-                .Connect();
+            client.Connect();
+
+            var connectionTimeout = TimeSpan.FromSeconds(120);
+            SpinWait.SpinUntil(() => client.IsConnected, connectionTimeout);
+            Console.WriteLine($"IsConnected - {client.IsConnected}");
 
             client.Send(
                 @event: new JoinEvent(
@@ -72,8 +76,6 @@
                     udpMode: UdpMode.Sequenced);
             }
 
-            Console.WriteLine($"IsConnected - {isConnected}");
-
             Console.WriteLine("Press any key...");
             Console.ReadLine();
         }
@@ -91,11 +93,10 @@
                     settings.OutputPorts = new[] { 4000, 4001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerInputPorts = new[] { 7000, 7001 };

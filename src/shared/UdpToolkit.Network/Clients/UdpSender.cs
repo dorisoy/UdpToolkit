@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Clients
             _dateTimeProvider = dateTimeProvider;
             _resendQueue = resendQueue;
             _resendTimeout = resendTimeout;
-            _udpToolkitLogger.Debug($"{nameof(UdpSender)} - {sender.Client.LocalEndPoint} created");
+            _udpToolkitLogger.Debug($"{nameof(UdpSender)}| - {sender.Client.LocalEndPoint} created");
         }
 
         public void Dispose()
@@ -42,15 +42,12 @@ namespace UdpToolkit.Network.Clients
             _sender.Dispose();
         }
 
-        public Task SendAsync(
-            ref OutPacket outPacket)
+        public void Send(
+            OutPacket outPacket)
         {
-            var connection = _connectionPool
-                .TryGetConnection(outPacket.ConnectionId);
-
-            if (connection == null)
+            if (!_connectionPool.TryGetConnection(outPacket.ConnectionId, out var connection))
             {
-                return Task.CompletedTask;
+                return;
             }
 
             var packetType = outPacket.PacketType;
@@ -91,7 +88,7 @@ namespace UdpToolkit.Network.Clients
             {
                 _udpToolkitLogger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
 
-                return Task.CompletedTask;
+                return;
             }
 
             if (outPacket.HookId != 253)
@@ -116,8 +113,8 @@ namespace UdpToolkit.Network.Clients
                     channelType: outPacket.ChannelType));
             }
 
-            return _sender
-                .SendAsync(bytes, bytes.Length, outPacket.IpEndPoint);
+            _sender
+                .Send(bytes, bytes.Length, outPacket.IpEndPoint);
         }
 
         private void ResendPackages(
@@ -133,8 +130,7 @@ namespace UdpToolkit.Network.Clients
                     .GetOutcomingChannel(resendPacket.ChannelType)
                     .IsDelivered(resendPacket.Id);
 
-                var isExpired = resendPacket
-                    .IsExpired(_resendTimeout);
+                var isExpired = resendPacket.IsExpired(_resendTimeout);
 
                 if (!isDelivered && !isExpired)
                 {
@@ -148,6 +144,7 @@ namespace UdpToolkit.Network.Clients
                 }
                 else
                 {
+                    _udpToolkitLogger.Debug($"Packet expired {resendPacket.Id}");
                     resendQueue.RemoveAt(i);
                 }
             }

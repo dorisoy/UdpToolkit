@@ -2,6 +2,7 @@
 {
     using System;
     using System.Linq;
+    using System.Threading;
     using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serilog;
@@ -24,12 +25,17 @@
 
             var host = BuildHost();
             var client = host.HostClient;
+            client.OnConnectionTimeout += () => { Console.WriteLine("Connection Timeout"); };
 
             Task.Run(async () =>
             {
                 while (true)
                 {
-                    Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
+                    if (client.IsConnected)
+                    {
+                        Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
+                    }
+
                     await Task.Delay(1000).ConfigureAwait(false);
                 }
             });
@@ -54,12 +60,12 @@
             host.On<JoinEvent>(
                 onEvent: (connectionId, joinEvent) =>
                 {
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
+                    Log.Logger.Information($"{joinEvent.Nickname} joined to room! (event)");
                     return joinEvent.RoomId;
                 },
                 onAck: (connectionId) =>
                 {
-                    Log.Logger.Information($"{nickname} joined to room!");
+                    Log.Logger.Information($"{nickname} joined to room! (ack)");
                 },
                 broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 0);
@@ -78,18 +84,19 @@
                 hookId: 1);
 
 #pragma warning disable CS4014
-            Task.Run(() => host.RunAsync());
+            Task.Run(() => host.Run());
 #pragma warning restore CS4014
 
-            var isConnected = client
-                .Connect();
+            client.Connect();
+
+            var connectionTimeout = TimeSpan.FromSeconds(120);
+            SpinWait.SpinUntil(() => client.IsConnected, connectionTimeout);
+            Console.WriteLine($"IsConnected - {client.IsConnected}");
 #pragma warning disable
             client.Send(
                 @event: new JoinEvent(roomId: 11, nickname: nickname),
                 hookId: 0,
                 udpMode: UdpMode.ReliableUdp);
-
-            Console.WriteLine($"IsConnected - {isConnected}");
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -107,13 +114,12 @@
                     settings.InputPorts = new[] { 3000, 3001 };
                     settings.OutputPorts = new[] { 4000, 4001 };
                     settings.Workers = 2;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.InactivityTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(20);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
                 })
                 .ConfigureHostClient((settings) =>
                 {
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerInputPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat

@@ -1,8 +1,6 @@
 namespace UdpToolkit.Core
 {
     using System;
-    using System.Net;
-    using System.Threading.Tasks;
 
     public interface IHost : IDisposable
     {
@@ -10,7 +8,7 @@ namespace UdpToolkit.Core
 
         IScheduler Scheduler { get; }
 
-        Task RunAsync();
+        void Run();
 
         void Stop();
 
