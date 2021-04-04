@@ -68,6 +68,11 @@ namespace UdpToolkit
             _rooms[roomId].Connections.Remove(connectionId);
         }
 
+        public void Dispose()
+        {
+            _houseKeeper?.Dispose();
+        }
+
         private void ScanForCleaningInactiveConnections(object state)
         {
             var now = _dateTimeProvider.UtcNow();
@@ -102,11 +107,6 @@ namespace UdpToolkit
             public List<Guid> Connections { get; }
 
             public DateTimeOffset CreatedAt { get; }
-        }
-
-        public void Dispose()
-        {
-            _houseKeeper?.Dispose();
         }
     }
 }
