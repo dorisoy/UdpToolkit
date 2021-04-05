@@ -1,5 +1,7 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
+
     public sealed class SequencedChannel : IChannel
     {
         private readonly object _locker = new object();
@@ -24,6 +26,8 @@ namespace UdpToolkit.Network.Channels
                     _sequenceNumber = _lastReceivedNumber;
                     return true;
                 }
+
+                Console.WriteLine("PACKET DROPPED!");
 
                 return false;
             }

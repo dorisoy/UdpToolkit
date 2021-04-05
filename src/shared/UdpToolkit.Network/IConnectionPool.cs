@@ -13,11 +13,11 @@ namespace UdpToolkit.Network
             Guid connectionId,
             out IConnection connection);
 
-        IConnection AddOrUpdate(
+        IConnection GetOrAdd(
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            List<IPEndPoint> ips);
+            IPEndPoint ip);
 
         void Apply(
             Action<IConnection> action);

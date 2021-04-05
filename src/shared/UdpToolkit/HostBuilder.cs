@@ -57,10 +57,6 @@ namespace UdpToolkit
                 dateTimeProvider: networkDateTimeProvider,
                 scanFrequency: _hostSettings.ConnectionsCleanupFrequency);
 
-            var outHostIps = _hostSettings.OutputPorts
-                .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
-                .ToArray();
-
             if (!_hostClientSettings.ServerInputPorts.Any())
             {
                 _hostClientSettings.ServerInputPorts = new int[]
@@ -70,59 +66,22 @@ namespace UdpToolkit
                 };
             }
 
-            var remoteHostConnectionId = Guid.NewGuid();
-            var remoteHostConnection = connectionPool.AddOrUpdate(
-                connectionId: remoteHostConnectionId,
-                keepAlive: true,
-                lastHeartbeat: dateTimeProvider.UtcNow(),
-                ips: _hostClientSettings.ServerInputPorts
-                    .Select(port => new IPEndPoint(IPAddress.Parse(_hostClientSettings.ServerHost), port))
-                    .ToList());
-
-            var hostClient = BuildHostClient(
-                executor: executor,
-                dateTimeProvider: dateTimeProvider,
-                connectionPool: connectionPool,
-                loggerFactory: loggerFactory,
-                remoteHostConnection: remoteHostConnection,
-                networkDateTimeProvider: networkDateTimeProvider,
-                outHostIps: outHostIps);
-
-            return BuildHost(
-                executor: executor,
-                dateTimeProvider: dateTimeProvider,
-                connectionPool: connectionPool,
-                loggerFactory: loggerFactory,
-                remoteHostConnection: remoteHostConnection,
-                networkDateTimeProvider: networkDateTimeProvider,
-                hostClient: hostClient,
-                outHostIps: outHostIps);
-        }
-
-        private IHostClient BuildHostClient(
-            IExecutor executor,
-            IDateTimeProvider dateTimeProvider,
-            IConnectionPool connectionPool,
-            IUdpToolkitLoggerFactory loggerFactory,
-            IConnection remoteHostConnection,
-            Network.Utils.DateTimeProvider networkDateTimeProvider,
-            IPEndPoint[] outHostIps)
-        {
-            if (!_clientConfigured)
-            {
-                return new DummyHostClient();
-            }
+            var remoteHostConnections = _hostClientSettings.ServerInputPorts
+                .Select(port => connectionPool.GetOrAdd(
+                    connectionId: Guid.NewGuid(),
+                    keepAlive: true,
+                    lastHeartbeat: dateTimeProvider.UtcNow(),
+                    ip: new IPEndPoint(IPAddress.Parse(_hostClientSettings.ServerHost), port)))
+                .ToArray();
 
             var hostConnectionId = Guid.NewGuid();
-            var hostConnection = connectionPool.AddOrUpdate(
-                connectionId: hostConnectionId,
-                keepAlive: true,
-                lastHeartbeat: dateTimeProvider.UtcNow(),
-                ips: _hostSettings.InputPorts
-                    .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
-                    .ToList());
+            var randomRemoteHostConnection = remoteHostConnections[MurMurHash.Hash3_x86_32(hostConnectionId) % remoteHostConnections.Length];
 
-            var clientOutQueues = outHostIps
+            var inHostIps = _hostSettings.HostPorts
+                .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
+                .ToArray();
+
+            var hostOutQueues = inHostIps
                 .Select(ip => UdpClientFactory.Create(ip, false))
                 .Select(udpClient => new UdpSender(
                     resendQueue: new ResendQueue(),
@@ -133,26 +92,66 @@ namespace UdpToolkit
                     sender: udpClient))
                 .Select(sender => new BlockingAsyncQueue<OutPacket>(
                     boundedCapacity: int.MaxValue,
-                    action: (outPacket) => sender.Send(outPacket),
+                    action: sender.Send,
                     logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
                 .ToArray();
 
-            var clientOutQueueDispatcher = new QueueDispatcher<OutPacket>(
-                queues: clientOutQueues,
+            var hostOutQueueDispatcher = new QueueDispatcher<OutPacket>(
+                queues: hostOutQueues,
                 executor: executor);
 
+            var hostClient = BuildHostClient(
+                hostConnectionId: hostConnectionId,
+                executor: executor,
+                dateTimeProvider: dateTimeProvider,
+                connectionPool: connectionPool,
+                remoteHostConnection: randomRemoteHostConnection,
+                hostOutQueueDispatcher: hostOutQueueDispatcher);
+
+            return BuildHost(
+                executor: executor,
+                dateTimeProvider: dateTimeProvider,
+                connectionPool: connectionPool,
+                loggerFactory: loggerFactory,
+                remoteHostConnection: randomRemoteHostConnection,
+                networkDateTimeProvider: networkDateTimeProvider,
+                hostClient: hostClient,
+                inHostIps: inHostIps,
+                hostOutQueueDispatcher: hostOutQueueDispatcher);
+        }
+
+        private IHostClient BuildHostClient(
+            Guid hostConnectionId,
+            IExecutor executor,
+            IDateTimeProvider dateTimeProvider,
+            IConnectionPool connectionPool,
+            IConnection remoteHostConnection,
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
+        {
+            if (!_clientConfigured)
+            {
+                return new DummyHostClient();
+            }
+
+            var hostConnections = _hostSettings.HostPorts
+                .Select(port => connectionPool.GetOrAdd(
+                    connectionId: hostConnectionId,
+                    keepAlive: true,
+                    lastHeartbeat: dateTimeProvider.UtcNow(),
+                    ip: new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port)))
+                .ToArray();
+
             var clientBroadcaster = new ClientBroadcaster(
-                clientOutQueueDispatcher: clientOutQueueDispatcher,
-                hostConnection: remoteHostConnection,
+                outQueueDispatcher: hostOutQueueDispatcher,
+                remoteHostConnection: remoteHostConnection,
                 dateTimeProvider: dateTimeProvider);
 
-            clientOutQueueDispatcher.RunAll();
+            var randomHostConnection = hostConnections[MurMurHash.Hash3_x86_32(hostConnectionId) % hostConnections.Length];
 
             var hostClient = new HostClient(
                 dateTimeProvider: dateTimeProvider,
                 connectionTimeout: _hostClientSettings.ConnectionTimeout,
-                inputPorts: _hostSettings.InputPorts.ToArray(),
-                hostConnection: hostConnection,
+                hostConnection: randomHostConnection,
                 cancellationTokenSource: new CancellationTokenSource(),
                 clientBroadcaster: clientBroadcaster,
                 heartbeatDelayMs: _hostClientSettings.HeartbeatDelayInMs,
@@ -171,7 +170,8 @@ namespace UdpToolkit
             Network.Utils.DateTimeProvider networkDateTimeProvider,
             IHostClient hostClient,
             IConnection remoteHostConnection,
-            IPEndPoint[] outHostIps)
+            IPEndPoint[] inHostIps,
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
         {
             var scheduler = new Scheduler();
             var subscriptionManager = new SubscriptionManager();
@@ -182,44 +182,14 @@ namespace UdpToolkit
                 scanFrequency: _hostSettings.RoomsCleanupFrequency,
                 logger: loggerFactory.Create<RoomManager>());
 
-            if (!_hostSettings.OutputPorts.Any())
+            if (!_hostSettings.HostPorts.Any())
             {
-                _hostSettings.OutputPorts = new[]
+                _hostSettings.HostPorts = new[]
                 {
                     NetworkUtils.GetAvailablePort(),
                     NetworkUtils.GetAvailablePort(),
                 };
             }
-
-            if (!_hostSettings.InputPorts.Any())
-            {
-                _hostSettings.InputPorts = new[]
-                {
-                    NetworkUtils.GetAvailablePort(),
-                    NetworkUtils.GetAvailablePort(),
-                };
-            }
-
-            var inHostIps = _hostSettings.InputPorts
-                .Select(port => new IPEndPoint(IPAddress.Parse(_hostSettings.Host), port))
-                .ToList();
-
-            var hostOutQueues = outHostIps
-                .Select(ip => UdpClientFactory.Create(ip, false))
-                .Select(udpClient => new UdpSender(
-                    resendQueue: new ResendQueue(),
-                    resendTimeout: _hostSettings.ResendPacketsTimeout,
-                    dateTimeProvider: networkDateTimeProvider,
-                    connectionPool: connectionPool,
-                    udpToolkitLogger: loggerFactory.Create<UdpSender>(),
-                    sender: udpClient))
-                .Select(sender => new BlockingAsyncQueue<OutPacket>(
-                    boundedCapacity: int.MaxValue,
-                    action: sender.Send,
-                    logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
-                .ToArray();
-
-            var hostOutQueueDispatcher = new QueueDispatcher<OutPacket>(hostOutQueues, executor: executor);
 
             var broadcaster = new Broadcaster(
                 hostOutQueueDispatcher: hostOutQueueDispatcher,
@@ -227,18 +197,21 @@ namespace UdpToolkit
                 roomManager: roomManager,
                 connectionPool: connectionPool);
 
-            var workerJob = new WorkerJob(
-                udpToolkitLogger: loggerFactory.Create<WorkerJob>(),
-                subscriptionManager: subscriptionManager,
-                roomManager: roomManager,
-                broadcaster: broadcaster,
-                serializer: _hostSettings.Serializer);
+            var inQueues = Enumerable.Range(0, _hostSettings.Workers)
+                .Select(_ =>
+                {
+                    var workerJob = new WorkerJob(
+                        udpToolkitLogger: loggerFactory.Create<WorkerJob>(),
+                        subscriptionManager: subscriptionManager,
+                        roomManager: roomManager,
+                        broadcaster: broadcaster,
+                        serializer: _hostSettings.Serializer);
 
-            var inQueues = inHostIps
-                .Select(_ => new BlockingAsyncQueue<InPacket>(
-                    boundedCapacity: int.MaxValue,
-                    action: (inPacket) => workerJob.Execute(inPacket),
-                    logger: loggerFactory.Create<BlockingAsyncQueue<InPacket>>()))
+                    return new BlockingAsyncQueue<InPacket>(
+                        boundedCapacity: int.MaxValue,
+                        action: (inPacket) => workerJob.Execute(inPacket),
+                        logger: loggerFactory.Create<BlockingAsyncQueue<InPacket>>());
+                })
                 .ToArray();
 
             var inQueuesDispatcher = new QueueDispatcher<InPacket>(
@@ -248,14 +221,18 @@ namespace UdpToolkit
             var receivers = inHostIps
                 .Select(ip => UdpClientFactory.Create(ip, true))
                 .Select(udpClient => new UdpReceiver(
-                    action: (inPacket) => inQueuesDispatcher
-                        .Dispatch(inPacket.ConnectionId)
-                        .Produce(@event: inPacket),
+                    action: (inPacket) =>
+                    {
+                        var queue = inQueuesDispatcher.Dispatch(inPacket.ConnectionId);
+
+                        queue.Produce(@event: inPacket);
+                    },
                     hostConnection: remoteHostConnection,
                     dateTimeProvider: networkDateTimeProvider,
                     udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
                     connectionPool: connectionPool,
-                    receiver: udpClient));
+                    receiver: udpClient))
+                .ToArray();
 
             return new Host(
                 serializer: _hostSettings.Serializer,

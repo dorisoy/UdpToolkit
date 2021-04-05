@@ -54,7 +54,7 @@ namespace UdpToolkit
                             connectionId: caller,
                             serializer: serializer,
                             createdAt: utcNow,
-                            ipEndPoint: connection.GetIp()));
+                            ipEndPoint: connection.Ip));
                     return;
                 case BroadcastMode.AllConnections:
                     _connectionPool.Apply(
@@ -69,7 +69,7 @@ namespace UdpToolkit
                                     connectionId: caller,
                                     serializer: serializer,
                                     createdAt: utcNow,
-                                    ipEndPoint: connection.GetIp()));
+                                    ipEndPoint: connection.Ip));
                         });
 
                     return;
@@ -97,7 +97,7 @@ namespace UdpToolkit
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipEndPoint: c.GetIp()));
+                                ipEndPoint: c.Ip));
                     }
 
                     return;
@@ -118,7 +118,7 @@ namespace UdpToolkit
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipEndPoint: c.GetIp()));
+                                ipEndPoint: c.Ip));
                     }
 
                     return;

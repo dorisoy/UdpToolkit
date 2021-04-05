@@ -5,6 +5,7 @@ namespace UdpToolkit.Network.Clients
     using System.Linq;
     using System.Net;
     using System.Net.Sockets;
+    using System.Threading;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
@@ -14,7 +15,6 @@ namespace UdpToolkit.Network.Clients
     public sealed class UdpReceiver : IUdpReceiver
     {
         private static readonly int BufferSize = 1500;
-        private static readonly EndPoint AnyIp = new IPEndPoint(IPAddress.Any, 0);
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly UdpClient _receiver;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
@@ -35,7 +35,7 @@ namespace UdpToolkit.Network.Clients
             _dateTimeProvider = dateTimeProvider;
             _hostConnection = hostConnection;
             OnPacketReceived += action;
-            _udpToolkitLogger.Debug($"{nameof(UdpReceiver)}| - {receiver.Client.LocalEndPoint} created");
+            _udpToolkitLogger.Debug($"{nameof(UdpReceiver)}|{receiver.Client.LocalEndPoint}|created");
         }
 
         public event Action<InPacket> OnPacketReceived;
@@ -49,7 +49,7 @@ namespace UdpToolkit.Network.Clients
         {
             while (true)
             {
-                var remoteIp = AnyIp;
+                var remoteIp = (EndPoint)new IPEndPoint(IPAddress.Any, 0);
                 var buffer = ArrayPool<byte>.Shared.Rent(BufferSize);
                 var bytesReceived = _receiver.Client.ReceiveFrom(
                     buffer: buffer,
@@ -105,13 +105,11 @@ namespace UdpToolkit.Network.Clients
                     case ProtocolHookId.Connect when packetType == PacketType.Protocol:
                         var connect = ProtocolEvent<Connect>.Deserialize(inPacket.Serializer());
 
-                        connection = _connectionPool.AddOrUpdate(
+                        connection = _connectionPool.GetOrAdd(
                             connectionId: connectionId,
                             lastHeartbeat: _dateTimeProvider.GetUtcNow(),
                             keepAlive: false,
-                            ips: connect.InputPorts
-                                .Select(port => new IPEndPoint(inPacket.IpEndPoint.Address, port))
-                                .ToList());
+                            ip: new IPEndPoint(remoteIp.Address, remoteIp.Port));
                         break;
                 }
             }
@@ -145,11 +143,10 @@ namespace UdpToolkit.Network.Clients
                             if (inPacket.HookId != 253)
                             {
                                 _udpToolkitLogger.Debug(
-                                    $"Sended from: - {remoteIp} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}");
+                                    $"Sended from: - {_receiver.Client.LocalEndPoint} to: {connection.Ip} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}, threadId - {Thread.CurrentThread.ManagedThreadId}");
                             }
 
-                            _receiver
-                                .Send(bytes, bytes.Length, connection.GetIp());
+                            _receiver.Send(bytes, bytes.Length, connection.Ip);
                         }
 
                         return;
@@ -162,15 +159,14 @@ namespace UdpToolkit.Network.Clients
                         if (inPacket.HookId != 253)
                         {
                             _udpToolkitLogger.Debug(
-                                $"Sended from: - {remoteIp} to: {_receiver.Client.LocalEndPoint} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}");
+                                $"Sended from: - {_receiver.Client.LocalEndPoint} to: {remoteIp} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack} threadId - {Thread.CurrentThread.ManagedThreadId}");
                         }
 
                         var ip = packetType == PacketType.FromServer
-                            ? _hostConnection.GetIp()
-                            : connection.GetIp();
+                            ? _hostConnection.Ip
+                            : connection.Ip;
 
-                        _receiver
-                            .Send(bytes, bytes.Length, ip);
+                        _receiver.Send(bytes, bytes.Length, ip);
                     }
 
                     OnPacketReceived?.Invoke(inPacket);

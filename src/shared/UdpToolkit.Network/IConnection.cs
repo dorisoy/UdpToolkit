@@ -11,7 +11,7 @@ namespace UdpToolkit.Network
 
         bool KeepAlive { get; }
 
-        List<IPEndPoint> IpEndPoints { get; }
+        IPEndPoint Ip { get; }
 
         DateTimeOffset LastHeartbeat { get; }
 
@@ -30,7 +30,5 @@ namespace UdpToolkit.Network
             DateTimeOffset utcNow);
 
         TimeSpan GetRtt();
-
-        IPEndPoint GetIp();
     }
 }

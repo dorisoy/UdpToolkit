@@ -8,7 +8,7 @@ namespace UdpToolkit
         IAsyncQueue<TEvent> Dispatch(
             Guid connectionId);
 
-        void RunAll();
+        void RunAll(string description);
 
         void StopAll();
     }

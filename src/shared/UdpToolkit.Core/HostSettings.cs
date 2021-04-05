@@ -8,11 +8,11 @@ namespace UdpToolkit.Core
 
     public class HostSettings
     {
-        public IEnumerable<int> OutputPorts { get; set; } = Array.Empty<int>();
+        public string Host { get; set; } = "127.0.0.1";
 
-        public IEnumerable<int> InputPorts { get; set; } = Array.Empty<int>();
+        public IEnumerable<int> HostPorts { get; set; } = Array.Empty<int>();
 
-        public int Workers { get; set; } = 2;
+        public int Workers { get; set; } = 8;
 
         public ISerializer Serializer { get; set; }
 
@@ -20,7 +20,7 @@ namespace UdpToolkit.Core
 
         public TimeSpan RoomsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
-        public TimeSpan RoomTtl { get; set; } = TimeSpan.FromMinutes(2);
+        public TimeSpan RoomTtl { get; set; } = TimeSpan.FromMinutes(10);
 
         public TimeSpan ConnectionTtl { get; set; } = TimeSpan.FromSeconds(30);
 
@@ -29,7 +29,5 @@ namespace UdpToolkit.Core
         public TimeSpan ResendPacketsTimeout { get; set; } = TimeSpan.FromSeconds(30);
 
         public ExecutorType ExecutorType { get; set; } = ExecutorType.ThreadBasedExecutor;
-
-        public string Host { get; set; } = "127.0.0.1";
     }
 }

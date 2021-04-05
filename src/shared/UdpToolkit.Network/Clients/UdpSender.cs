@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Clients
 {
     using System;
     using System.Net.Sockets;
+    using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
@@ -34,7 +35,7 @@ namespace UdpToolkit.Network.Clients
             _dateTimeProvider = dateTimeProvider;
             _resendQueue = resendQueue;
             _resendTimeout = resendTimeout;
-            _udpToolkitLogger.Debug($"{nameof(UdpSender)}| - {sender.Client.LocalEndPoint} created");
+            _udpToolkitLogger.Debug($"{nameof(UdpSender)}|{sender.Client.LocalEndPoint}|created");
         }
 
         public void Dispose()
@@ -94,7 +95,7 @@ namespace UdpToolkit.Network.Clients
             if (outPacket.HookId != 253)
             {
                 _udpToolkitLogger.Debug(
-                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {outPacket.IpEndPoint} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType}");
+                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {outPacket.IpEndPoint} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
             }
 
             if (outPacket.IsReliable && outPacket.HookId != 253)

@@ -22,7 +22,8 @@ namespace UdpToolkit
             return _queues[MurMurHash.Hash3_x86_32(connectionId) % _queues.Length];
         }
 
-        public void RunAll()
+        public void RunAll(
+            string description)
         {
             for (int i = 0; i < _queues.Length; i++)
             {
@@ -30,7 +31,7 @@ namespace UdpToolkit
                 _executor.Execute(
                     action: queue.Consume,
                     restartOnFail: true,
-                    opName: $"Queue {nameof(TEvent)}");
+                    opName: description);
             }
         }
 

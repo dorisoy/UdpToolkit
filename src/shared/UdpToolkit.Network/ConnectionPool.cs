@@ -46,32 +46,19 @@ namespace UdpToolkit.Network
             return _connections.TryGetValue(connectionId, out connection);
         }
 
-        public IConnection AddOrUpdate(
+        public IConnection GetOrAdd(
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            List<IPEndPoint> ips)
+            IPEndPoint ip)
         {
-            return _connections.AddOrUpdate(
-                key: connectionId,
-                addValueFactory: (key) => Connection.New(
-                    keepAlive: keepAlive,
-                    lastHeartbeat: lastHeartbeat,
-                    connectionId: connectionId,
-                    ipEndPoints: ips),
-                updateValueFactory: (key, connection) =>
-                {
-                    for (var i = 0; i < ips.Count; i++)
-                    {
-                        var ip = ips[i];
-                        if (!connection.IpEndPoints.Contains(ip))
-                        {
-                            connection.IpEndPoints.Add(ip);
-                        }
-                    }
+            var newConnection = Connection.New(
+                keepAlive: keepAlive,
+                lastHeartbeat: lastHeartbeat,
+                connectionId: connectionId,
+                ipEndPoint: ip);
 
-                    return connection;
-                });
+            return _connections.GetOrAdd(connectionId, newConnection);
         }
 
         public void Apply(
@@ -96,21 +83,19 @@ namespace UdpToolkit.Network
 
         private void ScanForCleaningInactiveConnections(object state)
         {
+            _logger.Debug($"Cleanup inactive connections");
             var now = _dateTimeProvider.GetUtcNow();
             for (var i = 0; i < _connections.Count; i++)
             {
                 var connection = _connections.ElementAt(i);
                 if (connection.Value.KeepAlive)
                 {
-                    _logger.Debug($"keep alive - {connection.Key}");
                     continue;
                 }
 
                 var inactivityDiff = now - connection.Value.LastHeartbeat;
-                _logger.Debug($"Inactivity diff - {inactivityDiff} timeout {_inactivityTimeout} last heartbeat - {connection.Value.LastHeartbeat}");
                 if (inactivityDiff > _inactivityTimeout)
                 {
-                    _logger.Debug($"Remove connection {connection.Key}");
                     _connections.TryRemove(connection.Key, out _);
                 }
             }

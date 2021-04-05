@@ -18,7 +18,6 @@ namespace UdpToolkit.Core.Executors
             bool restartOnFail,
             string opName)
         {
-            _logger.Debug($"Run action {opName} on thread based executor");
             var thread = new Thread(() =>
             {
                 try
@@ -35,6 +34,9 @@ namespace UdpToolkit.Core.Executors
                     }
                 }
             });
+
+            _logger.Debug($"Run {opName} on thread based executor, threadId - {thread.ManagedThreadId}");
+
             thread.Start();
         }
     }

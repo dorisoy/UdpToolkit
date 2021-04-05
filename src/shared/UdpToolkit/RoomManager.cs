@@ -75,16 +75,15 @@ namespace UdpToolkit
 
         private void ScanForCleaningInactiveConnections(object state)
         {
+            _logger.Debug($"Cleanup inactive rooms");
             var now = _dateTimeProvider.UtcNow();
             for (var i = 0; i < _rooms.Count; i++)
             {
                 var room = _rooms.ElementAt(i);
 
                 var ttlDiff = now - room.Value.CreatedAt;
-                _logger.Debug($"Ttl diff - {ttlDiff} ttl {_roomTtl} created at - {room.Value.CreatedAt}");
                 if (ttlDiff > _roomTtl)
                 {
-                    _logger.Debug($"Remove room {room.Key}");
                     _rooms.TryRemove(room.Key, out _);
                 }
             }

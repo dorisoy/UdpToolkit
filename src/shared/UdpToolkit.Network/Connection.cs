@@ -7,15 +7,13 @@ namespace UdpToolkit.Network
 
     public class Connection : IConnection
     {
-        private readonly Random _random = new Random();
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _inputChannels;
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _outputChannels;
-        private readonly IPEndPoint _ipEndPoint;
 
         private Connection(
             Guid connectionId,
             bool keepAlive,
-            List<IPEndPoint> ipEndPoints,
+            IPEndPoint ipEndPoint,
             DateTimeOffset lastHeartbeat,
             IReadOnlyDictionary<ChannelType, IChannel> inputChannels,
             IReadOnlyDictionary<ChannelType, IChannel> outputChannels)
@@ -23,17 +21,16 @@ namespace UdpToolkit.Network
             _inputChannels = inputChannels;
             _outputChannels = outputChannels;
             ConnectionId = connectionId;
-            IpEndPoints = ipEndPoints;
+            Ip = ipEndPoint;
             KeepAlive = keepAlive;
             LastHeartbeat = lastHeartbeat;
-            _ipEndPoint = IpEndPoints[_random.Next(0, IpEndPoints.Count - 1)];
         }
 
         public Guid ConnectionId { get; }
 
         public bool KeepAlive { get; }
 
-        public List<IPEndPoint> IpEndPoints { get; }
+        public IPEndPoint Ip { get; }
 
         public DateTimeOffset LastHeartbeat { get; private set; }
 
@@ -43,13 +40,13 @@ namespace UdpToolkit.Network
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            List<IPEndPoint> ipEndPoints)
+            IPEndPoint ipEndPoint)
         {
             return new Connection(
                 connectionId: connectionId,
                 keepAlive: keepAlive,
                 lastHeartbeat: lastHeartbeat,
-                ipEndPoints: ipEndPoints,
+                ipEndPoint: ipEndPoint,
                 outputChannels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),
@@ -85,7 +82,5 @@ namespace UdpToolkit.Network
         public TimeSpan GetRtt() => LastHeartbeatAck.HasValue
             ? LastHeartbeatAck.Value - LastHeartbeat
             : TimeSpan.Zero;
-
-        public IPEndPoint GetIp() => _ipEndPoint;
     }
 }

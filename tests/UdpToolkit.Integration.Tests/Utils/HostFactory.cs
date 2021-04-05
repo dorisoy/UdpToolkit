@@ -15,8 +15,7 @@ namespace UdpToolkit.Integration.Tests.Utils
                 .ConfigureHost(settings =>
                 {
                     settings.Host = "0.0.0.0";
-                    settings.InputPorts = inputPorts;
-                    settings.OutputPorts = outputPorts;
+                    settings.HostPorts = inputPorts;
                     settings.Workers = 2;
                     settings.Serializer = new Serializer();
                 })
@@ -33,8 +32,7 @@ namespace UdpToolkit.Integration.Tests.Utils
                 .ConfigureHost(settings =>
                 {
                     settings.Host = "0.0.0.0";
-                    settings.InputPorts = inputPorts;
-                    settings.OutputPorts = outputPorts;
+                    settings.HostPorts = inputPorts;
                     settings.Workers = 2;
                     settings.Serializer = new Serializer();
                 })

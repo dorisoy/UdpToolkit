@@ -1,9 +1,7 @@
 namespace UdpToolkit.Network.Protocol
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
 
     public sealed class Connect : ProtocolEvent<Connect>
     {
@@ -13,16 +11,12 @@ namespace UdpToolkit.Network.Protocol
         }
 
         public Connect(
-            Guid connectionId,
-            int[] inputPorts)
+            Guid connectionId)
         {
             ConnectionId = connectionId;
-            InputPorts = inputPorts;
         }
 
         public Guid ConnectionId { get; }
-
-        public int[] InputPorts { get; }
 
         protected override byte[] SerializeInternal(Connect connect)
         {
@@ -30,10 +24,6 @@ namespace UdpToolkit.Network.Protocol
             {
                 var bw = new BinaryWriter(ms);
                 bw.Write(buffer: connect.ConnectionId.ToByteArray());
-                for (var i = 0; i < connect.InputPorts.Length; i++)
-                {
-                    bw.Write(connect.InputPorts[i]);
-                }
 
                 bw.Flush();
                 return ms.ToArray();
@@ -45,21 +35,8 @@ namespace UdpToolkit.Network.Protocol
             using (var reader = new BinaryReader(new MemoryStream(bytes)))
             {
                 return new Connect(
-                    connectionId: new Guid(reader.ReadBytes(16)),
-                    inputPorts: ReadPorts(reader).ToArray());
+                    connectionId: new Guid(reader.ReadBytes(16)));
             }
-        }
-
-        private int[] ReadPorts(
-            BinaryReader reader)
-        {
-            var list = new List<int>();
-            while (reader.BaseStream.Position != reader.BaseStream.Length)
-            {
-                list.Add(reader.ReadInt32());
-            }
-
-            return list.ToArray();
         }
     }
 }

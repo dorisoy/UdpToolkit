@@ -12,7 +12,6 @@ namespace UdpToolkit
     public sealed class HostClient : IHostClient
     {
         private readonly int? _heartbeatDelayMs;
-        private readonly int[] _inputPorts;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly TimeSpan _connectionTimeout;
         private readonly IDateTimeProvider _dateTimeProvider;
@@ -26,7 +25,6 @@ namespace UdpToolkit
             IConnection hostConnection,
             ISerializer serializer,
             int? heartbeatDelayMs,
-            int[] inputPorts,
             CancellationTokenSource cancellationTokenSource,
             IClientBroadcaster clientBroadcaster,
             TimeSpan connectionTimeout,
@@ -35,7 +33,6 @@ namespace UdpToolkit
             _hostConnection = hostConnection;
             _serializer = serializer;
             _heartbeatDelayMs = heartbeatDelayMs;
-            _inputPorts = inputPorts;
             _cancellationTokenSource = cancellationTokenSource;
             _clientBroadcaster = clientBroadcaster;
             _connectionTimeout = connectionTimeout;
@@ -55,7 +52,7 @@ namespace UdpToolkit
             _startConnect = _dateTimeProvider.UtcNow();
 
             SendInternal(
-                @event: new Connect(ConnectionId, _inputPorts),
+                @event: new Connect(ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Connect,
                 udpMode: UdpMode.ReliableUdp,

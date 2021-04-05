@@ -8,17 +8,17 @@ namespace UdpToolkit
 
     public class ClientBroadcaster : IClientBroadcaster
     {
-        private readonly IQueueDispatcher<OutPacket> _clientOutQueueDispatcher;
-        private readonly IConnection _hostConnection;
+        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
+        private readonly IConnection _remoteHostConnection;
         private readonly IDateTimeProvider _dateTimeProvider;
 
         public ClientBroadcaster(
-            IQueueDispatcher<OutPacket> clientOutQueueDispatcher,
-            IConnection hostConnection,
+            IQueueDispatcher<OutPacket> outQueueDispatcher,
+            IConnection remoteHostConnection,
             IDateTimeProvider dateTimeProvider)
         {
-            _clientOutQueueDispatcher = clientOutQueueDispatcher;
-            _hostConnection = hostConnection;
+            _outQueueDispatcher = outQueueDispatcher;
+            _remoteHostConnection = remoteHostConnection;
             _dateTimeProvider = dateTimeProvider;
         }
 
@@ -30,7 +30,7 @@ namespace UdpToolkit
             ChannelType channelType)
         {
             var utcNow = _dateTimeProvider.UtcNow();
-            _clientOutQueueDispatcher
+            _outQueueDispatcher
                 .Dispatch(caller)
                 .Produce(new OutPacket(
                     hookId: hookId,
@@ -39,12 +39,12 @@ namespace UdpToolkit
                     connectionId: caller,
                     serializer: serializer,
                     createdAt: utcNow,
-                    ipEndPoint: _hostConnection.GetIp()));
+                    ipEndPoint: _remoteHostConnection.Ip));
         }
 
         public void Dispose()
         {
-            _clientOutQueueDispatcher?.Dispose();
+            _outQueueDispatcher?.Dispose();
         }
     }
 }

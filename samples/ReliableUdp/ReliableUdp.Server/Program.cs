@@ -97,8 +97,7 @@
                     settings.Host = "127.0.0.1";
                     settings.Serializer = new Serializer();
                     settings.LoggerFactory = new SerilogLoggerFactory();
-                    settings.InputPorts = new[] { 7000, 7001 };
-                    settings.OutputPorts = new[] { 8000, 8001 };
+                    settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 2;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTtl = TimeSpan.FromSeconds(30);

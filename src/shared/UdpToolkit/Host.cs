@@ -1,7 +1,6 @@
 namespace UdpToolkit
 {
     using System;
-    using System.Collections.Generic;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging;
@@ -20,7 +19,7 @@ namespace UdpToolkit
         private readonly IHostClient _hostClient;
         private readonly IQueueDispatcher<OutPacket> _hostOutQueueDispatcher;
         private readonly IQueueDispatcher<InPacket> _inQueueDispatcher;
-        private readonly IEnumerable<IUdpReceiver> _receivers;
+        private readonly IUdpReceiver[] _receivers;
 
         public Host(
             ISerializer serializer,
@@ -31,7 +30,7 @@ namespace UdpToolkit
             IHostClient hostClient,
             IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
             IQueueDispatcher<InPacket> inQueueDispatcher,
-            IEnumerable<IUdpReceiver> receivers,
+            IUdpReceiver[] receivers,
             IExecutor executor)
         {
             Scheduler = scheduler;
@@ -52,15 +51,12 @@ namespace UdpToolkit
 
         public void Run()
         {
-            _hostOutQueueDispatcher.RunAll();
-            _inQueueDispatcher.RunAll();
+            _hostOutQueueDispatcher.RunAll("Sender");
+            _inQueueDispatcher.RunAll("Worker");
 
-            foreach (var udpReceiver in _receivers)
+            for (var i = 0; i < _receivers.Length; i++)
             {
-                _executor.Execute(
-                    action: udpReceiver.Receive,
-                    restartOnFail: true,
-                    opName: "Receive packets");
+                _executor.Execute(_receivers[i].Receive, true, "Receiver");
             }
 
             _udpToolkitLogger.Information($"{nameof(Host)} running...");
