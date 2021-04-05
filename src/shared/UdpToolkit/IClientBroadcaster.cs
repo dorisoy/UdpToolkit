@@ -12,7 +12,6 @@ namespace UdpToolkit
             Guid caller,
             byte hookId,
             PacketType packetType,
-            ChannelType channelType,
-            BroadcastMode broadcastMode);
+            ChannelType channelType);
     }
 }

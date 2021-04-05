@@ -1,7 +1,6 @@
 namespace UdpToolkit
 {
     using System;
-    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
@@ -9,12 +8,12 @@ namespace UdpToolkit
 
     public class ClientBroadcaster : IClientBroadcaster
     {
-        private readonly IQueueDispatcher<ClientOutContext> _clientOutQueueDispatcher;
+        private readonly IQueueDispatcher<OutPacket> _clientOutQueueDispatcher;
         private readonly IConnection _hostConnection;
         private readonly IDateTimeProvider _dateTimeProvider;
 
         public ClientBroadcaster(
-            IQueueDispatcher<ClientOutContext> clientOutQueueDispatcher,
+            IQueueDispatcher<OutPacket> clientOutQueueDispatcher,
             IConnection hostConnection,
             IDateTimeProvider dateTimeProvider)
         {
@@ -28,23 +27,19 @@ namespace UdpToolkit
             Guid caller,
             byte hookId,
             PacketType packetType,
-            ChannelType channelType,
-            BroadcastMode broadcastMode)
+            ChannelType channelType)
         {
             var utcNow = _dateTimeProvider.UtcNow();
             _clientOutQueueDispatcher
                 .Dispatch(caller)
-                .Produce(new ClientOutContext(
+                .Produce(new OutPacket(
+                    hookId: hookId,
+                    channelType: channelType,
+                    packetType: packetType,
+                    connectionId: caller,
+                    serializer: serializer,
                     createdAt: utcNow,
-                    broadcastMode: broadcastMode,
-                    outPacket: new OutPacket(
-                        hookId: hookId,
-                        channelType: channelType,
-                        packetType: packetType,
-                        connectionId: caller,
-                        serializer: serializer,
-                        createdAt: utcNow,
-                        ipEndPoint: _hostConnection.GetIp())));
+                    ipEndPoint: _hostConnection.GetIp()));
         }
 
         public void Dispose()

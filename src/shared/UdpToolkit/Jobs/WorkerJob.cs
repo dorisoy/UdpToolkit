@@ -1,12 +1,11 @@
 namespace UdpToolkit.Jobs
 {
     using System;
-    using System.Threading.Tasks;
-    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Serialization;
 
     public sealed class WorkerJob
@@ -33,38 +32,35 @@ namespace UdpToolkit.Jobs
 
         public static event Action<bool> OnConnectionChanged;
 
-        public Task Execute(
-            InContext inContext)
+        public void Execute(
+            InPacket inPacket)
         {
-            switch (inContext.InPacket.PacketType)
+            switch (inPacket.PacketType)
             {
                 case PacketType.FromServer:
                 case PacketType.FromClient:
-                    HandleUserDefinedEvent(ref inContext);
+                    HandleUserDefinedEvent(ref inPacket);
                     break;
                 case PacketType.Protocol:
-                    HandleProtocolEvent(ref inContext);
+                    HandleProtocolEvent(ref inPacket);
                     break;
                 case PacketType.Ack:
-                    if (inContext.InPacket.IsProtocolEvent)
+                    if (inPacket.IsProtocolEvent)
                     {
-                        HandleProtocolAck(ref inContext);
+                        HandleProtocolAck(ref inPacket);
                     }
                     else
                     {
-                        HandleUserDefinedAck(ref inContext);
+                        HandleUserDefinedAck(ref inPacket);
                     }
 
                     break;
             }
-
-            return Task.CompletedTask;
         }
 
         private void HandleProtocolEvent(
-            ref InContext inContext)
+            ref InPacket inPacket)
         {
-            var inPacket = inContext.InPacket;
             var protocolHookId = (ProtocolHookId)inPacket.HookId;
 
             var userDefinedSubscription = _subscriptionManager
@@ -87,9 +83,8 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleUserDefinedEvent(
-            ref InContext inContext)
+            ref InPacket inPacket)
         {
-            var inPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(inPacket.HookId);
 
@@ -120,9 +115,8 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleUserDefinedAck(
-            ref InContext inContext)
+            ref InPacket inPacket)
         {
-            var inPacket = inContext.InPacket;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription(inPacket.HookId);
 
@@ -130,9 +124,8 @@ namespace UdpToolkit.Jobs
         }
 
         private void HandleProtocolAck(
-            ref InContext inContext)
+            ref InPacket inPacket)
         {
-            var inPacket = inContext.InPacket;
             var protocolHookId = (ProtocolHookId)inPacket.HookId;
             var userDefinedSubscription = _subscriptionManager
                 .GetSubscription((byte)protocolHookId);

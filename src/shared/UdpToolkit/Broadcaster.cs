@@ -1,7 +1,6 @@
 namespace UdpToolkit
 {
     using System;
-    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
@@ -9,7 +8,7 @@ namespace UdpToolkit
 
     public sealed class Broadcaster : IBroadcaster
     {
-        private readonly IQueueDispatcher<HostOutContext> _hostOutQueueDispatcher;
+        private readonly IQueueDispatcher<OutPacket> _hostOutQueueDispatcher;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IRoomManager _roomManager;
         private readonly IConnectionPool _connectionPool;
@@ -18,7 +17,7 @@ namespace UdpToolkit
             IDateTimeProvider dateTimeProvider,
             IRoomManager roomManager,
             IConnectionPool connectionPool,
-            IQueueDispatcher<HostOutContext> hostOutQueueDispatcher)
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomManager = roomManager;
@@ -48,18 +47,14 @@ namespace UdpToolkit
 
                     _hostOutQueueDispatcher
                         .Dispatch(caller)
-                        .Produce(new HostOutContext(
+                        .Produce(new OutPacket(
+                            hookId: hookId,
+                            channelType: channelType,
+                            packetType: packetType,
+                            connectionId: caller,
+                            serializer: serializer,
                             createdAt: utcNow,
-                            roomId: roomId,
-                            broadcastMode: broadcastMode,
-                            outPacket: new OutPacket(
-                                hookId: hookId,
-                                channelType: channelType,
-                                packetType: packetType,
-                                connectionId: caller,
-                                serializer: serializer,
-                                createdAt: utcNow,
-                                ipEndPoint: connection.GetIp())));
+                            ipEndPoint: connection.GetIp()));
                     return;
                 case BroadcastMode.AllConnections:
                     _connectionPool.Apply(
@@ -67,18 +62,14 @@ namespace UdpToolkit
                         {
                             _hostOutQueueDispatcher
                                 .Dispatch(connection.ConnectionId)
-                                .Produce(new HostOutContext(
+                                .Produce(new OutPacket(
+                                    hookId: hookId,
+                                    channelType: channelType,
+                                    packetType: packetType,
+                                    connectionId: caller,
+                                    serializer: serializer,
                                     createdAt: utcNow,
-                                    roomId: roomId,
-                                    broadcastMode: broadcastMode,
-                                    outPacket: new OutPacket(
-                                        hookId: hookId,
-                                        channelType: channelType,
-                                        packetType: packetType,
-                                        connectionId: caller,
-                                        serializer: serializer,
-                                        createdAt: utcNow,
-                                        ipEndPoint: connection.GetIp())));
+                                    ipEndPoint: connection.GetIp()));
                         });
 
                     return;
@@ -99,18 +90,14 @@ namespace UdpToolkit
 
                         _hostOutQueueDispatcher
                             .Dispatch(c.ConnectionId)
-                            .Produce(new HostOutContext(
+                            .Produce(new OutPacket(
+                                hookId: hookId,
+                                channelType: channelType,
+                                packetType: packetType,
+                                connectionId: room[i],
+                                serializer: serializer,
                                 createdAt: utcNow,
-                                roomId: roomId,
-                                broadcastMode: broadcastMode,
-                                outPacket: new OutPacket(
-                                    hookId: hookId,
-                                    channelType: channelType,
-                                    packetType: packetType,
-                                    connectionId: room[i],
-                                    serializer: serializer,
-                                    createdAt: utcNow,
-                                    ipEndPoint: c.GetIp())));
+                                ipEndPoint: c.GetIp()));
                     }
 
                     return;
@@ -124,18 +111,14 @@ namespace UdpToolkit
 
                         _hostOutQueueDispatcher
                             .Dispatch(c.ConnectionId)
-                            .Produce(new HostOutContext(
+                            .Produce(new OutPacket(
+                                hookId: hookId,
+                                channelType: channelType,
+                                packetType: packetType,
+                                connectionId: room[i],
+                                serializer: serializer,
                                 createdAt: utcNow,
-                                roomId: roomId,
-                                broadcastMode: broadcastMode,
-                                outPacket: new OutPacket(
-                                    hookId: hookId,
-                                    channelType: channelType,
-                                    packetType: packetType,
-                                    connectionId: room[i],
-                                    serializer: serializer,
-                                    createdAt: utcNow,
-                                    ipEndPoint: c.GetIp())));
+                                ipEndPoint: c.GetIp()));
                     }
 
                     return;

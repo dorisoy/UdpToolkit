@@ -101,7 +101,6 @@ namespace UdpToolkit
                 caller: ConnectionId,
                 hookId: hookId,
                 packetType: packetType,
-                broadcastMode: BroadcastMode.Server,
                 channelType: udpMode.Map());
         }
 

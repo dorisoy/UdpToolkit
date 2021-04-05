@@ -2,12 +2,12 @@ namespace UdpToolkit
 {
     using System;
     using System.Collections.Generic;
-    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Serialization;
 
     public sealed class Host : IHost
@@ -18,8 +18,8 @@ namespace UdpToolkit
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IBroadcaster _broadcaster;
         private readonly IHostClient _hostClient;
-        private readonly IQueueDispatcher<HostOutContext> _hostOutQueueDispatcher;
-        private readonly IQueueDispatcher<InContext> _inQueueDispatcher;
+        private readonly IQueueDispatcher<OutPacket> _hostOutQueueDispatcher;
+        private readonly IQueueDispatcher<InPacket> _inQueueDispatcher;
         private readonly IEnumerable<IUdpReceiver> _receivers;
 
         public Host(
@@ -29,8 +29,8 @@ namespace UdpToolkit
             IUdpToolkitLogger udpToolkitLogger,
             IBroadcaster broadcaster,
             IHostClient hostClient,
-            IQueueDispatcher<HostOutContext> hostOutQueueDispatcher,
-            IQueueDispatcher<InContext> inQueueDispatcher,
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
+            IQueueDispatcher<InPacket> inQueueDispatcher,
             IEnumerable<IUdpReceiver> receivers,
             IExecutor executor)
         {

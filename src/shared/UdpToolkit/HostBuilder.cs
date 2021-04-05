@@ -4,13 +4,13 @@ namespace UdpToolkit
     using System.Linq;
     using System.Net;
     using System.Threading;
-    using UdpToolkit.Contexts;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
     using UdpToolkit.Jobs;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Clients;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
 
     public sealed class HostBuilder : IHostBuilder
@@ -131,13 +131,13 @@ namespace UdpToolkit
                     connectionPool: connectionPool,
                     udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient))
-                .Select(sender => new BlockingAsyncQueue<ClientOutContext>(
+                .Select(sender => new BlockingAsyncQueue<OutPacket>(
                     boundedCapacity: int.MaxValue,
-                    action: (clientOutContext) => sender.Send(clientOutContext.OutPacket),
-                    logger: loggerFactory.Create<BlockingAsyncQueue<ClientOutContext>>()))
+                    action: (outPacket) => sender.Send(outPacket),
+                    logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
                 .ToArray();
 
-            var clientOutQueueDispatcher = new QueueDispatcher<ClientOutContext>(
+            var clientOutQueueDispatcher = new QueueDispatcher<OutPacket>(
                 queues: clientOutQueues,
                 executor: executor);
 
@@ -213,13 +213,13 @@ namespace UdpToolkit
                     connectionPool: connectionPool,
                     udpToolkitLogger: loggerFactory.Create<UdpSender>(),
                     sender: udpClient))
-                .Select(sender => new BlockingAsyncQueue<HostOutContext>(
+                .Select(sender => new BlockingAsyncQueue<OutPacket>(
                     boundedCapacity: int.MaxValue,
-                    action: (hostOutContext) => sender.Send(hostOutContext.OutPacket),
-                    logger: loggerFactory.Create<BlockingAsyncQueue<HostOutContext>>()))
+                    action: sender.Send,
+                    logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
                 .ToArray();
 
-            var hostOutQueueDispatcher = new QueueDispatcher<HostOutContext>(hostOutQueues, executor: executor);
+            var hostOutQueueDispatcher = new QueueDispatcher<OutPacket>(hostOutQueues, executor: executor);
 
             var broadcaster = new Broadcaster(
                 hostOutQueueDispatcher: hostOutQueueDispatcher,
@@ -235,13 +235,13 @@ namespace UdpToolkit
                 serializer: _hostSettings.Serializer);
 
             var inQueues = inHostIps
-                .Select(_ => new BlockingAsyncQueue<InContext>(
+                .Select(_ => new BlockingAsyncQueue<InPacket>(
                     boundedCapacity: int.MaxValue,
-                    action: (inContext) => workerJob.Execute(inContext),
-                    logger: loggerFactory.Create<BlockingAsyncQueue<InContext>>()))
+                    action: (inPacket) => workerJob.Execute(inPacket),
+                    logger: loggerFactory.Create<BlockingAsyncQueue<InPacket>>()))
                 .ToArray();
 
-            var inQueuesDispatcher = new QueueDispatcher<InContext>(
+            var inQueuesDispatcher = new QueueDispatcher<InPacket>(
                 queues: inQueues,
                 executor: executor);
 
@@ -250,10 +250,7 @@ namespace UdpToolkit
                 .Select(udpClient => new UdpReceiver(
                     action: (inPacket) => inQueuesDispatcher
                         .Dispatch(inPacket.ConnectionId)
-                        .Produce(
-                            @event: new InContext(
-                                createdAt: dateTimeProvider.UtcNow(),
-                                inPacket: inPacket)),
+                        .Produce(@event: inPacket),
                     hostConnection: remoteHostConnection,
                     dateTimeProvider: networkDateTimeProvider,
                     udpToolkitLogger: loggerFactory.Create<UdpReceiver>(),
