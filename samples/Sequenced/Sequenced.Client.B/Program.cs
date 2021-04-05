@@ -65,7 +65,7 @@
 
             await Task.Delay(20_000).ConfigureAwait(false);
 
-            for (var i = 0; i < 5; i++)
+            for (var i = 0; i < int.MaxValue; i++)
             {
                 client.Send(
                     @event: new MoveEvent(
@@ -74,6 +74,7 @@
                         from: nickname),
                     hookId: 1,
                     udpMode: UdpMode.Sequenced);
+                Thread.Sleep(1000 / 60);
             }
 
             Console.WriteLine("Press any key...");

@@ -27,8 +27,6 @@ namespace UdpToolkit.Network.Channels
                     return true;
                 }
 
-                Console.WriteLine("PACKET DROPPED!");
-
                 return false;
             }
         }
