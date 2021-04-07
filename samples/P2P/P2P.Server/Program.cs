@@ -20,8 +20,7 @@
 
             var host = BuildHost();
 
-            host
-                .Run();
+            host.Run();
         }
 
         private static IHost BuildHost() =>

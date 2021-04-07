@@ -98,7 +98,7 @@
                     settings.Serializer = new Serializer();
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
-                    settings.Workers = 2;
+                    settings.Workers = 8;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTtl = TimeSpan.FromSeconds(30);
                 })

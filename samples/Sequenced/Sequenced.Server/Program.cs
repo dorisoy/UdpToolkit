@@ -44,8 +44,7 @@
                 broadcastMode: BroadcastMode.RoomExceptCaller,
                 hookId: 1);
 
-            host
-                .Run();
+            host.Run();
         }
 
         private static IHost BuildHost() =>

@@ -16,7 +16,6 @@ namespace UdpToolkit.Integration.Tests.Utils
 
         public static int[] GenerateUdpPorts(int count) => Enumerable
             .Range(0, count)
-            .Select(_ => NetworkUtils.GetAvailablePort())
             .ToArray();
 
         public static TimeSpan RandomTimeSpanFromMinutes()

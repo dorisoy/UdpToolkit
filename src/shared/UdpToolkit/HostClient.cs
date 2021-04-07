@@ -15,14 +15,14 @@ namespace UdpToolkit
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly TimeSpan _connectionTimeout;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IConnection _hostConnection;
+        private readonly IConnection _clientConnection;
         private readonly ISerializer _serializer;
         private readonly IClientBroadcaster _clientBroadcaster;
 
         private DateTimeOffset _startConnect;
 
         public HostClient(
-            IConnection hostConnection,
+            IConnection clientConnection,
             ISerializer serializer,
             int? heartbeatDelayMs,
             CancellationTokenSource cancellationTokenSource,
@@ -30,7 +30,7 @@ namespace UdpToolkit
             TimeSpan connectionTimeout,
             IDateTimeProvider dateTimeProvider)
         {
-            _hostConnection = hostConnection;
+            _clientConnection = clientConnection;
             _serializer = serializer;
             _heartbeatDelayMs = heartbeatDelayMs;
             _cancellationTokenSource = cancellationTokenSource;
@@ -41,11 +41,11 @@ namespace UdpToolkit
 
         public event Action OnConnectionTimeout;
 
-        public Guid ConnectionId => _hostConnection.ConnectionId;
+        public Guid ConnectionId => _clientConnection.ConnectionId;
 
         public bool IsConnected { get; internal set; }
 
-        public TimeSpan Rtt => _hostConnection.GetRtt();
+        public TimeSpan Rtt => _clientConnection.GetRtt();
 
         public void Connect()
         {

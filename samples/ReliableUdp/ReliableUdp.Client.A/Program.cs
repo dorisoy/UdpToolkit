@@ -83,9 +83,7 @@
                 broadcastMode: BroadcastMode.Room,
                 hookId: 1);
 
-#pragma warning disable CS4014
-            Task.Run(() => host.Run());
-#pragma warning restore CS4014
+            host.Run();
 
             client.Connect();
 
@@ -120,7 +118,7 @@
                 {
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
-                    settings.ServerInputPorts = new[] { 7000, 7001 };
+                    settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
                 .Build();

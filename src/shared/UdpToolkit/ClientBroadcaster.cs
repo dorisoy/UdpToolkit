@@ -9,16 +9,16 @@ namespace UdpToolkit
     public class ClientBroadcaster : IClientBroadcaster
     {
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
-        private readonly IConnection _remoteHostConnection;
+        private readonly IConnection _clientConnection;
         private readonly IDateTimeProvider _dateTimeProvider;
 
         public ClientBroadcaster(
             IQueueDispatcher<OutPacket> outQueueDispatcher,
-            IConnection remoteHostConnection,
+            IConnection clientConnection,
             IDateTimeProvider dateTimeProvider)
         {
             _outQueueDispatcher = outQueueDispatcher;
-            _remoteHostConnection = remoteHostConnection;
+            _clientConnection = clientConnection;
             _dateTimeProvider = dateTimeProvider;
         }
 
@@ -39,7 +39,7 @@ namespace UdpToolkit
                     connectionId: caller,
                     serializer: serializer,
                     createdAt: utcNow,
-                    ipEndPoint: _remoteHostConnection.Ip));
+                    ipEndPoint: _clientConnection.Ip));
         }
 
         public void Dispose()

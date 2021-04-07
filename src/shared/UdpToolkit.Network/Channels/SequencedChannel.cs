@@ -1,7 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-
     public sealed class SequencedChannel : IChannel
     {
         private readonly object _locker = new object();

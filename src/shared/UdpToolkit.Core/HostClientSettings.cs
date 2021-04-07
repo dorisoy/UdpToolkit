@@ -9,7 +9,7 @@ namespace UdpToolkit.Core
 
         public string ServerHost { get; set; } = "127.0.0.1";
 
-        public IEnumerable<int> ServerInputPorts { get; set; } = Array.Empty<int>();
+        public IEnumerable<int> ServerPorts { get; set; } = Array.Empty<int>();
 
         public int? HeartbeatDelayInMs { get; set; } = 2000;
     }

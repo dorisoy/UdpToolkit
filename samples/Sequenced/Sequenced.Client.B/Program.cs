@@ -46,9 +46,7 @@
                 hookId: 1,
                 broadcastMode: BroadcastMode.RoomExceptCaller);
 
-#pragma warning disable CS4014
-            Task.Run(() => host.Run());
-#pragma warning restore CS4014
+            host.Run();
 
             client.Connect();
 
@@ -65,7 +63,7 @@
 
             await Task.Delay(20_000).ConfigureAwait(false);
 
-            for (var i = 0; i < int.MaxValue; i++)
+            for (var i = 0; i < 5000; i++)
             {
                 client.Send(
                     @event: new MoveEvent(
@@ -76,6 +74,10 @@
                     udpMode: UdpMode.Sequenced);
                 Thread.Sleep(1000 / 60);
             }
+
+            client.Disconnect();
+            SpinWait.SpinUntil(() => !client.IsConnected);
+            Console.WriteLine($"Client disconnected, IsConnected - {client.IsConnected}");
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -99,7 +101,7 @@
                 {
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ServerHost = "127.0.0.1";
-                    settings.ServerInputPorts = new[] { 7000, 7001 };
+                    settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
                 .Build();

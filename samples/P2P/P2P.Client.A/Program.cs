@@ -23,7 +23,7 @@
             var client = host.HostClient;
 
 #pragma warning disable CS4014
-            Task.Run(() => host.Run());
+            host.Run();
 #pragma warning restore CS4014
 
             var connectionTimeout = TimeSpan.FromSeconds(120);
@@ -51,7 +51,7 @@
                 {
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(35);
                     settings.ServerHost = "127.0.0.1";
-                    settings.ServerInputPorts = new[] { 7000, 7001 };
+                    settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = null; // pass null for disable heartbeat
                 })
                 .Build();

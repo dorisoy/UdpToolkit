@@ -14,7 +14,7 @@ namespace UdpToolkit.Network.Clients
     {
         private const int MtuSizeLimit = 1500; // TODO detect automatic
 
-        private readonly UdpClient _sender;
+        private readonly Socket _sender;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnectionPool _connectionPool;
         private readonly IUdpToolkitLogger _udpToolkitLogger;
@@ -22,7 +22,7 @@ namespace UdpToolkit.Network.Clients
         private readonly TimeSpan _resendTimeout;
 
         public UdpSender(
-            UdpClient sender,
+            Socket sender,
             IUdpToolkitLogger udpToolkitLogger,
             IConnectionPool connectionPool,
             IDateTimeProvider dateTimeProvider,
@@ -35,7 +35,7 @@ namespace UdpToolkit.Network.Clients
             _dateTimeProvider = dateTimeProvider;
             _resendQueue = resendQueue;
             _resendTimeout = resendTimeout;
-            _udpToolkitLogger.Debug($"{nameof(UdpSender)}|{sender.Client.LocalEndPoint}|created");
+            _udpToolkitLogger.Debug($"{nameof(UdpSender)}|{sender.LocalEndPoint}|created");
         }
 
         public void Dispose()
@@ -95,7 +95,7 @@ namespace UdpToolkit.Network.Clients
             if (outPacket.HookId != 253)
             {
                 _udpToolkitLogger.Debug(
-                    $"Sended from: - {_sender.Client.LocalEndPoint} to: {outPacket.IpEndPoint} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
+                    $"Sended from: - {_sender.LocalEndPoint} to: {outPacket.IpEndPoint} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
             }
 
             if (outPacket.IsReliable && outPacket.HookId != 253)
@@ -114,8 +114,7 @@ namespace UdpToolkit.Network.Clients
                     channelType: outPacket.ChannelType));
             }
 
-            _sender
-                .Send(bytes, bytes.Length, outPacket.IpEndPoint);
+            _sender.SendTo(bytes, SocketFlags.None, outPacket.IpEndPoint);
         }
 
         private void ResendPackages(
@@ -138,10 +137,10 @@ namespace UdpToolkit.Network.Clients
                     if (resendPacket.HookId != 253)
                     {
                         _udpToolkitLogger.Debug(
-                            $"Resend from: - {_sender.Client.LocalEndPoint} to: {resendPacket.To} packetId: {resendPacket.Id} channel: {resendPacket.ChannelType}");
+                            $"Resend from: - {_sender.LocalEndPoint} to: {resendPacket.To} packetId: {resendPacket.Id} channel: {resendPacket.ChannelType}");
                     }
 
-                    _sender.SendAsync(resendPacket.Payload, resendPacket.Payload.Length, resendPacket.To);
+                    _sender.SendTo(resendPacket.Payload, SocketFlags.None, resendPacket.To);
                 }
                 else
                 {
