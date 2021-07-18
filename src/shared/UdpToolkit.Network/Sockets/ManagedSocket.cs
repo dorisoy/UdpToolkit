@@ -11,6 +11,7 @@ namespace UdpToolkit.Network.Sockets
         private readonly IUdpToolkitLogger _logger;
         private readonly Socket _socket;
         private readonly List<Socket> _sockets;
+
         private EndPoint _remoteIp = new IPEndPoint(IPAddress.Any, 0);
         private bool _disposed;
 
@@ -45,10 +46,8 @@ namespace UdpToolkit.Network.Sockets
                 _sockets.Add(_socket);
             }
 
-            /*
-             * https://github.com/dotnet/runtime/issues/47342
-             * Before blocking call 'ReceiveFrom' we should check ready data in the socket to preventing deadlock for the correct 'Dispose' call.
-             */
+            // https://github.com/dotnet/runtime/issues/47342
+            // Before doing blocking call 'ReceiveFrom' we should check ready data in the socket to preventing deadlock for the correct 'Dispose' call.
             Socket.Select(_sockets, null, null, 1000);
 
             if (_sockets.Count == 0)
@@ -56,13 +55,13 @@ namespace UdpToolkit.Network.Sockets
                 return 0;
             }
 
-            var s = _sockets[0];
-            if (s == null)
+            var socket = _sockets[0];
+            if (socket == null)
             {
                 return 0;
             }
 
-            var bytes = s.ReceiveFrom(
+            var bytes = socket.ReceiveFrom(
                 buffer: buffer,
                 socketFlags: SocketFlags.None,
                 remoteEP: ref _remoteIp);

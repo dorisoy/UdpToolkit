@@ -19,6 +19,7 @@
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
 
             // https://stackoverflow.com/questions/38191968/c-sharp-udp-an-existing-connection-was-forcibly-closed-by-the-remote-host
+            // https://stackoverflow.com/questions/5116977/how-to-check-the-os-version-at-runtime-e-g-on-windows-or-linux-without-using/47390306#47390306
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
                 socket.IOControl((IOControlCode)SioUdpConnreset, new byte[] { 0, 0, 0, 0 }, null);
