@@ -103,6 +103,11 @@ namespace UdpToolkit.Network.Sockets
             {
                 // ignore
             }
+            catch (SocketException ex) when (ex.ErrorCode == 10_004)
+            {
+                // ignore, windows specific exception
+                //  "A blocking operation was interrupted by a call to WSACancelBlockingCall"
+            }
 
             return 0;
         }
