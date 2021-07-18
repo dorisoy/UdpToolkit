@@ -23,7 +23,6 @@ namespace UdpToolkit.Network.Clients
         private readonly TimeSpan _resendTimeout;
 
         private bool _disposed = false;
-        private bool _cancelled = false;
 
         public UdpClient(
             IConnectionPool connectionPool,
@@ -140,7 +139,7 @@ namespace UdpToolkit.Network.Clients
             };
             var buffer = new byte[BufferSize];
 
-            while (!_cancelled)
+            while (!_disposed)
             {
                 if (_client.Poll(15) > 0)
                 {
@@ -153,9 +152,6 @@ namespace UdpToolkit.Network.Clients
                     }
                 }
             }
-
-            _client.Dispose();
-            _logger.Debug($"Socket disposed!");
         }
 
         private void ReceiveCallback(
@@ -330,7 +326,7 @@ namespace UdpToolkit.Network.Clients
             if (disposing)
             {
                 // https://github.com/dotnet/runtime/issues/47342
-                _cancelled = true;
+                _client.Dispose();
                 _connectionPool.Dispose();
             }
 

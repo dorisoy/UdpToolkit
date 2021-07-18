@@ -82,7 +82,7 @@ namespace UdpToolkit
                     dateTimeProvider: networkDateTimeProvider,
                     connectionPool: connectionPool,
                     logger: loggerFactory.Create<UdpClient>(),
-                    client: SocketFactory.Create(ip)))
+                    client: SocketFactory.Create(ip, loggerFactory)))
                 .ToArray();
 
             var hostOutQueues = udpClients.Select(sender => new BlockingAsyncQueue<OutPacket>(

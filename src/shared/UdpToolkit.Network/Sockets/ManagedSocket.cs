@@ -4,17 +4,22 @@ namespace UdpToolkit.Network.Sockets
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
+    using UdpToolkit.Logging;
 
     public sealed class ManagedSocket : ISocket
     {
+        private readonly IUdpToolkitLogger _logger;
         private readonly Socket _socket;
         private readonly List<Socket> _sockets;
         private EndPoint _remoteIp = new IPEndPoint(IPAddress.Any, 0);
         private bool _disposed;
 
-        public ManagedSocket(Socket socket)
+        public ManagedSocket(
+            Socket socket,
+            IUdpToolkitLogger logger)
         {
             _socket = socket;
+            _logger = logger;
             _sockets = new List<Socket>();
         }
 
@@ -35,11 +40,6 @@ namespace UdpToolkit.Network.Sockets
 
         public int ReceiveFrom(ref IpV4Address address, byte[] buffer, int length)
         {
-            if (_disposed)
-            {
-                return 0;
-            }
-
             if (_sockets.Count == 0)
             {
                 _sockets.Add(_socket);
@@ -79,33 +79,32 @@ namespace UdpToolkit.Network.Sockets
             {
                 return _socket.SendTo(buffer, 0, length, SocketFlags.None, address.ToIpEndPoint());
             }
-            catch (Exception e)
+            catch (ObjectDisposedException)
             {
-                Console.WriteLine(e);
-                Console.WriteLine(address.ToIpEndPoint());
-                throw;
+                // ignore
             }
+
+            return 0;
         }
 
         public int Bind(ref IpV4Address address)
         {
-            if (_disposed)
-            {
-                return 0;
-            }
-
             _socket.Bind(new IPEndPoint(new IPAddress(address.Address), address.Port));
             return 1;
         }
 
         public int Poll(long timeout)
         {
-            if (_disposed)
+            try
             {
-                return 0;
+                return _socket.Poll((int)timeout, SelectMode.SelectRead) ? 1 : 0;
+            }
+            catch (ObjectDisposedException)
+            {
+                // ignore
             }
 
-            return _socket.Poll((int)timeout, SelectMode.SelectRead) ? 1 : 0;
+            return 0;
         }
 
         public void Close()
@@ -125,6 +124,7 @@ namespace UdpToolkit.Network.Sockets
                 _socket.Dispose();
             }
 
+            _logger.Debug($"Socket disposed!");
             _disposed = true;
         }
     }

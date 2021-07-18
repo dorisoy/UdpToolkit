@@ -2,17 +2,19 @@
 {
     using System.Net;
     using System.Net.Sockets;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network.Sockets;
 
     public static class SocketFactory
     {
         public static ISocket Create(
-            IPEndPoint localEndPoint)
+            IPEndPoint localEndPoint,
+            IUdpToolkitLoggerFactory loggerFactory)
         {
             var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
-            var managedSocket = new ManagedSocket(socket);
+            var managedSocket = new ManagedSocket(socket, loggerFactory.Create<ManagedSocket>());
             var to = new IpV4Address
             {
                 Address = localEndPoint.Address.ToInt(),
