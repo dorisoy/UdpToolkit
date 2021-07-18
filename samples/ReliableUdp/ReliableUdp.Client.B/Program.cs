@@ -9,6 +9,7 @@
     using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Core;
+    using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Protocol;
@@ -119,6 +120,7 @@
                     settings.Workers = 8;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
                     settings.ConnectionTtl = TimeSpan.FromSeconds(120);
+                    settings.ExecutorType = ExecutorType.ThreadBasedExecutor;
                 })
                 .ConfigureHostClient((settings) =>
                 {
