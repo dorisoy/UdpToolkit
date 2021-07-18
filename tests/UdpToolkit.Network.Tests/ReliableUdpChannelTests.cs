@@ -1,9 +1,5 @@
 namespace UdpToolkit.Network.Tests
 {
-    using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Packets;
-    using Xunit;
-
     public class ReliableUdpChannelTests
     {
 #pragma warning disable

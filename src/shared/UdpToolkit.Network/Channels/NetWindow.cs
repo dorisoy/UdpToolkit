@@ -15,8 +15,6 @@ namespace UdpToolkit.Network.Channels
             _packetsData = new PacketData?[windowSize];
         }
 
-        public int Size => _windowSize;
-
         public ushort Next() => ++_maxId;
 
         public bool CanSet(ushort id)

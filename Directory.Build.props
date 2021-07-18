@@ -13,6 +13,7 @@
     <ItemGroup>
         <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
         <PackageReference Include="ConfigureAwaitChecker.Analyzer" Version="4.0.0"/>
+        <PackageReference Include="SonarAnalyzer.CSharp" Version="8.15.0.24505"/>
     </ItemGroup>
 
 </Project>

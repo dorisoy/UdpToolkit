@@ -2,7 +2,6 @@ namespace UdpToolkit.Network.Channels
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using UdpToolkit.Network.Packets;
 
     [ExcludeFromCodeCoverage]
     public sealed class ReliableOrderedChannel : IChannel

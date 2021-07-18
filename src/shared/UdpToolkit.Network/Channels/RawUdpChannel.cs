@@ -1,7 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using UdpToolkit.Network.Packets;
-
     public sealed class RawUdpChannel : IChannel
     {
         public bool HandleInputPacket(
@@ -15,6 +13,7 @@ namespace UdpToolkit.Network.Channels
             ushort id,
             uint acks)
         {
+            // no acks for raw udp
         }
 
         public bool IsDelivered(

@@ -18,12 +18,12 @@ namespace UdpToolkit.Network.Protocol
 
         public Guid ConnectionId { get; }
 
-        protected override byte[] SerializeInternal(Connect connect)
+        protected override byte[] SerializeInternal(Connect @event)
         {
             using (var ms = new MemoryStream())
             {
                 var bw = new BinaryWriter(ms);
-                bw.Write(buffer: connect.ConnectionId.ToByteArray());
+                bw.Write(buffer: @event.ConnectionId.ToByteArray());
 
                 bw.Flush();
                 return ms.ToArray();

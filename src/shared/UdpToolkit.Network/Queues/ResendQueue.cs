@@ -5,7 +5,7 @@ namespace UdpToolkit.Network.Queues
     using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
 
-    public class ResendQueue
+    public sealed class ResendQueue
     {
         private readonly ConcurrentDictionary<Guid, Lazy<List<ResendPacket>>> _resendQueue;
 
@@ -16,19 +16,19 @@ namespace UdpToolkit.Network.Queues
 
         public void Add(
             Guid connectionId,
-            ResendPacket resendPAcket)
+            ResendPacket resendPacket)
         {
             var lazyQueue = _resendQueue.AddOrUpdate(
                 key: connectionId,
                 addValueFactory: (key) =>
                 {
                     var queue = new Lazy<List<ResendPacket>>();
-                    queue.Value.Add(resendPAcket);
+                    queue.Value.Add(resendPacket);
                     return queue;
                 },
                 updateValueFactory: (key, queue) =>
                 {
-                    queue.Value.Add(resendPAcket);
+                    queue.Value.Add(resendPacket);
                     return queue;
                 });
 

@@ -1,15 +1,15 @@
 namespace UdpToolkit
 {
     using System;
-    using UdpToolkit.Network.Queues;
+    using UdpToolkit.Core;
 
     public interface IQueueDispatcher<TEvent> : IDisposable
     {
+        int Count { get; }
+
+        IAsyncQueue<TEvent> this[int index] { get; set; }
+
         IAsyncQueue<TEvent> Dispatch(
             Guid connectionId);
-
-        void RunAll(string description);
-
-        void StopAll();
     }
 }

@@ -1,12 +1,15 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
-    using System.Threading.Tasks;
     using UdpToolkit.Network.Packets;
 
-    public interface IUdpSender : IDisposable
+    public interface IUdpClient : IDisposable
     {
+        event Action<InPacket> OnPacketReceived;
+
         void Send(
             OutPacket outPacket);
+
+        void Receive();
     }
 }

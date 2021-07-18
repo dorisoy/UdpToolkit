@@ -2,10 +2,10 @@ namespace UdpToolkit.Network
 {
     using System;
     using System.Collections.Generic;
-    using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
-    public class Connection : IConnection
+    public sealed class Connection : IConnection
     {
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _inputChannels;
         private readonly IReadOnlyDictionary<ChannelType, IChannel> _outputChannels;
@@ -13,7 +13,7 @@ namespace UdpToolkit.Network
         private Connection(
             Guid connectionId,
             bool keepAlive,
-            IPEndPoint ipEndPoint,
+            IpV4Address ipAddress,
             DateTimeOffset lastHeartbeat,
             IReadOnlyDictionary<ChannelType, IChannel> inputChannels,
             IReadOnlyDictionary<ChannelType, IChannel> outputChannels)
@@ -21,7 +21,7 @@ namespace UdpToolkit.Network
             _inputChannels = inputChannels;
             _outputChannels = outputChannels;
             ConnectionId = connectionId;
-            Ip = ipEndPoint;
+            IpAddress = ipAddress;
             KeepAlive = keepAlive;
             LastHeartbeat = lastHeartbeat;
         }
@@ -30,7 +30,7 @@ namespace UdpToolkit.Network
 
         public bool KeepAlive { get; }
 
-        public IPEndPoint Ip { get; }
+        public IpV4Address IpAddress { get; }
 
         public DateTimeOffset LastHeartbeat { get; private set; }
 
@@ -40,13 +40,13 @@ namespace UdpToolkit.Network
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            IPEndPoint ipEndPoint)
+            IpV4Address ipAddress)
         {
             return new Connection(
                 connectionId: connectionId,
                 keepAlive: keepAlive,
                 lastHeartbeat: lastHeartbeat,
-                ipEndPoint: ipEndPoint,
+                ipAddress: ipAddress,
                 outputChannels: new Dictionary<ChannelType, IChannel>
                 {
                     [ChannelType.Udp] = new RawUdpChannel(),

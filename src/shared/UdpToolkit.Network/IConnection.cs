@@ -1,9 +1,8 @@
 namespace UdpToolkit.Network
 {
     using System;
-    using System.Collections.Generic;
-    using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
     public interface IConnection
     {
@@ -11,7 +10,7 @@ namespace UdpToolkit.Network
 
         bool KeepAlive { get; }
 
-        IPEndPoint Ip { get; }
+        IpV4Address IpAddress { get; }
 
         DateTimeOffset LastHeartbeat { get; }
 

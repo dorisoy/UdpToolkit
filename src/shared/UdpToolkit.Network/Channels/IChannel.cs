@@ -1,7 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using UdpToolkit.Network.Packets;
-
     public interface IChannel
     {
         bool HandleInputPacket(

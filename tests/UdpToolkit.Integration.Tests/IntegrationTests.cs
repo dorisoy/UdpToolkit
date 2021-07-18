@@ -146,7 +146,6 @@ namespace UdpToolkit.Integration.Tests
             Task.Run(() => host.Run());
 #pragma warning restore CS4014
 
-            serverHost.Stop();
             serverHost.Dispose();
         }
     }

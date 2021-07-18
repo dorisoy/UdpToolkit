@@ -2,20 +2,21 @@ namespace UdpToolkit.Network
 {
     using System;
     using System.Collections.Concurrent;
-    using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Threading;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Network.Utils;
 
     public sealed class ConnectionPool : IConnectionPool
     {
+        private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ();
         private readonly IUdpToolkitLogger _logger;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _inactivityTimeout;
         private readonly Timer _housekeeper;
-        private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ConcurrentDictionary<Guid, IConnection>();
+
+        private bool _disposed = false;
 
         public ConnectionPool(
             IDateTimeProvider dateTimeProvider,
@@ -31,6 +32,17 @@ namespace UdpToolkit.Network
                 dueTime: TimeSpan.FromSeconds(10),
                 period: scanFrequency);
             _logger = logger;
+        }
+
+        ~ConnectionPool()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public void Remove(
@@ -50,13 +62,13 @@ namespace UdpToolkit.Network
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            IPEndPoint ip)
+            IpV4Address ipAddress)
         {
             var newConnection = Connection.New(
                 keepAlive: keepAlive,
                 lastHeartbeat: lastHeartbeat,
                 connectionId: connectionId,
-                ipEndPoint: ip);
+                ipAddress: ipAddress);
 
             return _connections.GetOrAdd(connectionId, newConnection);
         }
@@ -74,11 +86,6 @@ namespace UdpToolkit.Network
 
                 action(pair.Value);
             }
-        }
-
-        public void Dispose()
-        {
-            _housekeeper?.Dispose();
         }
 
         private void ScanForCleaningInactiveConnections(object state)
@@ -99,6 +106,22 @@ namespace UdpToolkit.Network
                     _connections.TryRemove(connection.Key, out _);
                 }
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _housekeeper?.Dispose();
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

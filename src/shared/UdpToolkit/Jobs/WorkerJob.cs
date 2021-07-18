@@ -8,29 +8,42 @@ namespace UdpToolkit.Jobs
     using UdpToolkit.Network.Packets;
     using UdpToolkit.Serialization;
 
-    public sealed class WorkerJob
+    public sealed class WorkerJob : IDisposable
     {
-        private readonly IUdpToolkitLogger _udpToolkitLogger;
+        private readonly IUdpToolkitLogger _logger;
         private readonly ISerializer _serializer;
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
         private readonly IBroadcaster _broadcaster;
 
+        private bool _disposed = false;
+
         public WorkerJob(
             ISubscriptionManager subscriptionManager,
             IRoomManager roomManager,
             ISerializer serializer,
-            IUdpToolkitLogger udpToolkitLogger,
+            IUdpToolkitLogger logger,
             IBroadcaster broadcaster)
         {
             _subscriptionManager = subscriptionManager;
             _serializer = serializer;
-            _udpToolkitLogger = udpToolkitLogger;
+            _logger = logger;
             _broadcaster = broadcaster;
             _roomManager = roomManager;
         }
 
+        ~WorkerJob()
+        {
+            Dispose(false);
+        }
+
         public static event Action<bool> OnConnectionChanged;
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         public void Execute(
             InPacket inPacket)
@@ -90,7 +103,7 @@ namespace UdpToolkit.Jobs
 
             if (userDefinedSubscription == null)
             {
-                _udpToolkitLogger.Error($"Subscription with id {inPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
+                _logger.Error($"Subscription with id {inPacket.HookId} not found! {nameof(HandleUserDefinedEvent)}");
 
                 return;
             }
@@ -147,6 +160,23 @@ namespace UdpToolkit.Jobs
                     userDefinedSubscription?.OnAck?.Invoke(inPacket.ConnectionId);
                     break;
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _roomManager?.Dispose();
+                _broadcaster?.Dispose();
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

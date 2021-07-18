@@ -2,8 +2,8 @@ namespace UdpToolkit.Network.Packets
 {
     using System;
     using System.IO;
-    using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
     public readonly struct OutPacket
     {
@@ -14,7 +14,7 @@ namespace UdpToolkit.Network.Packets
             Guid connectionId,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
-            IPEndPoint ipEndPoint)
+            IpV4Address ipAddress)
         {
             Serializer = serializer;
             CreatedAt = createdAt;
@@ -22,7 +22,7 @@ namespace UdpToolkit.Network.Packets
             ChannelType = channelType;
             ConnectionId = connectionId;
             PacketType = packetType;
-            IpEndPoint = ipEndPoint;
+            IpAddress = ipAddress;
         }
 
         public byte HookId { get; }
@@ -37,7 +37,7 @@ namespace UdpToolkit.Network.Packets
 
         public DateTimeOffset CreatedAt { get; }
 
-        public IPEndPoint IpEndPoint { get; }
+        public IpV4Address IpAddress { get; }
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
 

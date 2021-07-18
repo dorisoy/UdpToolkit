@@ -1,6 +1,7 @@
 #pragma warning disable SA1306
 #pragma warning disable SA1310
 #pragma warning disable SA1300
+#pragma warning disable S907
 namespace UdpToolkit
 {
     using System;

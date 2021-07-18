@@ -25,7 +25,6 @@ namespace UdpToolkit
                     broadcastMode: broadcastMode,
                     onEvent: (bytes, connectionId, serializer, roomManager) =>
                     {
-                        var l = bytes.Length;
                         try
                         {
                             var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));

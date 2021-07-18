@@ -1,20 +1,42 @@
 namespace UdpToolkit
 {
     using System;
-    using UdpToolkit.Core.Executors;
-    using UdpToolkit.Network.Queues;
+    using UdpToolkit.Core;
+    using UdpToolkit.Logging;
 
     public sealed class QueueDispatcher<TEvent> : IQueueDispatcher<TEvent>
     {
+        private readonly IUdpToolkitLogger _logger;
         private readonly IAsyncQueue<TEvent>[] _queues;
-        private readonly IExecutor _executor;
+
+        private bool _disposed = false;
 
         public QueueDispatcher(
             IAsyncQueue<TEvent>[] queues,
-            IExecutor executor)
+            IUdpToolkitLogger logger)
         {
             _queues = queues;
-            _executor = executor;
+            _logger = logger;
+            Count = _queues.Length;
+        }
+
+        ~QueueDispatcher()
+        {
+            Dispose(false);
+        }
+
+        public int Count { get; }
+
+        public IAsyncQueue<TEvent> this[int index]
+        {
+            get => _queues[index];
+            set => _queues[index] = value;
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public IAsyncQueue<TEvent> Dispatch(Guid connectionId)
@@ -22,33 +44,23 @@ namespace UdpToolkit
             return _queues[MurMurHash.Hash3_x86_32(connectionId) % _queues.Length];
         }
 
-        public void RunAll(
-            string description)
+        private void Dispose(bool disposing)
         {
-            for (int i = 0; i < _queues.Length; i++)
+            if (_disposed)
             {
-                var queue = _queues[i];
-                _executor.Execute(
-                    action: queue.Consume,
-                    restartOnFail: true,
-                    opName: description);
+                return;
             }
-        }
 
-        public void StopAll()
-        {
-            for (int i = 0; i < _queues.Length; i++)
+            if (disposing)
             {
-                _queues[i].Stop();
+                for (int i = 0; i < _queues.Length; i++)
+                {
+                    _queues[i].Dispose();
+                }
             }
-        }
 
-        public void Dispose()
-        {
-            for (int i = 0; i < _queues.Length; i++)
-            {
-                _queues[i].Dispose();
-            }
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

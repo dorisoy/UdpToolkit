@@ -17,14 +17,25 @@ namespace UdpToolkit
 
         public void Connect()
         {
+            // nothing to do
         }
 
         public void Disconnect()
         {
+            // nothing to do
         }
 
-        public void Send<TEvent>(TEvent @event, byte hookId, UdpMode udpMode)
+        public void Send<TEvent>(
+            TEvent @event,
+            byte hookId,
+            UdpMode udpMode)
         {
+            // nothing to do
+        }
+
+        public void Dispose()
+        {
+            // nothing to do
         }
     }
 }

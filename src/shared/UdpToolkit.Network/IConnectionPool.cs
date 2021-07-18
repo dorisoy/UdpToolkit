@@ -1,8 +1,7 @@
 namespace UdpToolkit.Network
 {
     using System;
-    using System.Collections.Generic;
-    using System.Net;
+    using UdpToolkit.Network.Sockets;
 
     public interface IConnectionPool : IDisposable
     {
@@ -17,7 +16,7 @@ namespace UdpToolkit.Network
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            IPEndPoint ip);
+            IpV4Address ipAddress);
 
         void Apply(
             Action<IConnection> action);

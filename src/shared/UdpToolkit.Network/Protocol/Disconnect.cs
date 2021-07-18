@@ -3,7 +3,7 @@ namespace UdpToolkit.Network.Protocol
     using System;
     using System.IO;
 
-    public class Disconnect : ProtocolEvent<Disconnect>
+    public sealed class Disconnect : ProtocolEvent<Disconnect>
     {
         [Obsolete("Deserialization only")]
         public Disconnect()
@@ -17,12 +17,12 @@ namespace UdpToolkit.Network.Protocol
 
         public Guid ConnectionId { get; }
 
-        protected override byte[] SerializeInternal(Disconnect disconnect)
+        protected override byte[] SerializeInternal(Disconnect @event)
         {
             using (var ms = new MemoryStream())
             {
                 var bw = new BinaryWriter(ms);
-                bw.Write(buffer: disconnect.ConnectionId.ToByteArray());
+                bw.Write(buffer: @event.ConnectionId.ToByteArray());
 
                 bw.Flush();
                 return ms.ToArray();

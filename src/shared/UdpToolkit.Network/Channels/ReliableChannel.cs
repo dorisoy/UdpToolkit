@@ -1,8 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-    using UdpToolkit.Network.Packets;
-
     public sealed class ReliableChannel : IChannel
     {
         private readonly NetWindow _netWindow;

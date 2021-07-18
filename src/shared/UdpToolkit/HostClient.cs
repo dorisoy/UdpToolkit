@@ -4,6 +4,7 @@ namespace UdpToolkit
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Protocol;
@@ -18,6 +19,9 @@ namespace UdpToolkit
         private readonly IConnection _clientConnection;
         private readonly ISerializer _serializer;
         private readonly IClientBroadcaster _clientBroadcaster;
+        private readonly IUdpToolkitLogger _logger;
+
+        private bool _disposed = false;
 
         private DateTimeOffset _startConnect;
 
@@ -28,7 +32,8 @@ namespace UdpToolkit
             CancellationTokenSource cancellationTokenSource,
             IClientBroadcaster clientBroadcaster,
             TimeSpan connectionTimeout,
-            IDateTimeProvider dateTimeProvider)
+            IDateTimeProvider dateTimeProvider,
+            IUdpToolkitLogger logger)
         {
             _clientConnection = clientConnection;
             _serializer = serializer;
@@ -37,6 +42,12 @@ namespace UdpToolkit
             _clientBroadcaster = clientBroadcaster;
             _connectionTimeout = connectionTimeout;
             _dateTimeProvider = dateTimeProvider;
+            _logger = logger;
+        }
+
+        ~HostClient()
+        {
+            Dispose(false);
         }
 
         public event Action OnConnectionTimeout;
@@ -46,6 +57,12 @@ namespace UdpToolkit
         public bool IsConnected { get; internal set; }
 
         public TimeSpan Rtt => _clientConnection.GetRtt();
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
 
         public void Connect()
         {
@@ -112,13 +129,10 @@ namespace UdpToolkit
             var heartbeatDelayMs = _heartbeatDelayMs.Value;
             while (!token.IsCancellationRequested)
             {
-                if (!IsConnected)
+                if (!IsConnected && _dateTimeProvider.UtcNow() - _startConnect > _connectionTimeout)
                 {
-                    if (_dateTimeProvider.UtcNow() - _startConnect > _connectionTimeout)
-                    {
-                        OnConnectionTimeout?.Invoke();
-                        return;
-                    }
+                    OnConnectionTimeout?.Invoke();
+                    return;
                 }
 
                 var @event = new Heartbeat();
@@ -132,6 +146,23 @@ namespace UdpToolkit
 
                 await Task.Delay(heartbeatDelayMs, token).ConfigureAwait(false);
             }
+        }
+
+        private void Dispose(bool disposing)
+        {
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _cancellationTokenSource?.Dispose();
+                _clientBroadcaster?.Dispose();
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

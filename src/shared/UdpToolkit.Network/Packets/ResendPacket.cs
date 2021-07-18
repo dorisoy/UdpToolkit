@@ -1,14 +1,14 @@
 namespace UdpToolkit.Network.Packets
 {
     using System;
-    using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
     public readonly struct ResendPacket
     {
         public ResendPacket(
             byte[] payload,
-            IPEndPoint to,
+            IpV4Address to,
             DateTimeOffset createdAt,
             ushort id,
             ChannelType channelType,
@@ -24,7 +24,7 @@ namespace UdpToolkit.Network.Packets
 
         public byte[] Payload { get; }
 
-        public IPEndPoint To { get; }
+        public IpV4Address To { get; }
 
         public ushort Id { get; }
 

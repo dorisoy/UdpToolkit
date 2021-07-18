@@ -1,5 +1,6 @@
 namespace UdpToolkit.Network.Tests
 {
+#pragma warning disable
     public class NetWindowTests
     {
         // [Fact]

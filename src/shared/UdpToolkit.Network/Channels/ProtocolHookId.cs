@@ -1,7 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
-
     public enum ProtocolHookId : byte
     {
         P2P = 252,

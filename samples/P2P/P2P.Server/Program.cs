@@ -1,7 +1,6 @@
 ﻿namespace P2P.Server
 {
     using System;
-    using System.Threading.Tasks;
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;

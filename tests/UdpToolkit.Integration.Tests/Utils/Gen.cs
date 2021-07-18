@@ -3,7 +3,6 @@ namespace UdpToolkit.Integration.Tests.Utils
     using System;
     using System.Linq;
     using Bogus;
-    using UdpToolkit.Network;
 
     public static class Gen
     {

@@ -6,11 +6,13 @@ namespace UdpToolkit
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
 
-    public class ClientBroadcaster : IClientBroadcaster
+    public sealed class ClientBroadcaster : IClientBroadcaster
     {
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
         private readonly IConnection _clientConnection;
         private readonly IDateTimeProvider _dateTimeProvider;
+
+        private bool _disposed = false;
 
         public ClientBroadcaster(
             IQueueDispatcher<OutPacket> outQueueDispatcher,
@@ -20,6 +22,17 @@ namespace UdpToolkit
             _outQueueDispatcher = outQueueDispatcher;
             _clientConnection = clientConnection;
             _dateTimeProvider = dateTimeProvider;
+        }
+
+        ~ClientBroadcaster()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public void Broadcast(
@@ -39,12 +52,22 @@ namespace UdpToolkit
                     connectionId: caller,
                     serializer: serializer,
                     createdAt: utcNow,
-                    ipEndPoint: _clientConnection.Ip));
+                    ipAddress: _clientConnection.IpAddress));
         }
 
-        public void Dispose()
+        private void Dispose(bool disposing)
         {
-            _outQueueDispatcher?.Dispose();
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _outQueueDispatcher?.Dispose();
+            }
+
+            _disposed = true;
         }
     }
 }

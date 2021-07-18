@@ -16,6 +16,8 @@ namespace UdpToolkit
         private readonly Timer _houseKeeper;
         private readonly IUdpToolkitLogger _logger;
 
+        private bool _disposed = false;
+
         public RoomManager(
             IDateTimeProvider dateTimeProvider,
             TimeSpan roomTtl,
@@ -30,6 +32,17 @@ namespace UdpToolkit
                 state: null,
                 dueTime: TimeSpan.FromSeconds(10),
                 period: scanFrequency);
+        }
+
+        ~RoomManager()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public void JoinOrCreate(
@@ -68,9 +81,20 @@ namespace UdpToolkit
             _rooms[roomId].Connections.Remove(connectionId);
         }
 
-        public void Dispose()
+        private void Dispose(bool disposing)
         {
-            _houseKeeper?.Dispose();
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _houseKeeper?.Dispose();
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
 
         private void ScanForCleaningInactiveConnections(object state)

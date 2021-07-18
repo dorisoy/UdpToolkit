@@ -2,7 +2,7 @@ namespace UdpToolkit.Core
 {
     using System;
 
-    public interface IHostClient
+    public interface IHostClient : IDisposable
     {
         event Action OnConnectionTimeout;
 

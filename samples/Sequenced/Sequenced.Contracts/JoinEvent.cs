@@ -1,6 +1,5 @@
 namespace Sequenced.Contracts
 {
-    using System;
     using MessagePack;
 
     [MessagePackObject]

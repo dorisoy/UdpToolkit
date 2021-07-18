@@ -1,10 +1,10 @@
 namespace UdpToolkit.Network.Packets
 {
     using System;
-    using System.Collections.Generic;
     using System.IO;
     using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
     public readonly struct InPacket
     {
@@ -15,7 +15,7 @@ namespace UdpToolkit.Network.Packets
             Guid connectionId,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
-            IPEndPoint ipEndPoint)
+            IpV4Address ipAddress)
         {
             Serializer = serializer;
             CreatedAt = createdAt;
@@ -23,7 +23,7 @@ namespace UdpToolkit.Network.Packets
             ChannelType = channelType;
             ConnectionId = connectionId;
             PacketType = packetType;
-            IpEndPoint = ipEndPoint;
+            IpAddress = ipAddress;
         }
 
         public byte HookId { get; }
@@ -38,17 +38,9 @@ namespace UdpToolkit.Network.Packets
 
         public DateTimeOffset CreatedAt { get; }
 
-        public IPEndPoint IpEndPoint { get; }
+        public IpV4Address IpAddress { get; }
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
-
-        public bool IsEmpty => HookId == default
-                               && ChannelType == default
-                               && ConnectionId == default
-                               && PacketType == default
-                               && Serializer == default
-                               && CreatedAt == default
-                               && IpEndPoint == default;
 
         public bool IsReliable => ChannelType == ChannelType.ReliableUdp || ChannelType == ChannelType.ReliableOrderedUdp;
 
@@ -77,7 +69,7 @@ namespace UdpToolkit.Network.Packets
                     connectionId: connectionId,
                     serializer: () => payload,
                     createdAt: DateTimeOffset.UtcNow,
-                    ipEndPoint: ipEndPoint);
+                    ipAddress: ipEndPoint.ToIp());
             }
         }
     }

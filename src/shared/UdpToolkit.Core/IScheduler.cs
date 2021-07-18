@@ -2,7 +2,7 @@ namespace UdpToolkit.Core
 {
     using System;
 
-    public interface IScheduler
+    public interface IScheduler : IDisposable
     {
         void Schedule(
             int roomId,

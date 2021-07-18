@@ -2,11 +2,10 @@ namespace UdpToolkit.Core.Executors
 {
     using System;
 
-    public interface IExecutor
+    public interface IExecutor : IDisposable
     {
         void Execute(
             Action action,
-            bool restartOnFail,
             string opName);
     }
 }

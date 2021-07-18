@@ -1,6 +1,5 @@
 namespace ReliableUdp.Contracts
 {
-    using System;
     using MessagePack;
 
     [MessagePackObject]

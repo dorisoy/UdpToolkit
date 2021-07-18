@@ -1,6 +1,5 @@
 namespace UdpToolkit.Integration.Tests.Utils
 {
-    using UdpToolkit;
     using UdpToolkit.Core;
     using UdpToolkit.Serialization.MsgPack;
 

@@ -10,8 +10,6 @@ namespace UdpToolkit.Core
 
         void Run();
 
-        void Stop();
-
         void OnCore(
             byte hookId,
             Subscription subscription);

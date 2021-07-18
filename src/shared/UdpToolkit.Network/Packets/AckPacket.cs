@@ -2,8 +2,8 @@ namespace UdpToolkit.Network.Packets
 {
     using System;
     using System.IO;
-    using System.Net;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
 
     public readonly struct AckPacket
     {
@@ -14,14 +14,14 @@ namespace UdpToolkit.Network.Packets
             PacketType packetType,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
-            IPEndPoint ipEndPoint)
+            IpV4Address ipAddress)
         {
             HookId = hookId;
             ChannelType = channelType;
             ConnectionId = connectionId;
             PacketType = packetType;
             CreatedAt = createdAt;
-            IpEndPoint = ipEndPoint;
+            IpAddress = ipAddress;
         }
 
         public byte HookId { get; }
@@ -34,7 +34,7 @@ namespace UdpToolkit.Network.Packets
 
         public DateTimeOffset CreatedAt { get; }
 
-        public IPEndPoint IpEndPoint { get; }
+        public IpV4Address IpAddress { get; }
 
         public static byte[] Serialize(
             ushort id,

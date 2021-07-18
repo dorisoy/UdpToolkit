@@ -3,7 +3,6 @@ namespace UdpToolkit.Integration.Tests
     using System;
     using System.Threading;
     using System.Threading.Tasks;
-    using UdpToolkit;
     using UdpToolkit.Integration.Tests.Utils;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Protocol;

@@ -2,6 +2,7 @@ namespace UdpToolkit
 {
     using System;
     using UdpToolkit.Core;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Packets;
@@ -12,17 +13,33 @@ namespace UdpToolkit
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IRoomManager _roomManager;
         private readonly IConnectionPool _connectionPool;
+        private readonly IUdpToolkitLogger _logger;
+
+        private bool _disposed = false;
 
         public Broadcaster(
             IDateTimeProvider dateTimeProvider,
             IRoomManager roomManager,
             IConnectionPool connectionPool,
-            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
+            IUdpToolkitLogger logger)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomManager = roomManager;
             _connectionPool = connectionPool;
             _hostOutQueueDispatcher = hostOutQueueDispatcher;
+            _logger = logger;
+        }
+
+        ~Broadcaster()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
         }
 
         public void Broadcast(
@@ -54,7 +71,7 @@ namespace UdpToolkit
                             connectionId: caller,
                             serializer: serializer,
                             createdAt: utcNow,
-                            ipEndPoint: connection.Ip));
+                            ipAddress: connection.IpAddress));
                     return;
                 case BroadcastMode.AllConnections:
                     _connectionPool.Apply(
@@ -69,7 +86,7 @@ namespace UdpToolkit
                                     connectionId: caller,
                                     serializer: serializer,
                                     createdAt: utcNow,
-                                    ipEndPoint: connection.Ip));
+                                    ipAddress: connection.IpAddress));
                         });
 
                     return;
@@ -97,7 +114,7 @@ namespace UdpToolkit
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipEndPoint: c.Ip));
+                                ipAddress: c.IpAddress));
                     }
 
                     return;
@@ -118,7 +135,7 @@ namespace UdpToolkit
                                 connectionId: room[i],
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipEndPoint: c.Ip));
+                                ipAddress: c.IpAddress));
                     }
 
                     return;
@@ -128,11 +145,22 @@ namespace UdpToolkit
             }
         }
 
-        public void Dispose()
+        private void Dispose(bool disposing)
         {
-            _roomManager.Dispose();
-            _connectionPool.Dispose();
-            _hostOutQueueDispatcher.Dispose();
+            if (_disposed)
+            {
+                return;
+            }
+
+            if (disposing)
+            {
+                _roomManager.Dispose();
+                _connectionPool.Dispose();
+                _hostOutQueueDispatcher.Dispose();
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

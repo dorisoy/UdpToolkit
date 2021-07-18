@@ -1,7 +1,6 @@
 ﻿namespace Sequenced.Server
 {
     using System;
-    using System.Threading.Tasks;
     using Sequenced.Contracts;
     using Serilog;
     using Serilog.Events;

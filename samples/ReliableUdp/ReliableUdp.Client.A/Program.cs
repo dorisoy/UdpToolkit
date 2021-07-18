@@ -27,18 +27,20 @@
             var client = host.HostClient;
             client.OnConnectionTimeout += () => { Console.WriteLine("Connection Timeout"); };
 
-            Task.Run(async () =>
-            {
-                while (true)
+            var cts = new CancellationTokenSource();
+            Task.Run(
+                async () =>
                 {
-                    if (client.IsConnected)
+                    while (!cts.IsCancellationRequested)
                     {
-                        Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
-                    }
+                        if (client.IsConnected)
+                        {
+                            Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
+                        }
 
-                    await Task.Delay(1000).ConfigureAwait(false);
-                }
-            });
+                        await Task.Delay(1000).ConfigureAwait(false);
+                    }
+                }, cts.Token);
 
             var nickname = "Client A";
 
@@ -98,6 +100,9 @@
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
+            
+            cts.Cancel();
+            host.Dispose();
         }
 
         private static IHost BuildHost()
