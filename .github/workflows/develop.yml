@@ -1,15 +1,14 @@
-name: master
+name: develop
 on: 
   push:
     branches:
-      - master
+      - develop
 jobs:
   build:
     runs-on: ubuntu-latest
     container: gableroux/unity3d:2019.3.12f1
     env:
       PACKAGE_VERSION: 1.0.0-preview.1.${{ github.run_id }}
-      NUGET_KEY: ${{ secrets.NUGET_KEY }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v2
@@ -23,7 +22,7 @@ jobs:
         run: dotnet restore --no-cache && dotnet publish -c Release -o ./server_build
 
       - name: Publish nugets
-        run: ./publish_nuget.sh 
+        run: ./publish_nuget.sh
 
       - name: Decrypt the license file
         run: openssl aes-256-cbc -d -in .github/Unity_v2019.x.ulf.enc -k ${{ secrets.UNITY_LICENSE_DECRYPT_KEY }} >> .github/Unity_v2019.x.ulf
@@ -31,7 +30,7 @@ jobs:
       - name: Activate Unity
         run: /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -manualLicenseFile .github/Unity_v2019.x.ulf || exit 0
 
-      - name: Publish UdpToolkit Unitypackage
+      - name: Publish UdpToolkit Unitypackage 
         run: ./publish_unitypckage.sh
 
       - name: Upload Unitypackage Build
@@ -40,6 +39,10 @@ jobs:
           name: UdpToolkit.unitypackage
           if-no-files-found: error
           path: ./unity_package/*.unitypackage
-          
-      - name: Publish nugets
-        run: ./push_nuget.sh
+
+      - name: Upload Nuget packages
+        uses: actions/upload-artifact@v2
+        with:
+          name: NugetPackages
+          if-no-files-found: error
+          path: ./**/*.nupkg

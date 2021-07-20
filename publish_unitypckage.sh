@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mkdir './unity_package'
 mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/'
 mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit'

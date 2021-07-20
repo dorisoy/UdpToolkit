@@ -242,7 +242,7 @@ namespace UdpToolkit
                     queue.Produce(@event: inPacket);
                 };
             }
-#pragma warning disable
+
             var toDispose = new List<IDisposable>
             {
                 scheduler,
@@ -258,7 +258,6 @@ namespace UdpToolkit
             toDispose.AddRange(inQueues);
             toDispose.AddRange(udpClients);
             toDispose.Add(executor);
-            
 
             return new Host(
                 serializer: _hostSettings.Serializer,
