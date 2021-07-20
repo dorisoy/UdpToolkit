@@ -4,9 +4,9 @@ namespace UdpToolkit.Network.Packets
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
-    public readonly struct ResendPacket
+    public readonly struct PendingPacket
     {
-        public ResendPacket(
+        public PendingPacket(
             byte[] payload,
             IpV4Address to,
             DateTimeOffset createdAt,

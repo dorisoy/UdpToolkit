@@ -7,40 +7,40 @@ namespace UdpToolkit.Network.Queues
 
     public sealed class ResendQueue
     {
-        private readonly ConcurrentDictionary<Guid, Lazy<List<ResendPacket>>> _resendQueue;
+        private readonly ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>> _resendQueue;
 
         public ResendQueue()
         {
-            _resendQueue = new ConcurrentDictionary<Guid, Lazy<List<ResendPacket>>>();
+            _resendQueue = new ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>>();
         }
 
         public void Add(
             Guid connectionId,
-            ResendPacket resendPacket)
+            PendingPacket pendingPacket)
         {
             var lazyQueue = _resendQueue.AddOrUpdate(
                 key: connectionId,
                 addValueFactory: (key) =>
                 {
-                    var queue = new Lazy<List<ResendPacket>>();
-                    queue.Value.Add(resendPacket);
+                    var queue = new Lazy<List<PendingPacket>>();
+                    queue.Value.Add(pendingPacket);
                     return queue;
                 },
                 updateValueFactory: (key, queue) =>
                 {
-                    queue.Value.Add(resendPacket);
+                    queue.Value.Add(pendingPacket);
                     return queue;
                 });
 
             _ = lazyQueue.Value;
         }
 
-        public List<ResendPacket> Get(
+        public List<PendingPacket> Get(
             Guid connectionId)
         {
             var lazyQueue = _resendQueue.GetOrAdd(
                 key: connectionId,
-                valueFactory: (key) => new Lazy<List<ResendPacket>>());
+                valueFactory: (key) => new Lazy<List<PendingPacket>>());
 
             return lazyQueue.Value;
         }

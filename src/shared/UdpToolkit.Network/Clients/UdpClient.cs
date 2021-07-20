@@ -115,7 +115,7 @@ namespace UdpToolkit.Network.Clients
                     throw new NotSupportedException();
                 }
 
-                _resendQueue.Add(connection.ConnectionId, new ResendPacket(
+                _resendQueue.Add(connection.ConnectionId, new PendingPacket(
                     hookId: outPacket.HookId,
                     payload: bytes,
                     to: outPacket.IpAddress,
@@ -288,29 +288,29 @@ namespace UdpToolkit.Network.Clients
             var resendQueue = _resendQueue.Get(connection.ConnectionId);
             for (var i = 0; i < resendQueue.Count; i++)
             {
-                var resendPacket = resendQueue[i];
+                var pendingPacket = resendQueue[i];
 
                 var isDelivered = connection
-                    .GetOutcomingChannel(resendPacket.ChannelType)
-                    .IsDelivered(resendPacket.Id);
+                    .GetOutcomingChannel(pendingPacket.ChannelType)
+                    .IsDelivered(pendingPacket.Id);
 
-                var isExpired = resendPacket.IsExpired(_resendTimeout);
+                var isExpired = pendingPacket.IsExpired(_resendTimeout);
 
                 if (!isDelivered && !isExpired)
                 {
-                    if (resendPacket.HookId != 253)
+                    if (pendingPacket.HookId != 253)
                     {
                         _logger.Debug(
-                            $"Resend from: - {_client.GetLocalIp()} to: {resendPacket.To} packetId: {resendPacket.Id} channel: {resendPacket.ChannelType}");
+                            $"Resend from: - {_client.GetLocalIp()} to: {pendingPacket.To} packetId: {pendingPacket.Id} channel: {pendingPacket.ChannelType}");
                     }
 
-                    var to = resendPacket.To;
+                    var to = pendingPacket.To;
 
-                    _client.Send(ref to, resendPacket.Payload, resendPacket.Payload.Length);
+                    _client.Send(ref to, pendingPacket.Payload, pendingPacket.Payload.Length);
                 }
                 else
                 {
-                    _logger.Debug($"Packet expired {resendPacket.Id}");
+                    _logger.Debug($"Packet expired {pendingPacket.Id}");
                     resendQueue.RemoveAt(i);
                 }
             }

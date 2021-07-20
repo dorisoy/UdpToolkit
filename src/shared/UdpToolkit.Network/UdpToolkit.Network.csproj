@@ -10,5 +10,6 @@
     
     <ItemGroup>
         <PackageReference Include="System.Memory" Version="4.5.4" />
+        <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.1.1049647941" />
     </ItemGroup>
 </Project>

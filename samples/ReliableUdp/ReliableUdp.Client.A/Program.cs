@@ -128,6 +128,10 @@
                     settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
+                .ConfigureNetwork((settings) =>
+                {
+                    settings.SocketType = SocketType.Managed;
+                })
                 .Build();
         }
     }

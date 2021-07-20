@@ -7,6 +7,7 @@ namespace UdpToolkit
     using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
+    using UdpToolkit.Core.Settings;
     using UdpToolkit.Jobs;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
@@ -19,15 +20,25 @@ namespace UdpToolkit
     {
         private readonly HostSettings _hostSettings;
         private readonly HostClientSettings _hostClientSettings;
+        private readonly NetworkSettings _networkSettings;
 
         private bool _clientConfigured = false;
 
         public HostBuilder(
             HostSettings hostSettings,
-            HostClientSettings hostClientSettings)
+            HostClientSettings hostClientSettings,
+            NetworkSettings networkSettings)
         {
             _hostSettings = hostSettings;
             _hostClientSettings = hostClientSettings;
+            _networkSettings = networkSettings;
+        }
+
+        public IHostBuilder ConfigureNetwork(Action<NetworkSettings> configurator)
+        {
+            configurator(_networkSettings);
+
+            return this;
         }
 
         public IHostBuilder ConfigureHost(Action<HostSettings> configurator)
@@ -75,6 +86,8 @@ namespace UdpToolkit
                 logger.Debug($"Host socket created - {ips[i]}");
             }
 
+            var socketFactory = CreateSocketFactory(loggerFactory, _networkSettings.SocketType);
+
             var udpClients = ips
                 .Select(ip => new UdpClient(
                     resendQueue: new ResendQueue(),
@@ -82,7 +95,7 @@ namespace UdpToolkit
                     dateTimeProvider: networkDateTimeProvider,
                     connectionPool: connectionPool,
                     logger: loggerFactory.Create<UdpClient>(),
-                    client: SocketFactory.Create(ip, loggerFactory)))
+                    client: socketFactory.Create(ip)))
                 .ToArray();
 
             var hostOutQueues = udpClients.Select(sender => new BlockingAsyncQueue<OutPacket>(
@@ -107,6 +120,21 @@ namespace UdpToolkit
                 loggerFactory: loggerFactory,
                 hostClient: hostClient,
                 hostOutQueueDispatcher: hostOutQueueDispatcher);
+        }
+
+        private ISocketFactory CreateSocketFactory(
+            IUdpToolkitLoggerFactory loggerFactory,
+            SocketType socketType)
+        {
+            switch (socketType)
+            {
+                case SocketType.Managed:
+                    return new ManagedSocketFactory(loggerFactory);
+                case SocketType.Native:
+                    return new NativeSocketFactory(loggerFactory);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(socketType), socketType, null);
+            }
         }
 
         private IHostClient BuildHostClient(

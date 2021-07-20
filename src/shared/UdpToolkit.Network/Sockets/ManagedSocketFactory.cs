@@ -1,20 +1,25 @@
-﻿namespace UdpToolkit.Network.Clients
+﻿namespace UdpToolkit.Network.Sockets
 {
     using System.Net;
     using System.Net.Sockets;
     using System.Runtime.InteropServices;
     using UdpToolkit.Logging;
-    using UdpToolkit.Network.Sockets;
 
-    public static class SocketFactory
+    public sealed class ManagedSocketFactory : ISocketFactory
     {
         private const int SioUdpConnreset = -1744830452;
+        private readonly IUdpToolkitLoggerFactory _loggerFactory;
 
-        public static ISocket Create(
-            IPEndPoint localEndPoint,
+        public ManagedSocketFactory(
             IUdpToolkitLoggerFactory loggerFactory)
         {
-            var socket = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+            _loggerFactory = loggerFactory;
+        }
+
+        public ISocket Create(
+            IPEndPoint localEndPoint)
+        {
+            var socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, ProtocolType.Udp);
             socket.Blocking = false;
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
 
@@ -25,7 +30,7 @@
                 socket.IOControl((IOControlCode)SioUdpConnreset, new byte[] { 0, 0, 0, 0 }, null);
             }
 
-            var managedSocket = new ManagedSocket(socket, loggerFactory.Create<ManagedSocket>());
+            var managedSocket = new ManagedSocket(socket, _loggerFactory.Create<ManagedSocket>());
             var to = new IpV4Address
             {
                 Address = localEndPoint.Address.ToInt(),

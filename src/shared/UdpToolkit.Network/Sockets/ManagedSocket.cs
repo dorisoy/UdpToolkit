@@ -128,7 +128,7 @@ namespace UdpToolkit.Network.Sockets
                 _socket.Dispose();
             }
 
-            _logger.Debug($"Socket disposed!");
+            _logger.Debug($"Managed socket disposed!");
             _disposed = true;
         }
     }
