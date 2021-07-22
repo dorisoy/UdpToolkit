@@ -14,6 +14,8 @@ namespace UdpToolkit.Network.Sockets
 
         int Poll(long timeout);
 
+        int SetNonBlocking();
+
         void Close();
     }
 }

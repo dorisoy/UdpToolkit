@@ -59,6 +59,11 @@ namespace UdpToolkit.Network.Sockets
             return PollNative(_socket, timeout);
         }
 
+        public int SetNonBlocking()
+        {
+            return SetNonBlockingNative(_socket);
+        }
+
         public void Close()
         {
             CloseNative(ref _socket);
@@ -87,6 +92,9 @@ namespace UdpToolkit.Network.Sockets
 
         [DllImport(LibName, EntryPoint = "udp_toolkit_poll", CallingConvention = CallingConvention.Cdecl)]
         private static extern int PollNative(int socket, long timeout);
+
+        [DllImport(LibName, EntryPoint = "udp_toolkit_set_nonblocking", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int SetNonBlockingNative(int socket);
 
         [DllImport(LibName, EntryPoint = "udp_toolkit_close", CallingConvention = CallingConvention.Cdecl)]
         private static extern int CloseNative(ref int socket);

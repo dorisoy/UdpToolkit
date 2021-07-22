@@ -129,7 +129,8 @@ namespace UdpToolkit.Network.Clients
             _client.Send(ref ipAddress, bytes, bytes.Length);
         }
 
-        public void Receive()
+        public void Receive(
+            CancellationToken cancellationToken)
         {
             _logger.Debug($"Start receiving on ip: {_client.GetLocalIp()}");
             var remoteIp = new IpV4Address
@@ -139,7 +140,7 @@ namespace UdpToolkit.Network.Clients
             };
             var buffer = new byte[BufferSize];
 
-            while (!_disposed)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 if (_client.Poll(15) > 0)
                 {

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
+    using System.Threading;
     using UdpToolkit.Network.Packets;
 
     public interface IUdpClient : IDisposable
@@ -10,6 +11,7 @@ namespace UdpToolkit.Network.Clients
         void Send(
             OutPacket outPacket);
 
-        void Receive();
+        void Receive(
+            CancellationToken cancellationToken);
     }
 }

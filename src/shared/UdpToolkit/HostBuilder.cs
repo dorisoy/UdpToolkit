@@ -5,6 +5,7 @@ namespace UdpToolkit
     using System.Linq;
     using System.Net;
     using System.Threading;
+    using System.Threading.Tasks;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
     using UdpToolkit.Core.Settings;
@@ -108,12 +109,20 @@ namespace UdpToolkit
                 queues: hostOutQueues,
                 logger: loggerFactory.Create<QueueDispatcher<OutPacket>>());
 
+            var cancellationTokenSource = new CancellationTokenSource();
+
+            var taskFactory = new TaskFactory();
+
             var hostClient = BuildHostClient(
+                taskFactory: taskFactory,
+                cancellationTokenSource: cancellationTokenSource,
                 dateTimeProvider: dateTimeProvider,
                 connectionPool: connectionPool,
                 hostOutQueueDispatcher: hostOutQueueDispatcher);
 
             return BuildHost(
+                taskFactory: taskFactory,
+                cancellationTokenSource: cancellationTokenSource,
                 udpClients: udpClients,
                 dateTimeProvider: dateTimeProvider,
                 connectionPool: connectionPool,
@@ -140,7 +149,9 @@ namespace UdpToolkit
         private IHostClient BuildHostClient(
             IDateTimeProvider dateTimeProvider,
             IConnectionPool connectionPool,
-            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
+            CancellationTokenSource cancellationTokenSource,
+            TaskFactory taskFactory)
         {
             if (!_clientConfigured)
             {
@@ -167,11 +178,12 @@ namespace UdpToolkit
                 dateTimeProvider: dateTimeProvider);
 
             var hostClient = new HostClient(
+                taskFactory: taskFactory,
                 logger: _hostSettings.LoggerFactory.Create<HostClient>(),
                 dateTimeProvider: dateTimeProvider,
                 connectionTimeout: _hostClientSettings.ConnectionTimeout,
                 clientConnection: clientConnection,
-                cancellationTokenSource: new CancellationTokenSource(),
+                cancellationTokenSource: cancellationTokenSource,
                 clientBroadcaster: clientBroadcaster,
                 heartbeatDelayMs: _hostClientSettings.HeartbeatDelayInMs,
                 serializer: _hostSettings.Serializer);
@@ -187,7 +199,9 @@ namespace UdpToolkit
             IConnectionPool connectionPool,
             IUdpToolkitLoggerFactory loggerFactory,
             IHostClient hostClient,
-            IQueueDispatcher<OutPacket> hostOutQueueDispatcher)
+            IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
+            CancellationTokenSource cancellationTokenSource,
+            TaskFactory taskFactory)
         {
             var scheduler = new Scheduler(
                 logger: _hostSettings.LoggerFactory.Create<Scheduler>());
@@ -197,7 +211,8 @@ namespace UdpToolkit
 
             var executor = ExecutorFactory.Create(
                 executorType: executorType,
-                logger: loggerFactory.Create<IExecutor>());
+                logger: loggerFactory.Create<IExecutor>(),
+                taskFactory: taskFactory);
 
             var roomManager = new RoomManager(
                 dateTimeProvider: dateTimeProvider,
@@ -260,6 +275,7 @@ namespace UdpToolkit
             toDispose.Add(executor);
 
             return new Host(
+                cancellationTokenSource: cancellationTokenSource,
                 serializer: _hostSettings.Serializer,
                 udpClients: udpClients,
                 logger: loggerFactory.Create<Host>(),

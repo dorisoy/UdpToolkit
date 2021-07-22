@@ -5,20 +5,33 @@ namespace UdpToolkit.Core.Executors
     using System.Threading;
     using UdpToolkit.Logging;
 
-    public sealed class ThreadsExecutor : IExecutor
+    public sealed class ThreadBasedExecutor : IExecutor
     {
         private readonly IUdpToolkitLogger _logger;
         private readonly List<Thread> _threads = new List<Thread>();
+        private bool _disposed;
 
-        public ThreadsExecutor(
+        public ThreadBasedExecutor(
             IUdpToolkitLogger logger)
         {
             _logger = logger;
         }
 
+        ~ThreadBasedExecutor()
+        {
+            Dispose(false);
+        }
+
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
         public void Execute(
             Action action,
-            string opName)
+            string opName,
+            CancellationToken cancellationToken)
         {
             var thread = new Thread(() =>
             {
@@ -31,21 +44,31 @@ namespace UdpToolkit.Core.Executors
                     _logger.Error($"Exception {ex} on execute action: {opName}");
                 }
             });
+            thread.IsBackground = true;
             thread.Name = opName;
-
-            _logger.Debug($"Run {opName} on thread based executor, threadId - {thread.ManagedThreadId}, {thread.Name}");
 
             _threads.Add(thread);
 
             thread.Start();
         }
 
-        public void Dispose()
+        private void Dispose(bool disposing)
         {
-            for (int i = 0; i < _threads.Count; i++)
+            if (_disposed)
             {
-                _threads[i].Join();
+                return;
             }
+
+            if (disposing)
+            {
+                for (var i = 0; i < _threads.Count; i++)
+                {
+                     _threads[i].Join();
+                }
+            }
+
+            _logger.Debug($"{this.GetType().Name} - disposed!");
+            _disposed = true;
         }
     }
 }

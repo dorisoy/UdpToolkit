@@ -111,6 +111,12 @@ namespace UdpToolkit.Network.Sockets
             return 0;
         }
 
+        public int SetNonBlocking()
+        {
+            _socket.Blocking = false;
+            return 1;
+        }
+
         public void Close()
         {
             Dispose(true);

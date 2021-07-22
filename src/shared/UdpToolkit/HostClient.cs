@@ -13,8 +13,9 @@ namespace UdpToolkit
     public sealed class HostClient : IHostClient
     {
         private readonly int? _heartbeatDelayMs;
-        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly TimeSpan _connectionTimeout;
+        private readonly TaskFactory _taskFactory;
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnection _clientConnection;
         private readonly ISerializer _serializer;
@@ -29,20 +30,23 @@ namespace UdpToolkit
             IConnection clientConnection,
             ISerializer serializer,
             int? heartbeatDelayMs,
-            CancellationTokenSource cancellationTokenSource,
             IClientBroadcaster clientBroadcaster,
             TimeSpan connectionTimeout,
             IDateTimeProvider dateTimeProvider,
-            IUdpToolkitLogger logger)
+            IUdpToolkitLogger logger,
+            TaskFactory taskFactory,
+            CancellationTokenSource cancellationTokenSource)
         {
             _clientConnection = clientConnection;
             _serializer = serializer;
             _heartbeatDelayMs = heartbeatDelayMs;
+            _taskFactory = taskFactory;
             _cancellationTokenSource = cancellationTokenSource;
             _clientBroadcaster = clientBroadcaster;
             _connectionTimeout = connectionTimeout;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
+            _taskFactory = taskFactory;
         }
 
         ~HostClient()
@@ -75,13 +79,17 @@ namespace UdpToolkit
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
 
-            Task.Run(() => StartHeartbeat(_cancellationTokenSource.Token));
+            var token = _cancellationTokenSource.Token;
+
+            _taskFactory.StartNew(
+                function: () => StartHeartbeat(token),
+                cancellationToken: token,
+                creationOptions: TaskCreationOptions.LongRunning,
+                scheduler: TaskScheduler.Current);
         }
 
         public void Disconnect()
         {
-            _cancellationTokenSource.Cancel();
-
             SendInternal(
                 @event: new Disconnect(connectionId: ConnectionId),
                 packetType: PacketType.Protocol,
@@ -119,7 +127,7 @@ namespace UdpToolkit
         }
 
         private async Task StartHeartbeat(
-            CancellationToken token)
+            CancellationToken cancellationToken)
         {
             if (!_heartbeatDelayMs.HasValue)
             {
@@ -127,7 +135,7 @@ namespace UdpToolkit
             }
 
             var heartbeatDelayMs = _heartbeatDelayMs.Value;
-            while (!token.IsCancellationRequested)
+            while (!cancellationToken.IsCancellationRequested)
             {
                 if (!IsConnected && _dateTimeProvider.UtcNow() - _startConnect > _connectionTimeout)
                 {
@@ -144,7 +152,7 @@ namespace UdpToolkit
                     udpMode: UdpMode.ReliableUdp,
                     serializer: ProtocolEvent<Heartbeat>.Serialize);
 
-                await Task.Delay(heartbeatDelayMs, token).ConfigureAwait(false);
+                await Task.Delay(heartbeatDelayMs, cancellationToken).ConfigureAwait(false);
             }
         }
 
@@ -157,8 +165,8 @@ namespace UdpToolkit
 
             if (disposing)
             {
-                _cancellationTokenSource?.Dispose();
-                _clientBroadcaster?.Dispose();
+                _cancellationTokenSource.Cancel();
+                _clientBroadcaster.Dispose();
             }
 
             _logger.Debug($"{this.GetType().Name} - disposed!");

@@ -16,7 +16,7 @@ namespace UdpToolkit.Network.Sockets
         public ISocket Create(
             IPEndPoint localEndPoint)
         {
-            var nativeSocket = new NativeSocket(_loggerFactory.Create<NativeSocket>());
+            ISocket nativeSocket = new NativeSocket(_loggerFactory.Create<NativeSocket>());
             var to = new IpV4Address
             {
                 Address = localEndPoint.Address.ToInt(),
@@ -24,6 +24,7 @@ namespace UdpToolkit.Network.Sockets
             };
 
             nativeSocket.Bind(ref to);
+            nativeSocket.SetNonBlocking();
             return nativeSocket;
         }
     }

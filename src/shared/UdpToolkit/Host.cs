@@ -2,6 +2,7 @@ namespace UdpToolkit
 {
     using System;
     using System.Collections.Generic;
+    using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging;
@@ -12,6 +13,7 @@ namespace UdpToolkit
 
     public sealed class Host : IHost
     {
+        private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IExecutor _executor;
         private readonly IUdpToolkitLogger _logger;
         private readonly ISerializer _serializer;
@@ -36,7 +38,8 @@ namespace UdpToolkit
             IQueueDispatcher<InPacket> inQueueDispatcher,
             IUdpClient[] udpClients,
             IExecutor executor,
-            IList<IDisposable> toDispose)
+            IList<IDisposable> toDispose,
+            CancellationTokenSource cancellationTokenSource)
         {
             Scheduler = scheduler;
             _subscriptionManager = subscriptionManager;
@@ -49,6 +52,7 @@ namespace UdpToolkit
             _executor = executor;
             _toDispose = toDispose;
             _serializer = serializer;
+            _cancellationTokenSource = cancellationTokenSource;
         }
 
         ~Host()
@@ -68,19 +72,35 @@ namespace UdpToolkit
 
         public void Run()
         {
+            var token = _cancellationTokenSource.Token;
             for (var i = 0; i < _udpClients.Length; i++)
             {
-                _executor.Execute(_udpClients[i].Receive, "Receiver");
+                var index = i;
+
+                _executor.Execute(
+                    action: () => _udpClients[index].Receive(token),
+                    opName: $"Receiver_{index}",
+                    cancellationToken: token);
             }
 
             for (var i = 0; i < _inQueueDispatcher.Count; i++)
             {
-                _executor.Execute(_inQueueDispatcher[i].Consume, "Worker");
+                var index = i;
+
+                _executor.Execute(
+                    action: _inQueueDispatcher[index].Consume,
+                    opName: $"Worker_{index}",
+                    cancellationToken: token);
             }
 
             for (var i = 0; i < _hostOutQueueDispatcher.Count; i++)
             {
-                _executor.Execute(_hostOutQueueDispatcher[i].Consume, "Sender");
+                var index = i;
+
+                _executor.Execute(
+                    action: _hostOutQueueDispatcher[index].Consume,
+                    opName: $"Sender_{index}",
+                    cancellationToken: token);
             }
 
             _logger.Information($"{nameof(Host)} running...");
@@ -120,6 +140,7 @@ namespace UdpToolkit
 
             if (disposing)
             {
+                _cancellationTokenSource.Cancel();
                 for (var i = 0; i < _toDispose.Count; i++)
                 {
                     _toDispose[i].Dispose();
