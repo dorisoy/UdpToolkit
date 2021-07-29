@@ -15,6 +15,7 @@ namespace UdpToolkit.Jobs
         private readonly ISubscriptionManager _subscriptionManager;
         private readonly IRoomManager _roomManager;
         private readonly IBroadcaster _broadcaster;
+        private readonly IScheduler _scheduler;
 
         private bool _disposed = false;
 
@@ -23,12 +24,14 @@ namespace UdpToolkit.Jobs
             IRoomManager roomManager,
             ISerializer serializer,
             IUdpToolkitLogger logger,
-            IBroadcaster broadcaster)
+            IBroadcaster broadcaster,
+            IScheduler scheduler)
         {
             _subscriptionManager = subscriptionManager;
             _serializer = serializer;
             _logger = logger;
             _broadcaster = broadcaster;
+            _scheduler = scheduler;
             _roomManager = roomManager;
         }
 
@@ -85,6 +88,7 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
+                case ProtocolHookId.Connect2Peer:
 
                     userDefinedSubscription?.OnProtocolEvent?.Invoke(
                         inPacket.Serializer(),
@@ -112,7 +116,13 @@ namespace UdpToolkit.Jobs
                     inPacket.Serializer(),
                     inPacket.ConnectionId,
                     _serializer,
-                    _roomManager);
+                    _roomManager,
+                    _scheduler);
+
+            if (userDefinedSubscription.BroadcastMode == BroadcastMode.None || userDefinedSubscription.BroadcastMode == BroadcastMode.Caller)
+            {
+                return;
+            }
 
             if (inPacket.PacketType == PacketType.FromClient)
             {
@@ -149,6 +159,7 @@ namespace UdpToolkit.Jobs
                 case ProtocolHookId.P2P:
                 case ProtocolHookId.Disconnect:
                 case ProtocolHookId.Connect:
+                case ProtocolHookId.Connect2Peer:
                     switch (protocolHookId)
                     {
                         case ProtocolHookId.Connect:
@@ -171,8 +182,9 @@ namespace UdpToolkit.Jobs
 
             if (disposing)
             {
-                _roomManager?.Dispose();
-                _broadcaster?.Dispose();
+                _roomManager.Dispose();
+                _broadcaster.Dispose();
+                _scheduler.Dispose();
             }
 
             _logger.Debug($"{this.GetType().Name} - disposed!");

@@ -2,19 +2,11 @@
 
 # folders for managed part
 mkdir './unity_package'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit'
 
 # folders for native part
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/'
-
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/linux-x64'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/osx-x64'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/win-x64'
-
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/linux-x64/native'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/osx-x64/native'
-mkdir './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/win-x64/native'
+mkdir -p './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/linux-x64/native'
+mkdir -p './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/osx-x64/native'
+mkdir -p './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/win-x64/native'
 
 # copy managed part
 cp ./server_build/UdpToolkit.dll                       ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/

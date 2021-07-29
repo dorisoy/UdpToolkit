@@ -2,10 +2,11 @@ namespace UdpToolkit.Core
 {
     public enum BroadcastMode : byte
     {
-        Caller = 0,
-        Room = 1,
-        Server = 2,
-        AllConnections = 3,
-        RoomExceptCaller = 4,
+        None = 0,
+        Caller = 1,
+        Room = 2,
+        Server = 3,
+        AllConnections = 4,
+        RoomExceptCaller = 5,
     }
 }

@@ -30,7 +30,6 @@ namespace UdpToolkit
         public Host(
             ISerializer serializer,
             ISubscriptionManager subscriptionManager,
-            IScheduler scheduler,
             IUdpToolkitLogger logger,
             IBroadcaster broadcaster,
             IHostClient hostClient,
@@ -41,7 +40,6 @@ namespace UdpToolkit
             IList<IDisposable> toDispose,
             CancellationTokenSource cancellationTokenSource)
         {
-            Scheduler = scheduler;
             _subscriptionManager = subscriptionManager;
             _logger = logger;
             _broadcaster = broadcaster;
@@ -61,8 +59,6 @@ namespace UdpToolkit
         }
 
         public IHostClient HostClient => _hostClient;
-
-        public IScheduler Scheduler { get; }
 
         public void Dispose()
         {

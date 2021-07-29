@@ -14,11 +14,21 @@ namespace UdpToolkit.Core
 
         void Connect();
 
+        void ConnectToPeer(
+            string host,
+            int port);
+
         void Disconnect();
 
         void Send<TEvent>(
             TEvent @event,
             byte hookId,
+            UdpMode udpMode);
+
+        public void Send<TEvent>(
+            TEvent @event,
+            byte hookId,
+            IpV4Address destination,
             UdpMode udpMode);
     }
 }

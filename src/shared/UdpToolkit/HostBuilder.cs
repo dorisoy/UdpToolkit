@@ -172,11 +172,6 @@ namespace UdpToolkit
                 lastHeartbeat: dateTimeProvider.UtcNow(),
                 ipAddress: randomRemoteHostIp);
 
-            var clientBroadcaster = new ClientBroadcaster(
-                outQueueDispatcher: hostOutQueueDispatcher,
-                clientConnection: clientConnection,
-                dateTimeProvider: dateTimeProvider);
-
             var hostClient = new HostClient(
                 taskFactory: taskFactory,
                 logger: _hostSettings.LoggerFactory.Create<HostClient>(),
@@ -184,7 +179,7 @@ namespace UdpToolkit
                 connectionTimeout: _hostClientSettings.ConnectionTimeout,
                 clientConnection: clientConnection,
                 cancellationTokenSource: cancellationTokenSource,
-                clientBroadcaster: clientBroadcaster,
+                outQueueDispatcher: hostOutQueueDispatcher,
                 heartbeatDelayMs: _hostClientSettings.HeartbeatDelayInMs,
                 serializer: _hostSettings.Serializer);
 
@@ -215,6 +210,7 @@ namespace UdpToolkit
                 taskFactory: taskFactory);
 
             var roomManager = new RoomManager(
+                connectionPool: connectionPool,
                 dateTimeProvider: dateTimeProvider,
                 roomTtl: _hostSettings.RoomTtl,
                 scanFrequency: _hostSettings.RoomsCleanupFrequency,
@@ -232,7 +228,8 @@ namespace UdpToolkit
                 subscriptionManager: subscriptionManager,
                 roomManager: roomManager,
                 broadcaster: broadcaster,
-                serializer: _hostSettings.Serializer);
+                serializer: _hostSettings.Serializer,
+                scheduler: scheduler);
 
             var inQueues = Enumerable.Range(0, _hostSettings.Workers)
                 .Select(_ =>
@@ -281,7 +278,6 @@ namespace UdpToolkit
                 logger: loggerFactory.Create<Host>(),
                 executor: executor,
                 subscriptionManager: subscriptionManager,
-                scheduler: scheduler,
                 broadcaster: broadcaster,
                 hostClient: hostClient,
                 inQueueDispatcher: inQueuesDispatcher,

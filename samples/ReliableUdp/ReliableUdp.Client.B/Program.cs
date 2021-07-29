@@ -59,20 +59,6 @@
                 },
                 protocolHookId: ProtocolHookId.Connect);
 
-            host.On<JoinEvent>(
-                onEvent: (connectionId, joinEvent) =>
-                {
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room! (event)");
-                    return joinEvent.RoomId;
-                },
-                onAck: (connectionId) =>
-                {
-                    Log.Logger.Information($"{nickname} joined to room! (ack)");
-                },
-                onTimeout: (connectionId) => { },
-                broadcastMode: BroadcastMode.Room,
-                hookId: 0);
-
             host.On<StartGame>(
                 onEvent: (connectionId, startGame) =>
                 {
@@ -85,14 +71,14 @@
                     return startGame.RoomId;
                 },
                 broadcastMode: BroadcastMode.Room,
-                hookId: 1);
+                hookId: 0);
 
             host.Run();
 
             client.Connect();
 
-            var connectionTimeout = TimeSpan.FromSeconds(120);
-            SpinWait.SpinUntil(() => client.IsConnected, connectionTimeout);
+            var waitTimeout = TimeSpan.FromSeconds(120);
+            SpinWait.SpinUntil(() => client.IsConnected, waitTimeout);
             Console.WriteLine($"IsConnected - {client.IsConnected}");
 
             client.Send(

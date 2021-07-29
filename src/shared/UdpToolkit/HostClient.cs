@@ -1,14 +1,18 @@
 namespace UdpToolkit
 {
     using System;
+    using System.Net;
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Core;
     using UdpToolkit.Logging;
     using UdpToolkit.Network;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization;
+    using IpV4Address = UdpToolkit.Core.IpV4Address;
 
     public sealed class HostClient : IHostClient
     {
@@ -19,8 +23,8 @@ namespace UdpToolkit
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnection _clientConnection;
         private readonly ISerializer _serializer;
-        private readonly IClientBroadcaster _clientBroadcaster;
         private readonly IUdpToolkitLogger _logger;
+        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
 
         private bool _disposed = false;
 
@@ -30,19 +34,19 @@ namespace UdpToolkit
             IConnection clientConnection,
             ISerializer serializer,
             int? heartbeatDelayMs,
-            IClientBroadcaster clientBroadcaster,
             TimeSpan connectionTimeout,
             IDateTimeProvider dateTimeProvider,
             IUdpToolkitLogger logger,
             TaskFactory taskFactory,
-            CancellationTokenSource cancellationTokenSource)
+            CancellationTokenSource cancellationTokenSource,
+            IQueueDispatcher<OutPacket> outQueueDispatcher)
         {
             _clientConnection = clientConnection;
             _serializer = serializer;
             _heartbeatDelayMs = heartbeatDelayMs;
             _taskFactory = taskFactory;
             _cancellationTokenSource = cancellationTokenSource;
-            _clientBroadcaster = clientBroadcaster;
+            _outQueueDispatcher = outQueueDispatcher;
             _connectionTimeout = connectionTimeout;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
@@ -76,6 +80,7 @@ namespace UdpToolkit
                 @event: new Connect(ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Connect,
+                destination: _clientConnection.IpAddress,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Connect>.Serialize);
 
@@ -88,14 +93,51 @@ namespace UdpToolkit
                 scheduler: TaskScheduler.Current);
         }
 
+        public void ConnectToPeer(
+            string host,
+            int port)
+        {
+            SendInternal(
+                @event: new ConnectToPeer(ConnectionId),
+                packetType: PacketType.Protocol,
+                hookId: (byte)ProtocolHookId.Connect2Peer,
+                destination: new Network.Sockets.IpV4Address
+                {
+                    Address = IPAddress.Parse(host).ToInt(),
+                    Port = (ushort)port,
+                },
+                udpMode: UdpMode.ReliableUdp,
+                serializer: ProtocolEvent<ConnectToPeer>.Serialize);
+        }
+
         public void Disconnect()
         {
             SendInternal(
                 @event: new Disconnect(connectionId: ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
+                destination: _clientConnection.IpAddress,
                 udpMode: UdpMode.ReliableUdp,
                 serializer: ProtocolEvent<Disconnect>.Serialize);
+        }
+
+        public void Send<TEvent>(
+            TEvent @event,
+            byte hookId,
+            IpV4Address destination,
+            UdpMode udpMode)
+        {
+            SendInternal(
+                packetType: PacketType.FromClient,
+                @event: @event,
+                hookId: hookId,
+                destination: new Network.Sockets.IpV4Address
+                {
+                    Address = destination.Host.ToInt(),
+                    Port = destination.Port,
+                },
+                udpMode: udpMode,
+                serializer: _serializer.Serialize);
         }
 
         public void Send<TEvent>(
@@ -107,6 +149,7 @@ namespace UdpToolkit
                 packetType: PacketType.FromClient,
                 @event: @event,
                 hookId: hookId,
+                destination: _clientConnection.IpAddress,
                 udpMode: udpMode,
                 serializer: _serializer.Serialize);
         }
@@ -114,16 +157,22 @@ namespace UdpToolkit
         private void SendInternal<TEvent>(
             TEvent @event,
             byte hookId,
+            Network.Sockets.IpV4Address destination,
             UdpMode udpMode,
             PacketType packetType,
             Func<TEvent, byte[]> serializer)
         {
-            _clientBroadcaster.Broadcast(
-                serializer: () => serializer(@event),
-                caller: ConnectionId,
-                hookId: hookId,
-                packetType: packetType,
-                channelType: udpMode.Map());
+            var utcNow = _dateTimeProvider.UtcNow();
+            _outQueueDispatcher
+                .Dispatch(ConnectionId)
+                .Produce(new OutPacket(
+                     hookId: hookId,
+                     channelType: udpMode.Map(),
+                     packetType: packetType,
+                     connectionId: ConnectionId,
+                     serializer: () => serializer(@event),
+                     createdAt: utcNow,
+                     destination: destination));
         }
 
         private async Task StartHeartbeat(
@@ -149,6 +198,7 @@ namespace UdpToolkit
                     @event: @event,
                     packetType: PacketType.Protocol,
                     hookId: (byte)ProtocolHookId.Heartbeat,
+                    destination: _clientConnection.IpAddress,
                     udpMode: UdpMode.ReliableUdp,
                     serializer: ProtocolEvent<Heartbeat>.Serialize);
 
@@ -166,7 +216,7 @@ namespace UdpToolkit
             if (disposing)
             {
                 _cancellationTokenSource.Cancel();
-                _clientBroadcaster.Dispose();
+                _outQueueDispatcher.Dispose();
             }
 
             _logger.Debug($"{this.GetType().Name} - disposed!");

@@ -14,7 +14,7 @@ namespace UdpToolkit.Network.Packets
             Guid connectionId,
             Func<byte[]> serializer,
             DateTimeOffset createdAt,
-            IpV4Address ipAddress)
+            IpV4Address destination)
         {
             Serializer = serializer;
             CreatedAt = createdAt;
@@ -22,7 +22,7 @@ namespace UdpToolkit.Network.Packets
             ChannelType = channelType;
             ConnectionId = connectionId;
             PacketType = packetType;
-            IpAddress = ipAddress;
+            Destination = destination;
         }
 
         public byte HookId { get; }
@@ -37,7 +37,7 @@ namespace UdpToolkit.Network.Packets
 
         public DateTimeOffset CreatedAt { get; }
 
-        public IpV4Address IpAddress { get; }
+        public IpV4Address Destination { get; }
 
         public bool IsProtocolEvent => HookId >= (byte)ProtocolHookId.P2P;
 

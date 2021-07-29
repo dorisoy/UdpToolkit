@@ -7,9 +7,13 @@ namespace UdpToolkit
     using System.Threading;
     using UdpToolkit.Core;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network;
+    using UdpToolkit.Network.Sockets;
+    using IpV4Address = UdpToolkit.Core.IpV4Address;
 
     public sealed class RoomManager : IRoomManager
     {
+        private readonly IConnectionPool _connectionPool;
         private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _roomTtl;
@@ -22,11 +26,13 @@ namespace UdpToolkit
             IDateTimeProvider dateTimeProvider,
             TimeSpan roomTtl,
             TimeSpan scanFrequency,
-            IUdpToolkitLogger logger)
+            IUdpToolkitLogger logger,
+            IConnectionPool connectionPool)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomTtl = roomTtl;
             _logger = logger;
+            _connectionPool = connectionPool;
             _houseKeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
                 state: null,
@@ -49,36 +55,55 @@ namespace UdpToolkit
             int roomId,
             Guid connectionId)
         {
+            if (!_connectionPool.TryGetConnection(connectionId, out var connection))
+            {
+                return;
+            }
+
             _rooms.AddOrUpdate(
                 key: roomId,
                 addValueFactory: (id) => new Room(
                     id: id,
-                    connections: new List<Guid>
+                    roomConnections: new List<RoomConnection>
                     {
-                        connectionId,
+                        new RoomConnection(
+                            connectionId: connectionId,
+                            ipV4Address: new IpV4Address(
+                                host: connection.IpAddress.Address.ToHost(),
+                                port: connection.IpAddress.Port)),
                     },
                     createdAt: _dateTimeProvider.UtcNow()),
                 updateValueFactory: (id, room) =>
                 {
-                    if (!room.Connections.Contains(connectionId))
+                    if (room.RoomConnections.All(x => x.ConnectionId != connectionId))
                     {
-                        room.Connections.Add(connectionId);
+                        room.RoomConnections.Add(
+                            item: new RoomConnection(
+                                connectionId: connectionId,
+                                ipV4Address: new IpV4Address(
+                                    host: connection.IpAddress.Address.ToHost(),
+                                    port: connection.IpAddress.Port)));
                     }
 
                     return room;
                 });
         }
 
-        public List<Guid> GetRoom(int roomId)
+        public Room GetRoom(int roomId)
         {
-            return _rooms[roomId].Connections;
+            return _rooms[roomId];
         }
 
         public void Leave(
             int roomId,
             Guid connectionId)
         {
-            _rooms[roomId].Connections.Remove(connectionId);
+            var room = _rooms[roomId];
+            var index = room.RoomConnections.FindIndex(x => x.ConnectionId == connectionId);
+            if (index >= 0)
+            {
+                room.RoomConnections.RemoveAt(index);
+            }
         }
 
         private void Dispose(bool disposing)
@@ -111,25 +136,6 @@ namespace UdpToolkit
                     _rooms.TryRemove(room.Key, out _);
                 }
             }
-        }
-
-        private readonly struct Room
-        {
-            public Room(
-                int id,
-                List<Guid> connections,
-                DateTimeOffset createdAt)
-            {
-                Connections = connections;
-                CreatedAt = createdAt;
-                Id = id;
-            }
-
-            public int Id { get; }
-
-            public List<Guid> Connections { get; }
-
-            public DateTimeOffset CreatedAt { get; }
         }
     }
 }

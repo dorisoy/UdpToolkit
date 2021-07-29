@@ -71,14 +71,14 @@ namespace UdpToolkit
                             connectionId: caller,
                             serializer: serializer,
                             createdAt: utcNow,
-                            ipAddress: connection.IpAddress));
+                            destination: connection.IpAddress));
                     return;
                 case BroadcastMode.AllConnections:
                     _connectionPool.Apply(
-                        action: (connection) =>
+                        action: (conn) =>
                         {
                             _hostOutQueueDispatcher
-                                .Dispatch(connection.ConnectionId)
+                                .Dispatch(conn.ConnectionId)
                                 .Produce(new OutPacket(
                                     hookId: hookId,
                                     channelType: channelType,
@@ -86,7 +86,7 @@ namespace UdpToolkit
                                     connectionId: caller,
                                     serializer: serializer,
                                     createdAt: utcNow,
-                                    ipAddress: connection.IpAddress));
+                                    destination: conn.IpAddress));
                         });
 
                     return;
@@ -98,9 +98,10 @@ namespace UdpToolkit
             switch (broadcastMode)
             {
                 case BroadcastMode.RoomExceptCaller:
-                    for (var i = 0; i < room.Count; i++)
+                    for (var i = 0; i < room.RoomConnections.Count; i++)
                     {
-                        if (!_connectionPool.TryGetConnection(room[i], out var c) || c.ConnectionId == caller)
+                        var roomConnection = room.RoomConnections[i];
+                        if (!_connectionPool.TryGetConnection(roomConnection.ConnectionId, out var c) || c.ConnectionId == caller)
                         {
                             continue;
                         }
@@ -111,17 +112,18 @@ namespace UdpToolkit
                                 hookId: hookId,
                                 channelType: channelType,
                                 packetType: packetType,
-                                connectionId: room[i],
+                                connectionId: roomConnection.ConnectionId,
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipAddress: c.IpAddress));
+                                destination: c.IpAddress));
                     }
 
                     return;
                 case BroadcastMode.Room:
-                    for (var i = 0; i < room.Count; i++)
+                    for (var i = 0; i < room.RoomConnections.Count; i++)
                     {
-                        if (!_connectionPool.TryGetConnection(room[i], out var c))
+                        var roomConnection = room.RoomConnections[i];
+                        if (!_connectionPool.TryGetConnection(roomConnection.ConnectionId, out var c))
                         {
                             continue;
                         }
@@ -132,10 +134,10 @@ namespace UdpToolkit
                                 hookId: hookId,
                                 channelType: channelType,
                                 packetType: packetType,
-                                connectionId: room[i],
+                                connectionId: roomConnection.ConnectionId,
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                ipAddress: c.IpAddress));
+                                destination: c.IpAddress));
                     }
 
                     return;

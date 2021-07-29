@@ -7,7 +7,7 @@ namespace UdpToolkit.Core
     {
         public Subscription(
             Action<byte[], Guid, ISerializer> onProtocolEvent,
-            Func<byte[], Guid, ISerializer, IRoomManager, int> onEvent,
+            Func<byte[], Guid, ISerializer, IRoomManager, IScheduler, int> onEvent,
             Action<Guid> onAck,
             Action<Guid> onTimeout,
             BroadcastMode broadcastMode)
@@ -21,11 +21,11 @@ namespace UdpToolkit.Core
 
         public Action<byte[], Guid, ISerializer> OnProtocolEvent { get; }
 
-        public Func<byte[], Guid, ISerializer, IRoomManager, int> OnEvent { get; }
+        public Func<byte[], Guid, ISerializer, IRoomManager, IScheduler, int> OnEvent { get; }
 
         public Action<Guid> OnAck { get; }
 
-        public Action<Guid> OnTimeout { get; }
+        public Action<Guid> OnTimeout { get; } // TODO implement this
 
         public BroadcastMode BroadcastMode { get; }
     }

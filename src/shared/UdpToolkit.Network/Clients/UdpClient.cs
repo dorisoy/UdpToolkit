@@ -79,9 +79,8 @@ namespace UdpToolkit.Network.Clients
 
                         break;
                     case ProtocolHookId.Disconnect:
-                        break;
                     case ProtocolHookId.Connect:
-                        break;
+                    case ProtocolHookId.Connect2Peer:
                     case ProtocolHookId.Heartbeat:
                         break;
                     default:
@@ -102,13 +101,13 @@ namespace UdpToolkit.Network.Clients
                 return;
             }
 
-            if (outPacket.HookId != 253)
+            if (outPacket.HookId != (byte)ProtocolHookId.Heartbeat)
             {
                 _logger.Debug(
-                    $"Sended from: - {_client.GetLocalIp()} to: {outPacket.IpAddress} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
+                    $"Sended from: - {_client.GetLocalIp()} to: {outPacket.Destination} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
             }
 
-            if (outPacket.IsReliable && outPacket.HookId != 253)
+            if (outPacket.IsReliable && outPacket.HookId != (byte)ProtocolHookId.Heartbeat)
             {
                 if (packetType == PacketType.Ack)
                 {
@@ -118,13 +117,13 @@ namespace UdpToolkit.Network.Clients
                 _resendQueue.Add(connection.ConnectionId, new PendingPacket(
                     hookId: outPacket.HookId,
                     payload: bytes,
-                    to: outPacket.IpAddress,
+                    to: outPacket.Destination,
                     createdAt: outPacket.CreatedAt,
                     id: id,
                     channelType: outPacket.ChannelType));
             }
 
-            var ipAddress = outPacket.IpAddress;
+            var ipAddress = outPacket.Destination;
 
             _client.Send(ref ipAddress, bytes, bytes.Length);
         }
@@ -168,8 +167,10 @@ namespace UdpToolkit.Network.Clients
                 out var acks);
 
             var connectionId = inPacket.ConnectionId;
-            if (!_connectionPool.TryGetConnection(connectionId, out var connection) && (ProtocolHookId)inPacket.HookId != ProtocolHookId.Connect)
+            var isConnectionRequest = (ProtocolHookId)inPacket.HookId == ProtocolHookId.Connect || (ProtocolHookId)inPacket.HookId == ProtocolHookId.Connect2Peer;
+            if (!_connectionPool.TryGetConnection(connectionId, out var connection) && !isConnectionRequest)
             {
+                _logger.Debug($"Connection - {connectionId} dropped!");
                 return;
             }
 
@@ -197,21 +198,24 @@ namespace UdpToolkit.Network.Clients
 
                         break;
                     case ProtocolHookId.Connect when packetType == PacketType.Protocol:
+                    case ProtocolHookId.Connect2Peer when packetType == PacketType.Protocol:
                         connection = _connectionPool.GetOrAdd(
                             connectionId: connectionId,
                             lastHeartbeat: _dateTimeProvider.GetUtcNow(),
                             keepAlive: false,
                             ipAddress: remoteIp);
+
                         break;
                 }
             }
 
             if (connection == null)
             {
+                _logger.Debug($"Connection - not found!");
                 return;
             }
 
-            if (inPacket.HookId != 253)
+            if (inPacket.HookId != (byte)ProtocolHookId.Heartbeat)
             {
                 _logger.Debug(
                     $"Received from: - {remoteIp} to: {_client.GetLocalIp()} packetId: {id} hookId: {inPacket.HookId} packetType {inPacket.PacketType}");
@@ -222,17 +226,17 @@ namespace UdpToolkit.Network.Clients
                 case PacketType.FromServer:
                 case PacketType.FromClient:
                 case PacketType.Protocol:
-                    var handled1 = connection
+                    var protocolHandled = connection
                         .GetIncomingChannel(channelType: inPacket.ChannelType)
                         .HandleInputPacket(id, acks);
 
-                    if (!handled1)
+                    if (!protocolHandled)
                     {
                         if (inPacket.IsReliable)
                         {
                             var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
-                            if (inPacket.HookId != 253)
+                            if (inPacket.HookId != (byte)ProtocolHookId.Heartbeat)
                             {
                                 _logger.Debug(
                                     $"Resend ack from: - {_client.GetLocalIp()} to: {connection.IpAddress} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack}, threadId - {Thread.CurrentThread.ManagedThreadId}");
@@ -250,7 +254,7 @@ namespace UdpToolkit.Network.Clients
                     {
                         var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
-                        if (inPacket.HookId != 253)
+                        if (inPacket.HookId != (byte)ProtocolHookId.Heartbeat)
                         {
                             _logger.Debug(
                                 $"Sended from: - {_client.GetLocalIp()} to: {inPacket.IpAddress} packetId: {id} hookId: {inPacket.HookId} packetType {PacketType.Ack} threadId - {Thread.CurrentThread.ManagedThreadId}");
@@ -265,11 +269,11 @@ namespace UdpToolkit.Network.Clients
                     break;
 
                 case PacketType.Ack:
-                    var handled = connection
+                    var ackHandled = connection
                         .GetOutcomingChannel(inPacket.ChannelType)
                         .HandleAck(id, acks);
 
-                    if (handled)
+                    if (ackHandled)
                     {
                         OnPacketReceived?.Invoke(inPacket);
                     }
@@ -299,7 +303,7 @@ namespace UdpToolkit.Network.Clients
 
                 if (!isDelivered && !isExpired)
                 {
-                    if (pendingPacket.HookId != 253)
+                    if (pendingPacket.HookId != (byte)ProtocolHookId.Heartbeat)
                     {
                         _logger.Debug(
                             $"Resend from: - {_client.GetLocalIp()} to: {pendingPacket.To} packetId: {pendingPacket.Id} channel: {pendingPacket.ChannelType}");

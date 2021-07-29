@@ -6,8 +6,6 @@ namespace UdpToolkit.Core
     {
         IHostClient HostClient { get; }
 
-        IScheduler Scheduler { get; }
-
         void Run();
 
         void OnCore(

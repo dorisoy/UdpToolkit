@@ -16,6 +16,16 @@ namespace UdpToolkit.Network.Sockets
             return IPAddress.HostToNetworkOrder(host: intIp);
         }
 
+        internal static int ToInt(this string host)
+        {
+            return IPAddress.Parse(host).ToInt();
+        }
+
+        internal static string ToHost(this int address)
+        {
+            return new IPEndPoint(address, 0).Address.ToString();
+        }
+
         internal static IPEndPoint ToIpEndPoint(this IpV4Address address)
         {
             var ip = new IPAddress(address.Address);

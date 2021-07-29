@@ -6,6 +6,7 @@
     using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Core;
+    using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Serialization.MsgPack;
 
@@ -44,6 +45,8 @@
                 hookId: 1);
 
             host.Run();
+
+            Console.ReadLine();
         }
 
         private static IHost BuildHost() =>
@@ -57,7 +60,8 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTtl = TimeSpan.FromSeconds(30);
+                    settings.ExecutorType = ExecutorType.ThreadBasedExecutor;
                 })
                 .Build();
     }

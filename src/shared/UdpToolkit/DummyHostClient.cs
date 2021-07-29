@@ -5,9 +5,13 @@ namespace UdpToolkit
 
     public sealed class DummyHostClient : IHostClient
     {
-#pragma warning disable CS0067
+        public DummyHostClient()
+        {
+            OnConnectionTimeout += () => { };
+            OnConnectionTimeout?.Invoke();
+        }
+
         public event Action OnConnectionTimeout;
-#pragma warning restore CS0067
 
         public Guid ConnectionId => Guid.Empty;
 
@@ -20,6 +24,13 @@ namespace UdpToolkit
             // nothing to do
         }
 
+        public void ConnectToPeer(
+            string host,
+            int port)
+        {
+            // nothing to do
+        }
+
         public void Disconnect()
         {
             // nothing to do
@@ -28,6 +39,15 @@ namespace UdpToolkit
         public void Send<TEvent>(
             TEvent @event,
             byte hookId,
+            UdpMode udpMode)
+        {
+            // nothing to do
+        }
+
+        public void Send<TEvent>(
+            TEvent @event,
+            byte hookId,
+            IpV4Address destination,
             UdpMode udpMode)
         {
             // nothing to do

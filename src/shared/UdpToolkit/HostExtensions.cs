@@ -23,18 +23,66 @@ namespace UdpToolkit
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, connectionId, serializer, roomManager) =>
+                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
                     {
-                        try
+                        var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
+                        return onEvent.Invoke(connectionId, @event);
+                    },
+                    onAck: onAck,
+                    onTimeout: onTimeout),
+                hookId: hookId);
+        }
+
+        public static void On<TRequest, TResponse>(
+            this IHost host,
+            Func<Guid, TRequest, IRoomManager, (int roomId, TResponse response, int delayInMs, BroadcastMode broadcastMode, UdpMode uppMode)> onEvent,
+            byte hookId,
+            BroadcastMode broadcastMode,
+            Action<Guid> onAck = null,
+            Action<Guid> onTimeout = null)
+        {
+#pragma warning disable
+            if (host == null) throw new ArgumentNullException(nameof(host));
+#pragma warning restore
+
+            host.OnCore(
+                subscription: new Subscription(
+                    onProtocolEvent: null,
+                    broadcastMode: broadcastMode,
+                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
+                    {
+                        var @event = serializer.Deserialize<TRequest>(new ArraySegment<byte>(bytes));
+                        var tuple = onEvent.Invoke(connectionId, @event, roomManager);
+
+                        if (tuple.delayInMs > 0)
                         {
-                            var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                            return onEvent.Invoke(connectionId, @event);
+                            scheduler.Schedule(
+                                roomId: tuple.roomId,
+                                timerId: hookId,
+                                dueTime: TimeSpan.FromMilliseconds(tuple.delayInMs),
+                                action: () =>
+                                {
+                                    host.SendCore(
+                                        @event: tuple.response,
+                                        caller: connectionId,
+                                        roomId: tuple.roomId,
+                                        hookId: hookId,
+                                        udpMode: tuple.uppMode,
+                                        broadcastMode: tuple.broadcastMode);
+                            });
                         }
-                        catch (Exception e)
+                        else
                         {
-                            Console.WriteLine(e);
-                            throw;
+                            host.SendCore(
+                                @event: tuple.response,
+                                caller: connectionId,
+                                roomId: tuple.roomId,
+                                hookId: hookId,
+                                udpMode: tuple.uppMode,
+                                broadcastMode: tuple.broadcastMode);
                         }
+
+                        return tuple.roomId;
                     },
                     onAck: onAck,
                     onTimeout: onTimeout),
@@ -57,7 +105,7 @@ namespace UdpToolkit
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, connectionId, serializer, roomManager) =>
+                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
                         var roomId = onEvent.Invoke(connectionId, @event, roomManager);

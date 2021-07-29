@@ -1,7 +1,6 @@
 namespace UdpToolkit.Core
 {
     using System;
-    using System.Collections.Generic;
 
     public interface IRoomManager : IDisposable
     {
@@ -9,7 +8,7 @@ namespace UdpToolkit.Core
             int roomId,
             Guid connectionId);
 
-        List<Guid> GetRoom(
+        Room GetRoom(
             int roomId);
 
         void Leave(

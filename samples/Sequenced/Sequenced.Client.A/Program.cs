@@ -8,6 +8,7 @@
     using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Core;
+    using UdpToolkit.Core.Executors;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Serialization.MsgPack;
 
@@ -50,8 +51,8 @@
 
             client.Connect();
 
-            var connectionTimeout = TimeSpan.FromSeconds(120);
-            SpinWait.SpinUntil(() => client.IsConnected, connectionTimeout);
+            var waitTimeout = TimeSpan.FromSeconds(120);
+            SpinWait.SpinUntil(() => client.IsConnected, waitTimeout);
             Console.WriteLine($"IsConnected - {client.IsConnected}");
 
             client.Send(
@@ -94,16 +95,18 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(20);
                     settings.ConnectionTtl = TimeSpan.FromSeconds(120);
+                    settings.ExecutorType = ExecutorType.TaskBasedExecutor;
                 })
                 .ConfigureHostClient((settings) =>
                 {
-                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
+                .ConfigureNetwork((settings) => { settings.SocketType = SocketType.Managed; })
                 .Build();
         }
     }
