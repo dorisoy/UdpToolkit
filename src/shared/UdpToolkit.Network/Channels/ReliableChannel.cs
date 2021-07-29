@@ -73,18 +73,12 @@ namespace UdpToolkit.Network.Channels
             }
         }
 
+#pragma warning disable S3400
         private uint FillAcks()
+#pragma warning restore S3400
         {
-            uint acks = 0;
-            for (ushort i = 0; i < 32; i++)
-            {
-                if (_netWindow.PacketExists(id: i))
-                {
-                    NetworkUtils.SetBitValue(ref acks, i);
-                }
-            }
-
-            return acks;
+            // not supported right now
+            return 0;
         }
     }
 }

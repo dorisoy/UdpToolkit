@@ -1,8 +1,8 @@
-namespace UdpToolkit.Integration.Tests
+namespace UdpToolkit.Network.Tests
 {
     using Xunit;
 
-    public class IntegrationTests
+    public class NetworkTests
     {
         [Fact]
         public void Test()
