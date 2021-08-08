@@ -10,13 +10,13 @@ mkdir -p './src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/win-x6
 
 # copy managed part
 cp ./server_build/UdpToolkit.dll                       ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
-cp ./server_build/UdpToolkit.Core.dll                  ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/  
-cp ./server_build/UdpToolkit.Network.dll               ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
+cp ./server_build/UdpToolkit.Framework.dll             ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
+cp ./server_build/UdpToolkit.Framework.Contracts.dll    ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
+cp ./server_build/UdpToolkit.Network.dll               ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/  
+cp ./server_build/UdpToolkit.Network.Contracts.dll     ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./server_build/UdpToolkit.Logging.dll               ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/ 
-cp ./server_build/UdpToolkit.Logging.Serilog.dll       ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./server_build/UdpToolkit.Serialization.dll         ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./server_build/UdpToolkit.Serialization.MsgPack.dll ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
-cp ./server_build/Serilog.dll                          ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 
 # copy native part
 cp ./server_build/runtimes/linux-x64/native/udp_toolkit_native.so    ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/runtimes/linux-x64/native/

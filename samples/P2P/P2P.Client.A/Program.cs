@@ -6,11 +6,14 @@
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Executors;
+    using UdpToolkit.Framework;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Contracts.Protocol;
+    using UdpToolkit.Network.Contracts.Sockets;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
@@ -95,7 +98,7 @@
             client.Send(
                 @event: new JoinEvent(roomId: 11, nickname: nickname),
                 hookId: 0,
-                udpMode: UdpMode.ReliableUdp);
+                channelId: ReliableChannel.Id);
 
             client.ConnectToPeer(host: Host, port: Port);
 
@@ -107,8 +110,12 @@
                 client.Send(
                     @event: new Message(text: $"p2p message from {nickname}", roomId: 11),
                     hookId: 1,
-                    destination: new UdpToolkit.Core.IpV4Address(host: Host, port: (ushort)Port),
-                    udpMode: UdpMode.ReliableUdp);
+                    destination: new IpV4Address()
+                    {
+                        Address = Host.ToInt(),
+                        Port = (ushort)Port,
+                    },
+                    channelId: ReliableChannel.Id);
 
                 Thread.Sleep(1000);
                 counter++;
@@ -129,9 +136,7 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(20);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
-                    settings.ExecutorType = ExecutorType.TaskBasedExecutor;
+                    settings.Executor = new ThreadBasedExecutor();
                 })
                 .ConfigureHostClient((settings) =>
                 {
@@ -142,7 +147,10 @@
                 })
                 .ConfigureNetwork((settings) =>
                 {
-                    settings.SocketType = SocketType.Managed;
+                    settings.ChannelsFactory = new ChannelsFactory();
+                    settings.SocketFactory = new ManagedSocketFactory();
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
         }

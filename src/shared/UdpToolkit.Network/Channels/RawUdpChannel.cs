@@ -1,7 +1,13 @@
 namespace UdpToolkit.Network.Channels
 {
+    using UdpToolkit.Network.Contracts.Channels;
+
     public sealed class RawUdpChannel : IChannel
     {
+        public bool IsReliable { get; } = false;
+
+        public byte ChannelId { get; } = ReliableChannelConsts.RawChannel;
+
         public bool HandleInputPacket(
             ushort id,
             uint acks)

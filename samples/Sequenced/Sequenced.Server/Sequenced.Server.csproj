@@ -12,6 +12,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Logging.Serilog\UdpToolkit.Logging.Serilog.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Serialization.MsgPack\UdpToolkit.Serialization.MsgPack.csproj" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
         <ProjectReference Include="..\..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
         <ProjectReference Include="..\Sequenced.Contracts\Sequenced.Contracts.csproj" />
     </ItemGroup>

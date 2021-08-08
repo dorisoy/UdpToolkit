@@ -4,11 +4,10 @@ namespace UdpToolkit.Network.Sockets
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts.Sockets;
 
     public sealed class ManagedSocket : ISocket
     {
-        private readonly IUdpToolkitLogger _logger;
         private readonly Socket _socket;
         private readonly List<Socket> _sockets;
 
@@ -16,11 +15,9 @@ namespace UdpToolkit.Network.Sockets
         private bool _disposed;
 
         public ManagedSocket(
-            Socket socket,
-            IUdpToolkitLogger logger)
+            Socket socket)
         {
             _socket = socket;
-            _logger = logger;
             _sockets = new List<Socket>();
         }
 
@@ -134,7 +131,6 @@ namespace UdpToolkit.Network.Sockets
                 _socket.Dispose();
             }
 
-            _logger.Debug($"Managed socket disposed!");
             _disposed = true;
         }
     }

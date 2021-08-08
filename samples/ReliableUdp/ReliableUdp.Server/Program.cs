@@ -7,9 +7,12 @@
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Executors;
+    using UdpToolkit.Framework;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging.Serilog;
+    using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization.MsgPack;
     using UnityEngine;
 
@@ -56,7 +59,7 @@
                         response: new StartGame(joinEvent.RoomId, spawnPositions),
                         delayInMs: 20_000,
                         broadcastMode: BroadcastMode.Room,
-                        uppMode: UdpMode.ReliableUdp);
+                        channelId: ReliableChannel.Id);
                 },
                 broadcastMode: BroadcastMode.None,
                 hookId: 0);
@@ -90,9 +93,14 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(30);
-                    settings.ExecutorType = ExecutorType.ThreadBasedExecutor;
+                    settings.Executor = new ThreadBasedExecutor();
+                })
+                .ConfigureNetwork((settings) =>
+                {
+                    settings.ChannelsFactory = new ChannelsFactory();
+                    settings.SocketFactory = new NativeSocketFactory();
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

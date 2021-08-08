@@ -7,9 +7,12 @@
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Executors;
+    using UdpToolkit.Framework;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging.Serilog;
+    using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
@@ -60,7 +63,7 @@
                     roomId: 0,
                     nickname: nickname),
                 hookId: 0,
-                udpMode: UdpMode.ReliableUdp);
+                channelId: ReliableChannel.Id);
 
             await Task.Delay(20_000).ConfigureAwait(false);
 
@@ -72,7 +75,7 @@
                         roomId: 0,
                         from: nickname),
                     hookId: 1,
-                    udpMode: UdpMode.Sequenced);
+                    channelId: SequencedChannel.Id);
                 Thread.Sleep(1000 / 60);
             }
 
@@ -95,9 +98,7 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 5000, 5001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
-                    settings.ExecutorType = ExecutorType.ThreadBasedExecutor;
+                    settings.Executor = new ThreadBasedExecutor();
                 })
                 .ConfigureHostClient((settings) =>
                 {
@@ -106,7 +107,13 @@
                     settings.ServerPorts = new[] { 7000, 7001 };
                     settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
                 })
-                .ConfigureNetwork((settings) => { settings.SocketType = SocketType.Native; })
+                .ConfigureNetwork((settings) =>
+                {
+                    settings.ChannelsFactory = new ChannelsFactory();
+                    settings.SocketFactory = new NativeSocketFactory();
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
+                })
                 .Build();
         }
     }

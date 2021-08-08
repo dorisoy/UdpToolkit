@@ -1,7 +1,10 @@
 namespace UdpToolkit.Network.Channels
 {
+    using UdpToolkit.Network.Contracts.Channels;
+
     public sealed class SequencedChannel : IChannel
     {
+        public static readonly byte Id = ReliableChannelConsts.SequencedChannel;
         private ushort _lastReceivedNumber;
         private ushort _sequenceNumber;
 
@@ -9,6 +12,10 @@ namespace UdpToolkit.Network.Channels
         {
             _sequenceNumber = 0;
         }
+
+        public bool IsReliable { get; } = false;
+
+        public byte ChannelId { get; } = Id;
 
         public bool HandleInputPacket(
             ushort id,

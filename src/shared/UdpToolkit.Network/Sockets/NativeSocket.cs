@@ -1,22 +1,18 @@
 namespace UdpToolkit.Network.Sockets
 {
     using System.Runtime.InteropServices;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts.Sockets;
 
     public sealed class NativeSocket : ISocket
     {
         private const string LibName = "udp_toolkit_native";
-
-        private readonly IUdpToolkitLogger _logger;
         private IpV4Address _me;
 
         private int _socket;
         private bool _disposed;
 
-        public NativeSocket(
-            IUdpToolkitLogger logger)
+        public NativeSocket()
         {
-            _logger = logger;
             _socket = CreateNative();
             StartupNative();
         }
@@ -113,7 +109,6 @@ namespace UdpToolkit.Network.Sockets
                 CleanupNative();
             }
 
-            _logger.Debug($"Native socket disposed!");
             _disposed = true;
         }
     }

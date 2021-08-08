@@ -1,7 +1,11 @@
 namespace UdpToolkit.Network.Channels
 {
+    using UdpToolkit.Network.Contracts.Channels;
+
     public sealed class ReliableChannel : IChannel
     {
+        public static readonly byte Id = ReliableChannelConsts.ReliableChannel;
+
         private readonly NetWindow _netWindow;
 
         public ReliableChannel(
@@ -9,6 +13,10 @@ namespace UdpToolkit.Network.Channels
         {
             _netWindow = new NetWindow(windowSize);
         }
+
+        public bool IsReliable { get; } = true;
+
+        public byte ChannelId { get; } = Id;
 
         public bool HandleInputPacket(
             ushort id,

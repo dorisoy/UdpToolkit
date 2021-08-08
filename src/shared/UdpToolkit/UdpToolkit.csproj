@@ -1,11 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\UdpToolkit.Core\UdpToolkit.Core.csproj" />
+      <ProjectReference Include="..\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
       <ProjectReference Include="..\UdpToolkit.Network\UdpToolkit.Network.csproj" />
     </ItemGroup>
+
 </Project>

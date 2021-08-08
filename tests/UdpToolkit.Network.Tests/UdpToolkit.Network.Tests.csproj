@@ -14,7 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\shared\UdpToolkit.Core\UdpToolkit.Core.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit.Framework.Contracts\UdpToolkit.Framework.Contracts.csproj" />
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Network\UdpToolkit.Network.csproj" />
     </ItemGroup>
 

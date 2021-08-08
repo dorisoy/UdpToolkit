@@ -3,24 +3,24 @@ namespace UdpToolkit.Network.Clients
     using System;
     using System.Threading;
     using UdpToolkit.Logging;
-    using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Contracts;
+    using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Packets;
+    using UdpToolkit.Network.Contracts.Protocol;
+    using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Queues;
-    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Network.Utils;
 
     public sealed class UdpClient : IUdpClient
     {
-        private const int MtuSizeLimit = 1500; // TODO detect automatic
-        private const int BufferSize = 2048;
-
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISocket _client;
         private readonly IUdpToolkitLogger _logger;
         private readonly IConnectionPool _connectionPool;
+        private readonly NetworkSettings _networkSettings;
 
         private readonly ResendQueue _resendQueue;
-        private readonly TimeSpan _resendTimeout;
 
         private bool _disposed = false;
 
@@ -30,14 +30,14 @@ namespace UdpToolkit.Network.Clients
             IDateTimeProvider dateTimeProvider,
             ISocket client,
             ResendQueue resendQueue,
-            TimeSpan resendTimeout)
+            NetworkSettings networkSettings)
         {
             _client = client;
             _connectionPool = connectionPool;
             _logger = logger;
             _dateTimeProvider = dateTimeProvider;
             _resendQueue = resendQueue;
-            _resendTimeout = resendTimeout;
+            _networkSettings = networkSettings;
         }
 
         ~UdpClient()
@@ -63,7 +63,7 @@ namespace UdpToolkit.Network.Clients
 
             var packetType = outPacket.PacketType;
 
-            if (outPacket.IsProtocolEvent)
+            if (ProtocolUtils.IsProtocolEvent(outPacket.HookId))
             {
                 switch ((ProtocolHookId)outPacket.HookId)
                 {
@@ -88,13 +88,12 @@ namespace UdpToolkit.Network.Clients
                 }
             }
 
-            connection
-                .GetOutcomingChannel(channelType: outPacket.ChannelType)
-                .HandleOutputPacket(out var id, out var acks);
+            var channel = connection.GetOutcomingChannel(channelId: outPacket.ChannelId);
+            channel.HandleOutputPacket(out var id, out var acks);
 
             var bytes = OutPacket.Serialize(id, acks, ref outPacket);
 
-            if (bytes.Length > MtuSizeLimit)
+            if (bytes.Length > _networkSettings.MtuSizeLimit)
             {
                 _logger.Error($"Udp packet oversize mtu limit - {bytes.Length}");
 
@@ -104,10 +103,10 @@ namespace UdpToolkit.Network.Clients
             if (outPacket.HookId != (byte)ProtocolHookId.Heartbeat)
             {
                 _logger.Debug(
-                    $"Sended from: - {_client.GetLocalIp()} to: {outPacket.Destination} packetId: {id} channel: {outPacket.ChannelType} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
+                    $"Sended from: - {_client.GetLocalIp()} to: {outPacket.Destination} packetId: {id} channel: {outPacket.ChannelId} hookId: {outPacket.HookId} packetType {outPacket.PacketType} threadId - {Thread.CurrentThread.ManagedThreadId}");
             }
 
-            if (outPacket.IsReliable && outPacket.HookId != (byte)ProtocolHookId.Heartbeat)
+            if (channel.IsReliable && outPacket.HookId != (byte)ProtocolHookId.Heartbeat)
             {
                 if (packetType == PacketType.Ack)
                 {
@@ -120,7 +119,7 @@ namespace UdpToolkit.Network.Clients
                     to: outPacket.Destination,
                     createdAt: outPacket.CreatedAt,
                     id: id,
-                    channelType: outPacket.ChannelType));
+                    channelId: outPacket.ChannelId));
             }
 
             var ipAddress = outPacket.Destination;
@@ -137,7 +136,7 @@ namespace UdpToolkit.Network.Clients
                 Port = 0,
                 Address = 0,
             };
-            var buffer = new byte[BufferSize];
+            var buffer = new byte[_networkSettings.UdpClientBufferSize];
 
             while (!cancellationToken.IsCancellationRequested)
             {
@@ -176,7 +175,7 @@ namespace UdpToolkit.Network.Clients
 
             var packetType = inPacket.PacketType;
 
-            if (inPacket.IsProtocolEvent)
+            if (ProtocolUtils.IsProtocolEvent(inPacket.HookId))
             {
                 switch ((ProtocolHookId)inPacket.HookId)
                 {
@@ -226,13 +225,12 @@ namespace UdpToolkit.Network.Clients
                 case PacketType.FromServer:
                 case PacketType.FromClient:
                 case PacketType.Protocol:
-                    var protocolHandled = connection
-                        .GetIncomingChannel(channelType: inPacket.ChannelType)
-                        .HandleInputPacket(id, acks);
+                    var incomingChannel = connection.GetIncomingChannel(channelId: inPacket.ChannelId);
+                    var protocolHandled = incomingChannel.HandleInputPacket(id, acks);
 
                     if (!protocolHandled)
                     {
-                        if (inPacket.IsReliable)
+                        if (incomingChannel.IsReliable)
                         {
                             var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
@@ -250,7 +248,7 @@ namespace UdpToolkit.Network.Clients
                         return;
                     }
 
-                    if (inPacket.IsReliable)
+                    if (incomingChannel.IsReliable)
                     {
                         var bytes = AckPacket.Serialize(id, acks, ref inPacket);
 
@@ -270,7 +268,7 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Ack:
                     var ackHandled = connection
-                        .GetOutcomingChannel(inPacket.ChannelType)
+                        .GetOutcomingChannel(inPacket.ChannelId)
                         .HandleAck(id, acks);
 
                     if (ackHandled)
@@ -296,17 +294,17 @@ namespace UdpToolkit.Network.Clients
                 var pendingPacket = resendQueue[i];
 
                 var isDelivered = connection
-                    .GetOutcomingChannel(pendingPacket.ChannelType)
+                    .GetOutcomingChannel(pendingPacket.ChannelId)
                     .IsDelivered(pendingPacket.Id);
 
-                var isExpired = pendingPacket.IsExpired(_resendTimeout);
+                var isExpired = pendingPacket.IsExpired(_networkSettings.ResendTimeout);
 
                 if (!isDelivered && !isExpired)
                 {
                     if (pendingPacket.HookId != (byte)ProtocolHookId.Heartbeat)
                     {
                         _logger.Debug(
-                            $"Resend from: - {_client.GetLocalIp()} to: {pendingPacket.To} packetId: {pendingPacket.Id} channel: {pendingPacket.ChannelType}");
+                            $"Resend from: - {_client.GetLocalIp()} to: {pendingPacket.To} packetId: {pendingPacket.Id} channel: {pendingPacket.ChannelId}");
                     }
 
                     var to = pendingPacket.To;

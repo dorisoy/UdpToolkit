@@ -6,9 +6,13 @@
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Executors;
+    using UdpToolkit.Framework;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging.Serilog;
+    using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts.Sockets;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
@@ -43,7 +47,7 @@
 
                     var peers = room.RoomConnections
                         .Where(x => x.ConnectionId != connectionId)
-                        .Select(x => new Peer(x.IpV4Address.Host, x.IpV4Address.Port))
+                        .Select(x => new Peer(x.IpV4Address.Address.ToHost(), x.IpV4Address.Port))
                         .ToList();
 
                     Log.Logger.Information($"{fetchPeers.Nickname} Fetch peers!");
@@ -53,7 +57,7 @@
                         response: new RoomPeers(fetchPeers.RoomId, peers),
                         delayInMs: 0,
                         broadcastMode: BroadcastMode.Caller,
-                        uppMode: UdpMode.ReliableUdp);
+                        channelId: ReliableChannel.Id);
                 },
                 broadcastMode: BroadcastMode.None,
                 hookId: 1);
@@ -73,9 +77,14 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(30);
-                    settings.ExecutorType = ExecutorType.ThreadBasedExecutor;
+                    settings.Executor = new ThreadBasedExecutor();
+                })
+                .ConfigureNetwork((settings) =>
+                {
+                    settings.ChannelsFactory = new ChannelsFactory();
+                    settings.SocketFactory = new NativeSocketFactory();
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
     }

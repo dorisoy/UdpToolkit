@@ -7,10 +7,5 @@ namespace UdpToolkit.Network
         {
             return ((s1 > s2) && (s1 - s2 <= 32768)) || ((s1 < s2) && (s2 - s1 > 32768));
         }
-
-        public static void SetBitValue(ref uint container, int bitPosition)
-        {
-            container |= 1u << bitPosition;
-        }
     }
 }

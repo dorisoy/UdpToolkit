@@ -3,7 +3,7 @@ namespace UdpToolkit.Network.Queues
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Contracts.Packets;
 
     public sealed class ResendQueue
     {

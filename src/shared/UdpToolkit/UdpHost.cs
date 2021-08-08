@@ -1,16 +1,17 @@
 namespace UdpToolkit
 {
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Settings;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Settings;
+    using UdpToolkit.Network.Contracts;
 
     public static class UdpHost
     {
         public static IHostBuilder CreateHostBuilder()
         {
             return new HostBuilder(
-                networkSettings: new NetworkSettings(),
                 hostSettings: new HostSettings(),
-                hostClientSettings: new HostClientSettings());
+                hostClientSettings: new HostClientSettings(),
+                networkSettings: new NetworkSettings());
         }
     }
 }

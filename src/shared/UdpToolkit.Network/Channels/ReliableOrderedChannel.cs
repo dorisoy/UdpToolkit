@@ -2,10 +2,15 @@ namespace UdpToolkit.Network.Channels
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using UdpToolkit.Network.Contracts.Channels;
 
     [ExcludeFromCodeCoverage]
     public sealed class ReliableOrderedChannel : IChannel
     {
+        public bool IsReliable { get; } = true;
+
+        public byte ChannelId { get; } = ReliableChannelConsts.ReliableOrderedChannel;
+
         public bool HandleInputPacket(
             ushort id,
             uint acks)

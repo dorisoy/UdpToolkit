@@ -8,11 +8,13 @@
     using Serilog;
     using Serilog.Events;
     using UdpToolkit;
-    using UdpToolkit.Core;
-    using UdpToolkit.Core.Executors;
+    using UdpToolkit.Framework;
+    using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Protocol;
+    using UdpToolkit.Network.Contracts.Protocol;
+    using UdpToolkit.Network.Sockets;
     using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
@@ -84,7 +86,7 @@
             client.Send(
                 @event: new JoinEvent(roomId: 11, nickname: nickname),
                 hookId: 0,
-                udpMode: UdpMode.ReliableUdp);
+                channelId: ReliableChannel.Id);
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -104,9 +106,7 @@
                     settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
-                    settings.ResendPacketsTimeout = TimeSpan.FromSeconds(20);
-                    settings.ConnectionTtl = TimeSpan.FromSeconds(120);
-                    settings.ExecutorType = ExecutorType.TaskBasedExecutor;
+                    settings.Executor = new TaskBasedExecutor();
                 })
                 .ConfigureHostClient((settings) =>
                 {
@@ -117,7 +117,10 @@
                 })
                 .ConfigureNetwork((settings) =>
                 {
-                    settings.SocketType = SocketType.Managed;
+                    settings.ChannelsFactory = new ChannelsFactory();
+                    settings.SocketFactory = new ManagedSocketFactory();
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
                 })
                 .Build();
         }
