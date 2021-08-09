@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Contracts.Packets
 {
     using System;
     using System.IO;
+    using System.Linq;
     using System.Net;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -40,13 +41,13 @@ namespace UdpToolkit.Network.Contracts.Packets
         public IpV4Address IpAddress { get; }
 
         public static InPacket Deserialize(
-            Memory<byte> bytes,
+            byte[] bytes,
             IPEndPoint ipEndPoint,
             int bytesReceived,
             out ushort id,
             out uint acks)
         {
-            var arr = bytes.Slice(0, bytesReceived).ToArray();
+            var arr = bytes.Take(bytesReceived).ToArray();
             using (var reader = new BinaryReader(new MemoryStream(arr)))
             {
                 var hookId = reader.ReadByte();

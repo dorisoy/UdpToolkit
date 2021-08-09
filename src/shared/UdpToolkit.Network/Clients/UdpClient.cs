@@ -155,7 +155,7 @@ namespace UdpToolkit.Network.Clients
 
         private void ReceiveCallback(
             ref IpV4Address remoteIp,
-            Memory<byte> memory,
+            byte[] memory,
             int bytesReceived)
         {
             var inPacket = InPacket.Deserialize(

@@ -6,7 +6,6 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Autofac" Version="5.2.0" />
         <PackageReference Include="Bogus" Version="28.4.4" />
         <PackageReference Include="FluentAssertions" Version="5.10.3" />
         <PackageReference Include="MessagePack" Version="2.2.60" />

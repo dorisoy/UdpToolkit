@@ -19,10 +19,10 @@ jobs:
           dotnet-version: '5.0.100'
 
       - name: Build project
-        run: dotnet restore --no-cache && dotnet publish -c Release -o ./server_build
+        run: ./tools/build.sh
 
-      - name: Publish nugets
-        run: ./tools/publish_nuget.sh
+      - name: Pack nugets
+        run: ./tools/pack_nugets.sh
 
       - name: Decrypt the license file
         run: openssl aes-256-cbc -d -in .github/Unity_v2019.x.ulf.enc -k ${{ secrets.UNITY_LICENSE_DECRYPT_KEY }} >> .github/Unity_v2019.x.ulf
@@ -38,7 +38,7 @@ jobs:
         with:
           name: UdpToolkit.unitypackage
           if-no-files-found: error
-          path: ./unity_package/*.unitypackage
+          path: ./unity_package/UdpToolkit.${{ env.PACKAGE_VERSION }}.unitypackage
 
       - name: Upload Nuget packages
         uses: actions/upload-artifact@v2
