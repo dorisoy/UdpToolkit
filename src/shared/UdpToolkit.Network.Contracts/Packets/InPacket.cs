@@ -50,13 +50,13 @@ namespace UdpToolkit.Network.Contracts.Packets
             var arr = bytes.Take(bytesReceived).ToArray();
             using (var reader = new BinaryReader(new MemoryStream(arr)))
             {
-                var hookId = reader.ReadByte();
-                var channelId = reader.ReadByte();
-                var packetType = (PacketType)reader.ReadByte();
-                var connectionId = new Guid(reader.ReadBytes(16));
-                id = reader.ReadUInt16();
-                acks = reader.ReadUInt32();
-                var payload = reader.ReadBytes(bytes.Length - 25);
+                var hookId = reader.ReadByte();                    // 1 byte
+                var channelId = reader.ReadByte();                 // 1 byte
+                var packetType = (PacketType)reader.ReadByte();    // 1 byte
+                var connectionId = new Guid(reader.ReadBytes(16)); // 16 bytes
+                id = reader.ReadUInt16();                          // 2 bytes
+                acks = reader.ReadUInt32();                        // 4 bytes
+                var payload = reader.ReadBytes(bytes.Length - 25); // payload (mtu size - 25)
 
                 return new InPacket(
                     hookId: hookId,

@@ -114,6 +114,7 @@ namespace UdpToolkit.Framework.Jobs
             var roomId = userDefinedSubscription.OnEvent(
                     inPacket.Serializer(),
                     inPacket.ConnectionId,
+                    inPacket.IpAddress,
                     _serializer,
                     _roomManager,
                     _scheduler);

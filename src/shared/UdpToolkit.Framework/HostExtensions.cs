@@ -3,12 +3,13 @@ namespace UdpToolkit.Framework
     using System;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts.Protocol;
+    using UdpToolkit.Network.Contracts.Sockets;
 
     public static class HostExtensions
     {
         public static void On<TEvent>(
             this IHost host,
-            Func<Guid, TEvent, int> onEvent,
+            Func<Guid, IpV4Address, TEvent, int> onEvent,
             BroadcastMode broadcastMode,
             byte hookId,
             Action<Guid> onAck = null,
@@ -22,10 +23,10 @@ namespace UdpToolkit.Framework
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
+                    onEvent: (bytes, connectionId, ipV4, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                        return onEvent.Invoke(connectionId, @event);
+                        return onEvent.Invoke(connectionId, ipV4, @event);
                     },
                     onAck: onAck,
                     onTimeout: onTimeout),
@@ -34,7 +35,7 @@ namespace UdpToolkit.Framework
 
         public static void On<TRequest, TResponse>(
             this IHost host,
-            Func<Guid, TRequest, IRoomManager, (int roomId, TResponse response, int delayInMs, BroadcastMode broadcastMode, byte channelId)> onEvent,
+            Func<Guid, IpV4Address, TRequest, IRoomManager, (int roomId, TResponse response, int delayInMs, BroadcastMode broadcastMode, byte channelId)> onEvent,
             byte hookId,
             BroadcastMode broadcastMode,
             Action<Guid> onAck = null,
@@ -48,10 +49,10 @@ namespace UdpToolkit.Framework
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
+                    onEvent: (bytes, connectionId, ipV4, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TRequest>(new ArraySegment<byte>(bytes));
-                        var tuple = onEvent.Invoke(connectionId, @event, roomManager);
+                        var tuple = onEvent.Invoke(connectionId, ipV4, @event, roomManager);
 
                         if (tuple.delayInMs > 0)
                         {
@@ -90,7 +91,7 @@ namespace UdpToolkit.Framework
 
         public static void On<TEvent>(
             this IHost host,
-            Func<Guid, TEvent, IRoomManager, int> onEvent,
+            Func<Guid, IpV4Address, TEvent, IRoomManager, int> onEvent,
             BroadcastMode broadcastMode,
             byte hookId,
             Action<Guid> onAck = null,
@@ -104,12 +105,10 @@ namespace UdpToolkit.Framework
                 subscription: new Subscription(
                     onProtocolEvent: null,
                     broadcastMode: broadcastMode,
-                    onEvent: (bytes, connectionId, serializer, roomManager, scheduler) =>
+                    onEvent: (bytes, connectionId, ipV4, serializer, roomManager, scheduler) =>
                     {
                         var @event = serializer.Deserialize<TEvent>(new ArraySegment<byte>(bytes));
-                        var roomId = onEvent.Invoke(connectionId, @event, roomManager);
-
-                        return roomId;
+                        return onEvent.Invoke(connectionId, ipV4, @event, roomManager);
                     },
                     onAck: onAck,
                     onTimeout: onTimeout),

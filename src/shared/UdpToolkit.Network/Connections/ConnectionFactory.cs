@@ -3,14 +3,14 @@ namespace UdpToolkit.Network.Connections
     using System;
     using System.Linq;
     using UdpToolkit.Network.Contracts.Channels;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public sealed class ConnectionFactory : IConnectionFactory
+    internal sealed class ConnectionFactory : IConnectionFactory
     {
         private readonly IChannelsFactory _channelsFactory;
 
-        public ConnectionFactory(IChannelsFactory channelsFactory)
+        internal ConnectionFactory(
+            IChannelsFactory channelsFactory)
         {
             _channelsFactory = channelsFactory;
         }

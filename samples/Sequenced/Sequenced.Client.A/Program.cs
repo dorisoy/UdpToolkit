@@ -29,7 +29,7 @@
             var nickname = "Client A";
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, joinEvent) =>
+                onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                     return joinEvent.RoomId;
@@ -42,7 +42,7 @@
                 hookId: 0);
 
             host.On<MoveEvent>(
-                onEvent: (connectionId, move) =>
+                onEvent: (connectionId, ip, move) =>
                 {
                     Log.Debug($"Id {move.Id} - from - {move.From}");
                     return move.RoomId;

@@ -18,6 +18,8 @@ namespace UdpToolkit.Framework.Contracts.Settings
 
         public IUdpToolkitLoggerFactory LoggerFactory { get; set; }
 
+        public IConnectionIdFactory ConnectionIdFactory { get; set; } = new ConnectionIdFactory();
+
         public TimeSpan RoomsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
         public TimeSpan RoomTtl { get; set; } = TimeSpan.FromMinutes(10);

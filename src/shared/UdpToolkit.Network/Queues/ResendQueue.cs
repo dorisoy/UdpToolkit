@@ -3,13 +3,13 @@ namespace UdpToolkit.Network.Queues
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using UdpToolkit.Network.Contracts.Packets;
+    using UdpToolkit.Network.Packets;
 
-    public sealed class ResendQueue
+    internal sealed class ResendQueue : IResendQueue
     {
         private readonly ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>> _resendQueue;
 
-        public ResendQueue()
+        internal ResendQueue()
         {
             _resendQueue = new ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>>();
         }

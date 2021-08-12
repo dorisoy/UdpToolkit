@@ -1,9 +1,9 @@
-namespace UdpToolkit.Network.Contracts.Connections
+namespace UdpToolkit.Network.Connections
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public interface IConnectionFactory
+    internal interface IConnectionFactory
     {
         IConnection Create(
             Guid connectionId,

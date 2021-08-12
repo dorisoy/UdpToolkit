@@ -1,10 +1,11 @@
-namespace UdpToolkit.Network.Contracts.Packets
+namespace UdpToolkit.Network.Packets
 {
     using System;
     using System.IO;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public readonly struct AckPacket
+    internal readonly struct AckPacket
     {
         public AckPacket(
             byte hookId,

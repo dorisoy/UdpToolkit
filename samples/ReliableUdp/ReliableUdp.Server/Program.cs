@@ -38,10 +38,10 @@
             var host = BuildHost();
 
             host.On<JoinEvent, StartGame>(
-                onEvent: (connectionId, joinEvent, roomManager) =>
+                onEvent: (connectionId, ip, joinEvent, roomManager) =>
                 {
                     roomManager
-                        .JoinOrCreate(joinEvent.RoomId, connectionId);
+                        .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
@@ -65,7 +65,7 @@
                 hookId: 0);
 
             host.On<StartGame>(
-                onEvent: (connectionId, startGame) =>
+                onEvent: (connectionId, ip, startGame) =>
                 {
                     Log.Logger.Information("Game started!");
 

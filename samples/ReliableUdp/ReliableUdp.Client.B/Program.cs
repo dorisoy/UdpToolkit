@@ -39,7 +39,9 @@
                     {
                         if (client.IsConnected)
                         {
-                            Log.Logger.Debug($"RTT - {client.Rtt.TotalMilliseconds}");
+                            var rtt = client.Rtt?.TotalMilliseconds ?? 0;
+
+                            Log.Logger.Debug($"RTT - {rtt}");
                         }
 
                         await Task.Delay(1000).ConfigureAwait(false);
@@ -62,7 +64,7 @@
                 protocolHookId: ProtocolHookId.Connect);
 
             host.On<StartGame>(
-                onEvent: (connectionId, startGame) =>
+                onEvent: (connectionId, ip, startGame) =>
                 {
                     var positions = startGame.Positions
                         .Select(pair => pair.Key + "|" + pair.Value.x + pair.Value.y + pair.Value.z)

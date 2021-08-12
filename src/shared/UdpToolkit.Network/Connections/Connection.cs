@@ -3,15 +3,14 @@ namespace UdpToolkit.Network.Connections
     using System;
     using System.Collections.Generic;
     using UdpToolkit.Network.Contracts.Channels;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public sealed class Connection : IConnection
+    internal sealed class Connection : IConnection
     {
         private readonly IReadOnlyDictionary<byte, IChannel> _inputChannels;
         private readonly IReadOnlyDictionary<byte, IChannel> _outputChannels;
 
-        public Connection(
+        internal Connection(
             Guid connectionId,
             bool keepAlive,
             IpV4Address ipAddress,

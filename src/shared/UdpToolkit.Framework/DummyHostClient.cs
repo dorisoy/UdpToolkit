@@ -16,7 +16,7 @@ namespace UdpToolkit.Framework
 
         public Guid ConnectionId => Guid.Empty;
 
-        public TimeSpan Rtt => TimeSpan.Zero;
+        public TimeSpan? Rtt => TimeSpan.Zero;
 
         public bool IsConnected => false;
 

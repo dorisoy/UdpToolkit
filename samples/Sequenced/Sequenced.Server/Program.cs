@@ -25,10 +25,10 @@
             var host = BuildHost();
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, joinEvent, roomManager) =>
+                onEvent: (connectionId, ip, joinEvent, roomManager) =>
                 {
                     roomManager
-                        .JoinOrCreate(joinEvent.RoomId, connectionId);
+                        .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
@@ -38,7 +38,7 @@
                 hookId: 0);
 
             host.On<MoveEvent>(
-                onEvent: (connectionId, moveEvent) =>
+                onEvent: (connectionId, ip, moveEvent) =>
                 {
                     Log.Logger.Information("Moved!");
 

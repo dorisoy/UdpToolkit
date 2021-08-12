@@ -6,7 +6,6 @@ namespace UdpToolkit.Framework.Contracts
         Caller = 1,
         Room = 2,
         Server = 3,
-        AllConnections = 4,
-        RoomExceptCaller = 5,
+        RoomExceptCaller = 4,
     }
 }

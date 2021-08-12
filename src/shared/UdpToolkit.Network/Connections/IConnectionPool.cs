@@ -1,9 +1,9 @@
-namespace UdpToolkit.Network.Contracts.Connections
+namespace UdpToolkit.Network.Connections
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public interface IConnectionPool : IDisposable
+    internal interface IConnectionPool : IDisposable
     {
         void Remove(
             IConnection connection);
@@ -16,7 +16,7 @@ namespace UdpToolkit.Network.Contracts.Connections
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            IpV4Address ipAddress);
+            IpV4Address ipV4Address);
 
         void Apply(
             Action<IConnection> action);

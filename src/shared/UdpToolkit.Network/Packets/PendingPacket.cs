@@ -1,9 +1,9 @@
-namespace UdpToolkit.Network.Contracts.Packets
+namespace UdpToolkit.Network.Packets
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public readonly struct PendingPacket
+    internal readonly struct PendingPacket
     {
         public PendingPacket(
             byte[] payload,

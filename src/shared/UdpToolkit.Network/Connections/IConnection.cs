@@ -1,10 +1,10 @@
-namespace UdpToolkit.Network.Contracts.Connections
+namespace UdpToolkit.Network.Connections
 {
     using System;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    public interface IConnection
+    internal interface IConnection
     {
         Guid ConnectionId { get; }
 

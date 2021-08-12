@@ -64,7 +64,7 @@
                 protocolHookId: ProtocolHookId.Connect2Peer);
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, joinEvent) =>
+                onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room! (event)");
                     return joinEvent.RoomId;
@@ -77,7 +77,7 @@
                 hookId: 0);
 
             host.On<Message>(
-                onEvent: (connectionId, message) =>
+                onEvent: (connectionId, ip, message) =>
                 {
                     Log.Logger.Information($"P2P message received - {message.Text}! (event)");
                     return message.RoomId;

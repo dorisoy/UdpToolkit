@@ -27,10 +27,10 @@
             var host = BuildHost();
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, joinEvent, roomManager) =>
+                onEvent: (connectionId, ip, joinEvent, roomManager) =>
                 {
                     roomManager
-                        .JoinOrCreate(joinEvent.RoomId, connectionId);
+                        .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
@@ -40,7 +40,7 @@
                 hookId: 0);
 
             host.On<FetchPeers, RoomPeers>(
-                onEvent: (connectionId, fetchPeers, roomManager) =>
+                onEvent: (connectionId, ip, fetchPeers, roomManager) =>
                 {
                     var room = roomManager
                         .GetRoom(fetchPeers.RoomId);

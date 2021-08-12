@@ -7,7 +7,7 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Channels;
-    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -15,12 +15,12 @@ namespace UdpToolkit.Framework
 
     public sealed class HostClient : IHostClient
     {
-        private readonly int? _heartbeatDelayMs;
-        private readonly TimeSpan _connectionTimeout;
         private readonly TaskFactory _taskFactory;
         private readonly CancellationTokenSource _cancellationTokenSource;
+        private readonly HostClientSettingsInternal _hostClientSettingsInternal;
+
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IConnection _clientConnection;
+        private readonly IUdpClientFactory _udpClientFactory;
         private readonly ISerializer _serializer;
         private readonly IUdpToolkitLogger _logger;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
@@ -30,26 +30,24 @@ namespace UdpToolkit.Framework
         private DateTimeOffset _startConnect;
 
         public HostClient(
-            IConnection clientConnection,
+            IUdpClientFactory udpClientFactory,
             ISerializer serializer,
-            int? heartbeatDelayMs,
-            TimeSpan connectionTimeout,
+            HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
             IUdpToolkitLogger logger,
             TaskFactory taskFactory,
             CancellationTokenSource cancellationTokenSource,
             IQueueDispatcher<OutPacket> outQueueDispatcher)
         {
-            _clientConnection = clientConnection;
             _serializer = serializer;
-            _heartbeatDelayMs = heartbeatDelayMs;
+            _hostClientSettingsInternal = hostClientSettingsInternal;
             _taskFactory = taskFactory;
             _cancellationTokenSource = cancellationTokenSource;
             _outQueueDispatcher = outQueueDispatcher;
-            _connectionTimeout = connectionTimeout;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
             _taskFactory = taskFactory;
+            _udpClientFactory = udpClientFactory;
         }
 
         ~HostClient()
@@ -59,11 +57,11 @@ namespace UdpToolkit.Framework
 
         public event Action OnConnectionTimeout;
 
-        public Guid ConnectionId => _clientConnection.ConnectionId;
+        public Guid ConnectionId => _hostClientSettingsInternal.ConnectionId;
 
         public bool IsConnected { get; internal set; }
 
-        public TimeSpan Rtt => _clientConnection.GetRtt();
+        public TimeSpan? Rtt => _udpClientFactory.GetRtt(ConnectionId);
 
         public void Dispose()
         {
@@ -79,7 +77,7 @@ namespace UdpToolkit.Framework
                 @event: new Connect(ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Connect,
-                destination: _clientConnection.IpAddress,
+                destination: _hostClientSettingsInternal.ServerIpV4,
                 channelId: ReliableChannelConsts.ReliableChannel,
                 serializer: ProtocolEvent<Connect>.Serialize);
 
@@ -115,7 +113,7 @@ namespace UdpToolkit.Framework
                 @event: new Disconnect(connectionId: ConnectionId),
                 packetType: PacketType.Protocol,
                 hookId: (byte)ProtocolHookId.Disconnect,
-                destination: _clientConnection.IpAddress,
+                destination: _hostClientSettingsInternal.ServerIpV4,
                 channelId: ReliableChannelConsts.ReliableChannel,
                 serializer: ProtocolEvent<Disconnect>.Serialize);
         }
@@ -144,7 +142,7 @@ namespace UdpToolkit.Framework
                 packetType: PacketType.FromClient,
                 @event: @event,
                 hookId: hookId,
-                destination: _clientConnection.IpAddress,
+                destination: _hostClientSettingsInternal.ServerIpV4,
                 channelId: channelId,
                 serializer: _serializer.Serialize);
         }
@@ -173,15 +171,15 @@ namespace UdpToolkit.Framework
         private async Task StartHeartbeat(
             CancellationToken cancellationToken)
         {
-            if (!_heartbeatDelayMs.HasValue)
+            if (!_hostClientSettingsInternal.HeartbeatDelayMs.HasValue)
             {
                 return;
             }
 
-            var heartbeatDelayMs = _heartbeatDelayMs.Value;
+            var heartbeatDelayMs = _hostClientSettingsInternal.HeartbeatDelayMs.Value;
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (!IsConnected && _dateTimeProvider.UtcNow() - _startConnect > _connectionTimeout)
+                if (!IsConnected && _dateTimeProvider.UtcNow() - _startConnect > _hostClientSettingsInternal.ConnectionTimeout)
                 {
                     OnConnectionTimeout?.Invoke();
                     return;
@@ -193,7 +191,7 @@ namespace UdpToolkit.Framework
                     @event: @event,
                     packetType: PacketType.Protocol,
                     hookId: (byte)ProtocolHookId.Heartbeat,
-                    destination: _clientConnection.IpAddress,
+                    destination: _hostClientSettingsInternal.ServerIpV4,
                     channelId: ReliableChannelConsts.ReliableChannel,
                     serializer: ProtocolEvent<Heartbeat>.Serialize);
 

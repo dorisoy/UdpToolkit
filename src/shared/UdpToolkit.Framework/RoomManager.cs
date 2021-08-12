@@ -7,11 +7,10 @@ namespace UdpToolkit.Framework
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
-    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Sockets;
 
     public sealed class RoomManager : IRoomManager
     {
-        private readonly IConnectionPool _connectionPool;
         private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _roomTtl;
@@ -24,13 +23,11 @@ namespace UdpToolkit.Framework
             IDateTimeProvider dateTimeProvider,
             TimeSpan roomTtl,
             TimeSpan scanFrequency,
-            IUdpToolkitLogger logger,
-            IConnectionPool connectionPool)
+            IUdpToolkitLogger logger)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomTtl = roomTtl;
             _logger = logger;
-            _connectionPool = connectionPool;
             _houseKeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
                 state: null,
@@ -51,13 +48,9 @@ namespace UdpToolkit.Framework
 
         public void JoinOrCreate(
             int roomId,
-            Guid connectionId)
+            Guid connectionId,
+            IpV4Address ipV4Address)
         {
-            if (!_connectionPool.TryGetConnection(connectionId, out var connection))
-            {
-                return;
-            }
-
             _rooms.AddOrUpdate(
                 key: roomId,
                 addValueFactory: (id) => new Room(
@@ -66,7 +59,7 @@ namespace UdpToolkit.Framework
                     {
                         new RoomConnection(
                             connectionId: connectionId,
-                            ipV4Address: connection.IpAddress),
+                            ipV4Address: ipV4Address),
                     },
                     createdAt: _dateTimeProvider.UtcNow()),
                 updateValueFactory: (id, room) =>
@@ -76,7 +69,7 @@ namespace UdpToolkit.Framework
                         room.RoomConnections.Add(
                             item: new RoomConnection(
                                 connectionId: connectionId,
-                                ipV4Address: connection.IpAddress));
+                                ipV4Address: ipV4Address));
                     }
 
                     return room;

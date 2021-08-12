@@ -3,16 +3,17 @@ namespace UdpToolkit.Network.Clients
     using System;
     using System.Threading;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Contracts.Sockets;
+    using UdpToolkit.Network.Packets;
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Network.Utils;
 
-    public sealed class UdpClient : IUdpClient
+    internal sealed class UdpClient : IUdpClient
     {
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISocket _client;
@@ -20,16 +21,16 @@ namespace UdpToolkit.Network.Clients
         private readonly IConnectionPool _connectionPool;
         private readonly NetworkSettings _networkSettings;
 
-        private readonly ResendQueue _resendQueue;
+        private readonly IResendQueue _resendQueue;
 
         private bool _disposed = false;
 
-        public UdpClient(
+        internal UdpClient(
             IConnectionPool connectionPool,
             IUdpToolkitLogger logger,
             IDateTimeProvider dateTimeProvider,
             ISocket client,
-            ResendQueue resendQueue,
+            IResendQueue resendQueue,
             NetworkSettings networkSettings)
         {
             _client = client;
@@ -153,6 +154,16 @@ namespace UdpToolkit.Network.Clients
             }
         }
 
+        public TimeSpan? GetRtt(Guid connectionId)
+        {
+            if (_connectionPool.TryGetConnection(connectionId, out var connection))
+            {
+                return connection.GetRtt();
+            }
+
+            return null;
+        }
+
         private void ReceiveCallback(
             ref IpV4Address remoteIp,
             byte[] memory,
@@ -202,7 +213,7 @@ namespace UdpToolkit.Network.Clients
                             connectionId: connectionId,
                             lastHeartbeat: _dateTimeProvider.GetUtcNow(),
                             keepAlive: false,
-                            ipAddress: remoteIp);
+                            ipV4Address: remoteIp);
 
                         break;
                 }

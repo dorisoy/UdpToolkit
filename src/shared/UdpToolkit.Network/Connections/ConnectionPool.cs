@@ -6,11 +6,10 @@ namespace UdpToolkit.Network.Connections
     using System.Threading;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Utils;
 
-    public sealed class ConnectionPool : IConnectionPool
+    internal sealed class ConnectionPool : IConnectionPool
     {
         private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ();
         private readonly IUdpToolkitLogger _logger;
@@ -21,7 +20,7 @@ namespace UdpToolkit.Network.Connections
 
         private bool _disposed = false;
 
-        public ConnectionPool(
+        internal ConnectionPool(
             IDateTimeProvider dateTimeProvider,
             IUdpToolkitLogger logger,
             NetworkSettings networkSettings,
@@ -30,12 +29,12 @@ namespace UdpToolkit.Network.Connections
             _dateTimeProvider = dateTimeProvider;
             _inactivityTimeout = networkSettings.ConnectionTimeout;
             _connectionFactory = connectionFactory;
+            _logger = logger;
             _housekeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
                 state: null,
                 dueTime: TimeSpan.FromSeconds(10),
                 period: networkSettings.ConnectionsCleanupFrequency);
-            _logger = logger;
         }
 
         ~ConnectionPool()
@@ -66,13 +65,13 @@ namespace UdpToolkit.Network.Connections
             Guid connectionId,
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
-            IpV4Address ipAddress)
+            IpV4Address ipV4Address)
         {
             var newConnection = _connectionFactory.Create(
                 keepAlive: keepAlive,
                 lastHeartbeat: lastHeartbeat,
                 connectionId: connectionId,
-                ipAddress: ipAddress);
+                ipAddress: ipV4Address);
 
             return _connections.GetOrAdd(connectionId, newConnection);
         }

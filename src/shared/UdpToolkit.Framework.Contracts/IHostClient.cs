@@ -11,7 +11,7 @@ namespace UdpToolkit.Framework.Contracts
 
         bool IsConnected { get; }
 
-        TimeSpan Rtt { get; }
+        TimeSpan? Rtt { get; }
 
         void Connect();
 

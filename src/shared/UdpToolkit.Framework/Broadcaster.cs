@@ -3,7 +3,6 @@ namespace UdpToolkit.Framework
     using System;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Packets;
 
     public sealed class Broadcaster : IBroadcaster
@@ -11,7 +10,6 @@ namespace UdpToolkit.Framework
         private readonly IQueueDispatcher<OutPacket> _hostOutQueueDispatcher;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IRoomManager _roomManager;
-        private readonly IConnectionPool _connectionPool;
         private readonly IUdpToolkitLogger _logger;
 
         private bool _disposed = false;
@@ -19,13 +17,11 @@ namespace UdpToolkit.Framework
         public Broadcaster(
             IDateTimeProvider dateTimeProvider,
             IRoomManager roomManager,
-            IConnectionPool connectionPool,
             IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
             IUdpToolkitLogger logger)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomManager = roomManager;
-            _connectionPool = connectionPool;
             _hostOutQueueDispatcher = hostOutQueueDispatcher;
             _logger = logger;
         }
@@ -51,62 +47,47 @@ namespace UdpToolkit.Framework
             BroadcastMode broadcastMode)
         {
             var utcNow = _dateTimeProvider.UtcNow();
+            var room = _roomManager.GetRoom(roomId);
 
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
 
-                    if (!_connectionPool.TryGetConnection(caller, out var connection))
-                    {
-                        return;
-                    }
-
-                    _hostOutQueueDispatcher
-                        .Dispatch(caller)
-                        .Produce(new OutPacket(
-                            hookId: hookId,
-                            channelId: channelId,
-                            packetType: packetType,
-                            connectionId: caller,
-                            serializer: serializer,
-                            createdAt: utcNow,
-                            destination: connection.IpAddress));
-                    return;
-                case BroadcastMode.AllConnections:
-                    _connectionPool.Apply(
-                        action: (conn) =>
-                        {
-                            _hostOutQueueDispatcher
-                                .Dispatch(conn.ConnectionId)
-                                .Produce(new OutPacket(
-                                    hookId: hookId,
-                                    channelId: channelId,
-                                    packetType: packetType,
-                                    connectionId: caller,
-                                    serializer: serializer,
-                                    createdAt: utcNow,
-                                    destination: conn.IpAddress));
-                        });
-
-                    return;
-                case BroadcastMode.Server:
-                    return;
-            }
-
-            var room = _roomManager.GetRoom(roomId);
-            switch (broadcastMode)
-            {
-                case BroadcastMode.RoomExceptCaller:
-                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                    for (int i = 0; i < room.RoomConnections.Count; i++)
                     {
                         var roomConnection = room.RoomConnections[i];
-                        if (!_connectionPool.TryGetConnection(roomConnection.ConnectionId, out var c) || c.ConnectionId == caller)
+                        if (roomConnection.ConnectionId != caller)
                         {
                             continue;
                         }
 
                         _hostOutQueueDispatcher
-                            .Dispatch(c.ConnectionId)
+                            .Dispatch(caller)
+                            .Produce(new OutPacket(
+                                hookId: hookId,
+                                channelId: channelId,
+                                packetType: packetType,
+                                connectionId: caller,
+                                serializer: serializer,
+                                createdAt: utcNow,
+                                destination: roomConnection.IpV4Address));
+                    }
+
+                    return;
+                case BroadcastMode.Server:
+                    return;
+
+                case BroadcastMode.RoomExceptCaller:
+                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                    {
+                        var roomConnection = room.RoomConnections[i];
+                        if (roomConnection.ConnectionId == caller)
+                        {
+                            continue;
+                        }
+
+                        _hostOutQueueDispatcher
+                            .Dispatch(roomConnection.ConnectionId)
                             .Produce(new OutPacket(
                                 hookId: hookId,
                                 channelId: channelId,
@@ -114,7 +95,7 @@ namespace UdpToolkit.Framework
                                 connectionId: roomConnection.ConnectionId,
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                destination: c.IpAddress));
+                                destination: roomConnection.IpV4Address));
                     }
 
                     return;
@@ -122,13 +103,9 @@ namespace UdpToolkit.Framework
                     for (var i = 0; i < room.RoomConnections.Count; i++)
                     {
                         var roomConnection = room.RoomConnections[i];
-                        if (!_connectionPool.TryGetConnection(roomConnection.ConnectionId, out var c))
-                        {
-                            continue;
-                        }
 
                         _hostOutQueueDispatcher
-                            .Dispatch(c.ConnectionId)
+                            .Dispatch(roomConnection.ConnectionId)
                             .Produce(new OutPacket(
                                 hookId: hookId,
                                 channelId: channelId,
@@ -136,7 +113,7 @@ namespace UdpToolkit.Framework
                                 connectionId: roomConnection.ConnectionId,
                                 serializer: serializer,
                                 createdAt: utcNow,
-                                destination: c.IpAddress));
+                                destination: roomConnection.IpV4Address));
                     }
 
                     return;
@@ -156,7 +133,6 @@ namespace UdpToolkit.Framework
             if (disposing)
             {
                 _roomManager.Dispose();
-                _connectionPool.Dispose();
                 _hostOutQueueDispatcher.Dispose();
             }
 

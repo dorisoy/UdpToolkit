@@ -10,7 +10,7 @@
         private const int SioUdpConnreset = -1744830452;
 
         public ISocket Create(
-            IPEndPoint localEndPoint)
+            IpV4Address ipV4Address)
         {
             var socket = new Socket(AddressFamily.InterNetwork, System.Net.Sockets.SocketType.Dgram, ProtocolType.Udp);
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, false);
@@ -23,13 +23,8 @@
             }
 
             ISocket managedSocket = new ManagedSocket(socket);
-            var to = new IpV4Address
-            {
-                Address = localEndPoint.Address.ToInt(),
-                Port = (ushort)localEndPoint.Port,
-            };
 
-            managedSocket.Bind(ref to);
+            managedSocket.Bind(ref ipV4Address);
             managedSocket.SetNonBlocking();
             return managedSocket;
         }
