@@ -2,7 +2,9 @@ namespace P2P.Contracts
 {
     using System.Collections.Generic;
     using MessagePack;
+    using UdpToolkit.Annotations;
 
+    [UdpEvent]
     [MessagePackObject]
     public class RoomPeers
     {

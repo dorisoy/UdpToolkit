@@ -4,7 +4,7 @@ namespace UdpToolkit.Framework.Contracts
     {
         public TimerKey(
             int roomId,
-            short timerId)
+            string timerId)
         {
             RoomId = roomId;
             TimerId = timerId;
@@ -12,6 +12,6 @@ namespace UdpToolkit.Framework.Contracts
 
         public int RoomId { get; }
 
-        public short TimerId { get; }
+        public string TimerId { get; }
     }
 }

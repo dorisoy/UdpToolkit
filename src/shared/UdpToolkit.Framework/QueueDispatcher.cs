@@ -2,21 +2,17 @@ namespace UdpToolkit.Framework
 {
     using System;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
 
     public sealed class QueueDispatcher<TEvent> : IQueueDispatcher<TEvent>
     {
-        private readonly IUdpToolkitLogger _logger;
         private readonly IAsyncQueue<TEvent>[] _queues;
 
         private bool _disposed = false;
 
         public QueueDispatcher(
-            IAsyncQueue<TEvent>[] queues,
-            IUdpToolkitLogger logger)
+            IAsyncQueue<TEvent>[] queues)
         {
             _queues = queues;
-            _logger = logger;
             Count = _queues.Length;
         }
 
@@ -59,7 +55,6 @@ namespace UdpToolkit.Framework
                 }
             }
 
-            _logger.Debug($"{this.GetType().Name} - disposed!");
             _disposed = true;
         }
     }

@@ -7,17 +7,12 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Clients;
-    using UdpToolkit.Network.Contracts.Packets;
-    using UdpToolkit.Serialization;
 
     public sealed class Host : IHost
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IExecutor _executor;
         private readonly IUdpToolkitLogger _logger;
-        private readonly ISerializer _serializer;
-        private readonly ISubscriptionManager _subscriptionManager;
-        private readonly IBroadcaster _broadcaster;
         private readonly IHostClient _hostClient;
         private readonly IQueueDispatcher<OutPacket> _hostOutQueueDispatcher;
         private readonly IQueueDispatcher<InPacket> _inQueueDispatcher;
@@ -27,10 +22,7 @@ namespace UdpToolkit.Framework
         private bool _disposed = false;
 
         public Host(
-            ISerializer serializer,
-            ISubscriptionManager subscriptionManager,
             IUdpToolkitLogger logger,
-            IBroadcaster broadcaster,
             IHostClient hostClient,
             IQueueDispatcher<OutPacket> hostOutQueueDispatcher,
             IQueueDispatcher<InPacket> inQueueDispatcher,
@@ -39,16 +31,13 @@ namespace UdpToolkit.Framework
             IList<IDisposable> toDispose,
             CancellationTokenSource cancellationTokenSource)
         {
-            _subscriptionManager = subscriptionManager;
             _logger = logger;
-            _broadcaster = broadcaster;
             _hostClient = hostClient;
             _hostOutQueueDispatcher = hostOutQueueDispatcher;
             _inQueueDispatcher = inQueueDispatcher;
             _udpClients = udpClients;
             _executor = executor;
             _toDispose = toDispose;
-            _serializer = serializer;
             _cancellationTokenSource = cancellationTokenSource;
         }
 
@@ -73,7 +62,7 @@ namespace UdpToolkit.Framework
                 var index = i;
 
                 _executor.Execute(
-                    action: () => _udpClients[index].Receive(token),
+                    action: () => _udpClients[index].StartReceive(token),
                     opName: $"Receiver_{index}",
                     cancellationToken: token);
             }
@@ -98,32 +87,13 @@ namespace UdpToolkit.Framework
                     cancellationToken: token);
             }
 
-            _logger.Information($"{nameof(Host)} running...");
+            _logger.Information($"[UdpToolkit.Framework] {nameof(Host)} running...");
         }
 
-        public void OnCore(
-            byte hookId,
-            Subscription subscription)
+        public void On<TEvent>(
+            Subscription<TEvent> subscription)
         {
-            _subscriptionManager.Subscribe(hookId, subscription);
-        }
-
-        public void SendCore<TEvent>(
-            TEvent @event,
-            Guid caller,
-            int roomId,
-            byte hookId,
-            byte channelId,
-            BroadcastMode broadcastMode)
-        {
-            _broadcaster.Broadcast(
-                serializer: () => _serializer.Serialize(@event),
-                packetType: PacketType.FromServer,
-                caller: caller,
-                roomId: roomId,
-                hookId: hookId,
-                channelId: channelId,
-                broadcastMode: broadcastMode);
+            SubscriptionStorage<TEvent>.Subscribe(subscription);
         }
 
         private void Dispose(bool disposing)
@@ -142,7 +112,6 @@ namespace UdpToolkit.Framework
                 }
             }
 
-            _logger.Debug($"{this.GetType().Name} - disposed!");
             _disposed = true;
         }
     }

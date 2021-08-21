@@ -11,6 +11,6 @@ namespace UdpToolkit.Framework.Contracts.Settings
 
         public IEnumerable<int> ServerPorts { get; set; } = Array.Empty<int>();
 
-        public int? HeartbeatDelayInMs { get; set; } = 2000;
+        public int? HeartbeatDelayInMs { get; set; } = 1000;
     }
 }

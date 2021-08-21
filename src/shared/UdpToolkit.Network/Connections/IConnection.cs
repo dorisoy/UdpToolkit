@@ -10,7 +10,7 @@ namespace UdpToolkit.Network.Connections
 
         bool KeepAlive { get; }
 
-        IpV4Address IpAddress { get; }
+        IpV4Address IpV4Address { get; }
 
         DateTimeOffset LastHeartbeat { get; }
 

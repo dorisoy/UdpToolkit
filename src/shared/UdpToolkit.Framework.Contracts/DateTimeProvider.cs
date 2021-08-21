@@ -4,7 +4,7 @@ namespace UdpToolkit.Framework.Contracts
 
     public sealed class DateTimeProvider : IDateTimeProvider
     {
-        public DateTimeOffset UtcNow()
+        public DateTimeOffset GetUtcNow()
         {
             return DateTimeOffset.UtcNow;
         }

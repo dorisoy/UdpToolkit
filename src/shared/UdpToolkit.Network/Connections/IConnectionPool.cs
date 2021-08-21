@@ -17,8 +17,5 @@ namespace UdpToolkit.Network.Connections
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
             IpV4Address ipV4Address);
-
-        void Apply(
-            Action<IConnection> action);
     }
 }

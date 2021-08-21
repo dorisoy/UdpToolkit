@@ -5,13 +5,12 @@ namespace UdpToolkit.Network.Connections
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Logging;
-    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Utils;
 
     internal sealed class ConnectionPool : IConnectionPool
     {
-        private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ();
+        private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ConcurrentDictionary<Guid, IConnection>();
         private readonly IUdpToolkitLogger _logger;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnectionFactory _connectionFactory;
@@ -23,18 +22,18 @@ namespace UdpToolkit.Network.Connections
         internal ConnectionPool(
             IDateTimeProvider dateTimeProvider,
             IUdpToolkitLogger logger,
-            NetworkSettings networkSettings,
+            ConnectionPoolSettings settings,
             IConnectionFactory connectionFactory)
         {
             _dateTimeProvider = dateTimeProvider;
-            _inactivityTimeout = networkSettings.ConnectionTimeout;
+            _inactivityTimeout = settings.ConnectionTimeout;
             _connectionFactory = connectionFactory;
             _logger = logger;
             _housekeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
                 state: null,
                 dueTime: TimeSpan.FromSeconds(10),
-                period: networkSettings.ConnectionsCleanupFrequency);
+                period: settings.ConnectionsCleanupFrequency);
         }
 
         ~ConnectionPool()
@@ -93,7 +92,10 @@ namespace UdpToolkit.Network.Connections
 
         private void ScanForCleaningInactiveConnections(object state)
         {
-            _logger.Debug($"Cleanup inactive connections");
+#if DEBUG
+            _logger.Debug($"[UdpToolkit.Network] Cleanup inactive connections");
+#endif
+
             var now = _dateTimeProvider.GetUtcNow();
             for (var i = 0; i < _connections.Count; i++)
             {
@@ -123,7 +125,6 @@ namespace UdpToolkit.Network.Connections
                 _housekeeper?.Dispose();
             }
 
-            _logger.Debug($"{this.GetType().Name} - disposed!");
             _disposed = true;
         }
     }

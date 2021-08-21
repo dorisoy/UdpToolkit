@@ -2,6 +2,8 @@
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -9,4 +11,8 @@
       <PackageReference Include="MessagePack.UnityShims" Version="2.2.60" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\..\..\src\generators\UdpToolkit.CodeGenerator\UdpToolkit.CodeGenerator.csproj" ReferenceOutputAssembly="true" OutputItemType="Analyzer" />
+    </ItemGroup>
+    
 </Project>

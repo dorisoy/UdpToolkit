@@ -8,14 +8,20 @@ namespace UdpToolkit.Framework.Contracts
 
     public sealed class Scheduler : IScheduler
     {
+        private readonly IRoomManager _roomManager;
+        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
         private readonly IUdpToolkitLogger _logger;
         private readonly ConcurrentDictionary<TimerKey, Lazy<Timer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<Timer>>();
         private bool _disposed = false;
 
         public Scheduler(
-            IUdpToolkitLogger logger)
+            IUdpToolkitLogger logger,
+            IQueueDispatcher<OutPacket> outQueueDispatcher,
+            IRoomManager roomManager)
         {
             _logger = logger;
+            _outQueueDispatcher = outQueueDispatcher;
+            _roomManager = roomManager;
         }
 
         ~Scheduler()
@@ -29,23 +35,110 @@ namespace UdpToolkit.Framework.Contracts
             GC.SuppressFinalize(this);
         }
 
-        public void Schedule(
+        public void Schedule<TEvent>(
+            TEvent @event,
+            Guid caller,
+            byte channelId,
             int roomId,
-            short timerId,
+            string eventName,
             TimeSpan dueTime,
-            Action action)
+            BroadcastMode broadcastMode)
         {
+            if (dueTime == TimeSpan.Zero)
+            {
+                Broadcast(@event, caller, roomId, channelId, broadcastMode);
+                return;
+            }
+
             var lazyTimer = _timers.GetOrAdd(
                 key: new TimerKey(
                     roomId: roomId,
-                    timerId: timerId),
+                    timerId: eventName),
                 valueFactory: (key) => new Lazy<Timer>(() => new Timer(
-                    callback: (state) => action(),
+                    callback: (state) =>
+                    {
+                        Broadcast(@event, caller, roomId, channelId, broadcastMode);
+                    },
                     state: null,
                     dueTime: dueTime,
                     period: TimeSpan.FromMilliseconds(Timeout.Infinite))));
 
             _ = lazyTimer.Value;
+        }
+
+        private void Broadcast<TEvent>(
+            TEvent @event,
+            Guid caller,
+            int roomId,
+            byte channelId,
+            BroadcastMode broadcastMode)
+        {
+            var room = _roomManager.GetRoom(roomId);
+            switch (broadcastMode)
+            {
+                case BroadcastMode.Caller:
+
+                    for (int i = 0; i < room.RoomConnections.Count; i++)
+                    {
+                        var roomConnection = room.RoomConnections[i];
+                        if (roomConnection.ConnectionId != caller)
+                        {
+                            continue;
+                        }
+
+                        _outQueueDispatcher
+                            .Dispatch(caller)
+                            .Produce(new OutPacket(
+                                connectionId: roomConnection.ConnectionId,
+                                channelId: channelId,
+                                @event: @event,
+                                ipV4Address: roomConnection.IpV4Address));
+                    }
+
+                    return;
+
+                case BroadcastMode.RoomExceptCaller:
+                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                    {
+                        var roomConnection = room.RoomConnections[i];
+                        if (roomConnection.ConnectionId == caller)
+                        {
+                            continue;
+                        }
+
+                        _outQueueDispatcher
+                            .Dispatch(roomConnection.ConnectionId)
+                            .Produce(new OutPacket(
+                                connectionId: roomConnection.ConnectionId,
+                                channelId: channelId,
+                                @event: @event,
+                                ipV4Address: roomConnection.IpV4Address));
+                    }
+
+                    return;
+                case BroadcastMode.Room:
+                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                    {
+                        var roomConnection = room.RoomConnections[i];
+
+                        _outQueueDispatcher
+                            .Dispatch(roomConnection.ConnectionId)
+                            .Produce(new OutPacket(
+                                connectionId: roomConnection.ConnectionId,
+                                channelId: channelId,
+                                @event: @event,
+                                ipV4Address: roomConnection.IpV4Address));
+                    }
+
+                    return;
+
+                case BroadcastMode.None:
+                case BroadcastMode.Server:
+                    return;
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
+            }
         }
 
         private void Dispose(bool disposing)
@@ -62,9 +155,11 @@ namespace UdpToolkit.Framework.Contracts
                     var timer = _timers.ElementAt(i).Value;
                     timer.Value.Dispose();
                 }
+
+                _roomManager.Dispose();
+                _outQueueDispatcher.Dispose();
             }
 
-            _logger.Debug($"{this.GetType().Name} - disposed!");
             _disposed = true;
         }
     }

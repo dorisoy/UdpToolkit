@@ -21,7 +21,7 @@ namespace UdpToolkit.Network.Connections
             _inputChannels = inputChannels;
             _outputChannels = outputChannels;
             ConnectionId = connectionId;
-            IpAddress = ipAddress;
+            IpV4Address = ipAddress;
             KeepAlive = keepAlive;
             LastHeartbeat = lastHeartbeat;
         }
@@ -30,7 +30,7 @@ namespace UdpToolkit.Network.Connections
 
         public bool KeepAlive { get; }
 
-        public IpV4Address IpAddress { get; }
+        public IpV4Address IpV4Address { get; }
 
         public DateTimeOffset LastHeartbeat { get; private set; }
 

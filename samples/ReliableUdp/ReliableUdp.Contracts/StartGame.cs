@@ -3,8 +3,10 @@ namespace ReliableUdp.Contracts
     using System;
     using System.Collections.Generic;
     using MessagePack;
+    using UdpToolkit.Annotations;
     using UnityEngine;
 
+    [UdpEvent]
     [MessagePackObject]
     public class StartGame
     {

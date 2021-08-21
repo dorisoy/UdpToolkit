@@ -8,16 +8,7 @@ namespace UdpToolkit.Framework.Contracts
 
         void Run();
 
-        void OnCore(
-            byte hookId,
-            Subscription subscription);
-
-        void SendCore<TEvent>(
-            TEvent @event,
-            Guid caller,
-            int roomId,
-            byte hookId,
-            byte channelId,
-            BroadcastMode broadcastMode);
+        void On<TEvent>(
+            Subscription<TEvent> subscription);
     }
 }

@@ -1,7 +1,9 @@
 namespace ReliableUdp.Contracts
 {
     using MessagePack;
+    using UdpToolkit.Annotations;
 
+    [UdpEvent]
     [MessagePackObject]
     public class JoinEvent
     {

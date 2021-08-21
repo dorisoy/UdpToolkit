@@ -5,17 +5,21 @@ namespace UdpToolkit.Framework.Contracts
 
     public interface IHostClient : IDisposable
     {
+        event Action<IpV4Address, Guid> OnDisconnected;
+
+        event Action<IpV4Address, Guid> OnConnected;
+
         event Action OnConnectionTimeout;
 
-        Guid ConnectionId { get; }
-
-        bool IsConnected { get; }
-
-        TimeSpan? Rtt { get; }
+        event Action<double> OnRttReceived;
 
         void Connect();
 
-        void ConnectToPeer(
+        void Connect(
+            string host,
+            int port);
+
+        void Disconnect(
             string host,
             int port);
 
@@ -23,12 +27,10 @@ namespace UdpToolkit.Framework.Contracts
 
         void Send<TEvent>(
             TEvent @event,
-            byte hookId,
             byte channelId);
 
         public void Send<TEvent>(
             TEvent @event,
-            byte hookId,
             IpV4Address destination,
             byte channelId);
     }

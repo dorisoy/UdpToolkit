@@ -38,11 +38,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
 #pragma warning disable SA1503
             if (ipEndPoint == null) throw new ArgumentNullException(nameof(ipEndPoint));
 #pragma warning restore
-            return new IpV4Address()
-            {
-                Address = ipEndPoint.Address.ToInt(),
-                Port = (ushort)ipEndPoint.Port,
-            };
+            return new IpV4Address(ipEndPoint.Address.ToInt(), (ushort)ipEndPoint.Port);
         }
     }
 }

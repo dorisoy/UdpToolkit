@@ -5,20 +5,22 @@ namespace UdpToolkit.Network.Packets
 
     internal readonly struct PendingPacket
     {
-        public PendingPacket(
+        internal PendingPacket(
             byte[] payload,
             IpV4Address to,
             DateTimeOffset createdAt,
             ushort id,
             byte channelId,
-            byte hookId)
+            Guid connectionId,
+            PacketType packetType)
         {
             Payload = payload;
             To = to;
             CreatedAt = createdAt;
             Id = id;
             ChannelId = channelId;
-            HookId = hookId;
+            ConnectionId = connectionId;
+            PacketType = packetType;
         }
 
         public byte[] Payload { get; }
@@ -31,8 +33,8 @@ namespace UdpToolkit.Network.Packets
 
         public DateTimeOffset CreatedAt { get; }
 
-        public byte HookId { get; }
+        public Guid ConnectionId { get; }
 
-        public bool IsExpired(TimeSpan resendTimeout) => DateTimeOffset.UtcNow - CreatedAt > resendTimeout;
+        public PacketType PacketType { get; }
     }
 }

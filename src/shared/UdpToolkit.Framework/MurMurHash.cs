@@ -9,7 +9,7 @@ namespace UdpToolkit.Framework
 
     /// <summary>
     /// https://en.wikipedia.org/wiki/MurmurHash
-    /// https://github.com/apache/kafka/blob/2.8/streams/src/main/java/org/apache/kafka/streams/state/internals/Murmur3.java#L140
+    /// https://github.com/apache/kafka/blob/2.8/streams/src/main/java/org/apache/kafka/streams/state/internals/Murmur3.java#L140.
     /// </summary>
     public static class MurMurHash
     {
@@ -29,7 +29,7 @@ namespace UdpToolkit.Framework
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Hash3_x86_32(byte[] data, uint offset, uint length, uint seed)
+        private static int Hash3_x86_32(byte[] data, uint offset, uint length, uint seed)
         {
             uint hash = seed;
             uint nblocks = length >> 2;

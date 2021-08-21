@@ -41,11 +41,7 @@ namespace UdpToolkit.Network.Sockets
 
         public int Bind(ref IpV4Address address)
         {
-            _me = new IpV4Address
-            {
-                Port = address.Port,
-                Address = address.Address,
-            };
+            _me = new IpV4Address(address.Address, address.Port);
 
             return BindNative(_socket, ref address);
         }

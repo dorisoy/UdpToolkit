@@ -1,7 +1,9 @@
 ﻿namespace P2P.Contracts
 {
     using MessagePack;
+    using UdpToolkit.Annotations;
 
+    [UdpEvent]
     [MessagePackObject]
     public class Message
     {

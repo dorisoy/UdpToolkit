@@ -6,12 +6,10 @@ namespace UdpToolkit.Framework.Contracts.Executors
 
     public sealed class TaskBasedExecutor : IExecutor
     {
-        private readonly TaskFactory _taskFactory;
         private bool _disposed;
 
         public TaskBasedExecutor()
         {
-            _taskFactory = new TaskFactory();
         }
 
         ~TaskBasedExecutor()
@@ -32,7 +30,7 @@ namespace UdpToolkit.Framework.Contracts.Executors
             string opName,
             CancellationToken cancellationToken)
         {
-            _taskFactory.StartNew(
+            Task.Factory.StartNew(
                 action: () =>
                 {
                     try

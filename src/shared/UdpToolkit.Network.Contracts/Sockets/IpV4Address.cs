@@ -1,11 +1,18 @@
 namespace UdpToolkit.Network.Contracts.Sockets
 {
-    public struct IpV4Address
+    public readonly struct IpV4Address
     {
-#pragma warning disable S1104
-        public int Address;
-        public ushort Port;
-#pragma warning restore S1104
+        public IpV4Address(
+            int address,
+            ushort port)
+        {
+            Address = address;
+            Port = port;
+        }
+
+        public int Address { get; }
+
+        public ushort Port { get; }
 
         public override string ToString()
         {

@@ -5,8 +5,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\UdpToolkit.Framework.CodeGenerator.Contracts\UdpToolkit.Framework.CodeGenerator.Contracts.csproj" />
     <ProjectReference Include="..\UdpToolkit.Logging\UdpToolkit.Logging.csproj" />
     <ProjectReference Include="..\UdpToolkit.Network.Contracts\UdpToolkit.Network.Contracts.csproj" />
     <ProjectReference Include="..\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Subscriptions" />
   </ItemGroup>
 </Project>

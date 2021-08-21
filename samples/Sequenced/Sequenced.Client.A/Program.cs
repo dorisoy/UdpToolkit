@@ -10,6 +10,7 @@
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
+    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
@@ -28,41 +29,46 @@
             var client = host.HostClient;
             var nickname = "Client A";
 
+            var isConnected = false;
+
+            host.HostClient.OnRttReceived += rtt => Console.WriteLine($"{nickname} rtt - {rtt}");
+            host.HostClient.OnConnected += (ipV4, connectionId) =>
+            {
+                isConnected = true;
+                Console.WriteLine($"{nickname} connected with id - {connectionId}");
+            };
+            host.HostClient.OnDisconnected += (ipV4, connectionId) =>
+            {
+                isConnected = false;
+                Console.WriteLine($"{nickname} disconnected with id - {connectionId}");
+            };
+
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
                     return joinEvent.RoomId;
-                },
-                onAck: (connectionId) =>
-                {
-                    Log.Logger.Information($"{nickname} joined to room!");
-                },
-                broadcastMode: BroadcastMode.RoomExceptCaller,
-                hookId: 0);
+                });
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, move) =>
                 {
                     Log.Debug($"Id {move.Id} - from - {move.From}");
                     return move.RoomId;
-                },
-                hookId: 1,
-                broadcastMode: BroadcastMode.RoomExceptCaller);
+                });
 
             host.Run();
 
             client.Connect();
 
             var waitTimeout = TimeSpan.FromSeconds(120);
-            SpinWait.SpinUntil(() => client.IsConnected, waitTimeout);
-            Console.WriteLine($"IsConnected - {client.IsConnected}");
+            SpinWait.SpinUntil(() => isConnected, waitTimeout);
+            Console.WriteLine($"IsConnected - {isConnected}");
 
             client.Send(
                 @event: new JoinEvent(
                     roomId: 0,
                     nickname: nickname),
-                hookId: 0,
                 channelId: ReliableChannel.Id);
 
             await Task.Delay(20_000).ConfigureAwait(false);
@@ -74,14 +80,13 @@
                         id: i,
                         roomId: 0,
                         from: nickname),
-                    hookId: 1,
                     channelId: SequencedChannel.Id);
                 Thread.Sleep(1000 / 60);
             }
 
             client.Disconnect();
-            SpinWait.SpinUntil(() => !client.IsConnected);
-            Console.WriteLine($"Client disconnected, IsConnected - {client.IsConnected}");
+            SpinWait.SpinUntil(() => !isConnected);
+            Console.WriteLine($"Client disconnected, IsConnected - {isConnected}");
 
             Console.WriteLine("Press any key...");
             Console.ReadLine();
@@ -89,13 +94,15 @@
 
         private static IHost BuildHost()
         {
+            var hostSettings = new HostSettings(
+                serializer: new Serializer(),
+                loggerFactory: new SerilogLoggerFactory());
+
             return UdpHost
                 .CreateHostBuilder()
-                .ConfigureHost((settings) =>
+                .ConfigureHost(hostSettings, (settings) =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.Serializer = new Serializer();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
@@ -113,7 +120,9 @@
                     settings.SocketFactory = new ManagedSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionIdFactory = new ConnectionIdFactory();
                 })
+                .BootstrapWorker(new HostWorkerGenerated())
                 .Build();
         }
     }

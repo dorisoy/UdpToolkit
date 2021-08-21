@@ -61,7 +61,7 @@ namespace UdpToolkit.Framework
                             connectionId: connectionId,
                             ipV4Address: ipV4Address),
                     },
-                    createdAt: _dateTimeProvider.UtcNow()),
+                    createdAt: _dateTimeProvider.GetUtcNow()),
                 updateValueFactory: (id, room) =>
                 {
                     if (room.RoomConnections.All(x => x.ConnectionId != connectionId))
@@ -78,7 +78,8 @@ namespace UdpToolkit.Framework
 
         public Room GetRoom(int roomId)
         {
-            return _rooms[roomId];
+            _rooms.TryGetValue(roomId, out var room);
+            return room;
         }
 
         public void Leave(
@@ -105,14 +106,15 @@ namespace UdpToolkit.Framework
                 _houseKeeper?.Dispose();
             }
 
-            _logger.Debug($"{this.GetType().Name} - disposed!");
             _disposed = true;
         }
 
         private void ScanForCleaningInactiveConnections(object state)
         {
-            _logger.Debug($"Cleanup inactive rooms");
-            var now = _dateTimeProvider.UtcNow();
+#if DEBUG
+            _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive rooms");
+#endif
+            var now = _dateTimeProvider.GetUtcNow();
             for (var i = 0; i < _rooms.Count; i++)
             {
                 var room = _rooms.ElementAt(i);

@@ -60,8 +60,8 @@ namespace UdpToolkit.Framework.Contracts
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"Exception on receive task: {ex}");
-                        _logger.Warning("Restart receiver...");
+                        _logger.Error($"[UdpToolkit.Framework] Exception on receive task: {ex}");
+                        _logger.Warning("[UdpToolkit.Framework] Restart consume...");
                     }
                 }
             }

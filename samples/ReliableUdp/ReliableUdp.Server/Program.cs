@@ -10,6 +10,7 @@
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
+    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
@@ -54,43 +55,31 @@
                         .Select(id => new { id, position = Positions.Dequeue() })
                         .ToDictionary(pair => pair.id, pair => pair.position);
 
-                    return (
+                    return new OutEvent<StartGame>(
                         roomId: joinEvent.RoomId,
-                        response: new StartGame(joinEvent.RoomId, spawnPositions),
+                        @event: new StartGame(joinEvent.RoomId, spawnPositions),
                         delayInMs: 20_000,
                         broadcastMode: BroadcastMode.Room,
                         channelId: ReliableChannel.Id);
                 },
-                broadcastMode: BroadcastMode.None,
-                hookId: 0);
-
-            host.On<StartGame>(
-                onEvent: (connectionId, ip, startGame) =>
-                {
-                    Log.Logger.Information("Game started!");
-
-                    return startGame.RoomId;
-                },
-                onAck: (connectionId) =>
-                {
-                    Log.Logger.Information("Game started ack!");
-                },
-                broadcastMode: BroadcastMode.Room,
-                hookId: 1);
+                broadcastMode: BroadcastMode.None);
 
             host.Run();
 
             Console.ReadLine();
         }
 
-        private static IHost BuildHost() =>
-            UdpHost
+        private static IHost BuildHost()
+        {
+            var hostSettings = new HostSettings(
+                serializer: new Serializer(),
+                loggerFactory: new SerilogLoggerFactory());
+
+            return UdpHost
                 .CreateHostBuilder()
-                .ConfigureHost(settings =>
+                .ConfigureHost(hostSettings, settings =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.Serializer = new Serializer();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
@@ -101,7 +90,11 @@
                     settings.SocketFactory = new NativeSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionIdFactory = new ConnectionIdFactory();
+                    settings.AllowIncomingConnections = true;
                 })
+                .BootstrapWorker(new HostWorkerGenerated())
                 .Build();
+        }
     }
 }

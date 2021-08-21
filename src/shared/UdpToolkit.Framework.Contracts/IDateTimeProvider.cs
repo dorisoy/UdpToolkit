@@ -4,6 +4,6 @@ namespace UdpToolkit.Framework.Contracts
 
     public interface IDateTimeProvider
     {
-        DateTimeOffset UtcNow();
+        DateTimeOffset GetUtcNow();
     }
 }

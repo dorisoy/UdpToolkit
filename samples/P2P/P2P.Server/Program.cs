@@ -9,6 +9,7 @@
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
+    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -36,8 +37,7 @@
 
                     return joinEvent.RoomId;
                 },
-                broadcastMode: BroadcastMode.RoomExceptCaller,
-                hookId: 0);
+                broadcastMode: BroadcastMode.RoomExceptCaller);
 
             host.On<FetchPeers, RoomPeers>(
                 onEvent: (connectionId, ip, fetchPeers, roomManager) =>
@@ -52,29 +52,31 @@
 
                     Log.Logger.Information($"{fetchPeers.Nickname} Fetch peers!");
 
-                    return (
+                    return new OutEvent<RoomPeers>(
                         roomId: fetchPeers.RoomId,
-                        response: new RoomPeers(fetchPeers.RoomId, peers),
+                        @event: new RoomPeers(fetchPeers.RoomId, peers),
                         delayInMs: 0,
                         broadcastMode: BroadcastMode.Caller,
                         channelId: ReliableChannel.Id);
                 },
-                broadcastMode: BroadcastMode.None,
-                hookId: 1);
+                broadcastMode: BroadcastMode.None);
 
             host.Run();
 
             Console.ReadLine();
         }
 
-        private static IHost BuildHost() =>
-            UdpHost
+        private static IHost BuildHost()
+        {
+            var hostSettings = new HostSettings(
+                serializer: new Serializer(),
+                loggerFactory: new SerilogLoggerFactory());
+
+            return UdpHost
                 .CreateHostBuilder()
-                .ConfigureHost(settings =>
+                .ConfigureHost(hostSettings, settings =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.Serializer = new Serializer();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
@@ -85,7 +87,11 @@
                     settings.SocketFactory = new NativeSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionIdFactory = new ConnectionIdFactory();
+                    settings.AllowIncomingConnections = true;
                 })
+                .BootstrapWorker(new HostWorkerGenerated())
                 .Build();
+        }
     }
 }

@@ -8,24 +8,38 @@ namespace UdpToolkit.Framework
     {
         public DummyHostClient()
         {
+            OnDisconnected += (ipV4, connectionId) => { };
+            OnConnected += (ipV4, connectionId) => { };
+            OnRttReceived += rtt => { };
             OnConnectionTimeout += () => { };
+
             OnConnectionTimeout?.Invoke();
+            OnConnected?.Invoke(default, default);
+            OnDisconnected?.Invoke(default, default);
+            OnRttReceived?.Invoke(default);
         }
+
+        public event Action<IpV4Address, Guid> OnDisconnected;
+
+        public event Action<IpV4Address, Guid> OnConnected;
 
         public event Action OnConnectionTimeout;
 
-        public Guid ConnectionId => Guid.Empty;
-
-        public TimeSpan? Rtt => TimeSpan.Zero;
-
-        public bool IsConnected => false;
+        public event Action<double> OnRttReceived;
 
         public void Connect()
         {
             // nothing to do
         }
 
-        public void ConnectToPeer(
+        public void Connect(
+            string host,
+            int port)
+        {
+            // nothing to do
+        }
+
+        public void Disconnect(
             string host,
             int port)
         {
@@ -39,7 +53,6 @@ namespace UdpToolkit.Framework
 
         public void Send<TEvent>(
             TEvent @event,
-            byte hookId,
             byte channelId)
         {
             // nothing to do
@@ -47,7 +60,6 @@ namespace UdpToolkit.Framework
 
         public void Send<TEvent>(
             TEvent @event,
-            byte hookId,
             IpV4Address destination,
             byte channelId)
         {

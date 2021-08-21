@@ -8,6 +8,7 @@
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
+    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
@@ -34,32 +35,33 @@
 
                     return joinEvent.RoomId;
                 },
-                broadcastMode: BroadcastMode.RoomExceptCaller,
-                hookId: 0);
+                broadcastMode: BroadcastMode.RoomExceptCaller);
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, moveEvent) =>
                 {
-                    Log.Logger.Information("Moved!");
+                    Log.Logger.Information($"Moved!");
 
                     return moveEvent.RoomId;
                 },
-                broadcastMode: BroadcastMode.RoomExceptCaller,
-                hookId: 1);
+                broadcastMode: BroadcastMode.RoomExceptCaller);
 
             host.Run();
 
             Console.ReadLine();
         }
 
-        private static IHost BuildHost() =>
-            UdpHost
+        private static IHost BuildHost()
+        {
+            var hostSettings = new HostSettings(
+                serializer: new Serializer(),
+                loggerFactory: new SerilogLoggerFactory());
+
+            return UdpHost
                 .CreateHostBuilder()
-                .ConfigureHost(settings =>
+                .ConfigureHost(hostSettings, settings =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.Serializer = new Serializer();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
@@ -70,7 +72,11 @@
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
                     settings.ChannelsFactory = new ChannelsFactory();
                     settings.SocketFactory = new NativeSocketFactory();
+                    settings.ConnectionIdFactory = new ConnectionIdFactory();
+                    settings.AllowIncomingConnections = true;
                 })
+                .BootstrapWorker(new HostWorkerGenerated())
                 .Build();
+        }
     }
 }

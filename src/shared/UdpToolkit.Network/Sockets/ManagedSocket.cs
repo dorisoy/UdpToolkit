@@ -64,8 +64,7 @@ namespace UdpToolkit.Network.Sockets
                 remoteEP: ref _remoteIp);
 
             var ip = (IPEndPoint)_remoteIp;
-            address.Address = ip.Address.ToInt();
-            address.Port = (ushort)ip.Port;
+            address = new IpV4Address(ip.Address.ToInt(), (ushort)ip.Port);
             return bytes;
         }
 

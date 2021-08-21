@@ -1,7 +1,9 @@
 ﻿namespace Sequenced.Contracts
 {
     using MessagePack;
+    using UdpToolkit.Annotations;
 
+    [UdpEvent]
     [MessagePackObject]
     public class MoveEvent
     {

@@ -1,15 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+        <LangVersion>8.0</LangVersion>
     </PropertyGroup>
     
     <ItemGroup>
       <ProjectReference Include="..\UdpToolkit.Logging\UdpToolkit.Logging.csproj" />
       <ProjectReference Include="..\UdpToolkit.Network.Contracts\UdpToolkit.Network.Contracts.csproj" />
-      <ProjectReference Include="..\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
     </ItemGroup>
     
     <ItemGroup>
+        <PackageReference Include="System.Memory" Version="4.5.3" />
+        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
         <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.1.1053747331" />
     </ItemGroup>
 </Project>
