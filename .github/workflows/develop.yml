@@ -21,6 +21,11 @@ jobs:
       - name: Build project
         run: ./tools/build.sh
 
+      - uses: nikeee/docfx-action@v1.0.0
+        name: Build Documentation
+        with:
+          args: ./docfx/docfx.json
+
       - name: Pack nugets
         run: ./tools/pack_nugets.sh
 
@@ -46,3 +51,10 @@ jobs:
           name: NugetPackages
           if-no-files-found: error
           path: ./**/*.nupkg
+          
+      - name: Upload Documentation
+        uses: actions/upload-artifact@v2
+        with:
+          name: Documentation
+          if-no-files-found: error
+          path: ./docfx/_site/
