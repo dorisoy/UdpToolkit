@@ -9,6 +9,7 @@ namespace UdpToolkit.Network.Clients
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Network.Utils;
 
+    /// <inheritdoc />
     public class UdpClientFactory : IUdpClientFactory
     {
         private readonly IConnectionIdFactory _connectionIdFactory;
@@ -18,6 +19,14 @@ namespace UdpToolkit.Network.Clients
         private readonly Lazy<IConnectionPool> _lazyConnectionPool;
         private readonly Lazy<IResendQueue> _lazyResendQueue;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UdpClientFactory"/> class.
+        /// </summary>
+        /// <param name="udpClientSettings">Instance of UDP client settings.</param>
+        /// <param name="connectionPoolSettings">Instance of connection pool settings.</param>
+        /// <param name="loggerFactory">Instance of logger factory.</param>
+        /// <param name="connectionIdFactory">Instance of connection id factory.</param>
+        /// <param name="dateTimeProvider">Instance of date time provider.</param>
         public UdpClientFactory(
             UdpClientSettings udpClientSettings,
             ConnectionPoolSettings connectionPoolSettings,
@@ -43,6 +52,7 @@ namespace UdpToolkit.Network.Clients
             _dateTimeProvider = dateTimeProvider ?? new DateTimeProvider();
         }
 
+        /// <inheritdoc />
         public IUdpClient Create(
             IpV4Address ipV4Address)
         {

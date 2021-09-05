@@ -10,6 +10,9 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// HostClient.
+    /// </summary>
     public sealed class HostClient : IHostClient
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
@@ -23,6 +26,15 @@ namespace UdpToolkit.Framework
         private DateTimeOffset _startConnect;
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HostClient"/> class.
+        /// </summary>
+        /// <param name="hostClientSettingsInternal">Instance of internal host client settings.</param>
+        /// <param name="dateTimeProvider">Instance of date time provider.</param>
+        /// <param name="logger">Instance of logger.</param>
+        /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
+        /// <param name="udpClient">Instance of UDP client.</param>
+        /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
         public HostClient(
             HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
@@ -44,27 +56,36 @@ namespace UdpToolkit.Framework
             };
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="HostClient"/> class.
+        /// </summary>
         ~HostClient()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnDisconnected;
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;
 
+        /// <inheritdoc />
         public event Action OnConnectionTimeout;
 
+        /// <inheritdoc />
         public event Action<double> OnRttReceived;
 
         private bool IsConnected { get; set; }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc />
         public void Connect()
         {
             _startConnect = _dateTimeProvider.GetUtcNow();
@@ -79,6 +100,7 @@ namespace UdpToolkit.Framework
                 scheduler: TaskScheduler.Current);
         }
 
+        /// <inheritdoc />
         public void Connect(
             string host,
             int port)
@@ -88,11 +110,13 @@ namespace UdpToolkit.Framework
             _udpClient.Connect(destination);
         }
 
+        /// <inheritdoc />
         public void Disconnect()
         {
             _udpClient.Disconnect(_hostClientSettingsInternal.ServerIpV4);
         }
 
+        /// <inheritdoc />
         public void Disconnect(
             string host,
             int port)
@@ -102,6 +126,7 @@ namespace UdpToolkit.Framework
             _udpClient.Disconnect(from);
         }
 
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             IpV4Address destination,
@@ -113,6 +138,7 @@ namespace UdpToolkit.Framework
                 channelId: channelId);
         }
 
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)
@@ -123,6 +149,11 @@ namespace UdpToolkit.Framework
                 channelId: channelId);
         }
 
+        /// <summary>
+        /// Set state of host client to `Connected` (Internal use only).
+        /// </summary>
+        /// <param name="ipV4">Remote ip address.</param>
+        /// <param name="connectionId">Connection identifier.</param>
         internal void Connected(
             IpV4Address ipV4,
             Guid connectionId)
@@ -131,6 +162,11 @@ namespace UdpToolkit.Framework
             OnConnected?.Invoke(ipV4, connectionId);
         }
 
+        /// <summary>
+        /// Set state of host client to `Disconnected` (Internal use only).
+        /// </summary>
+        /// <param name="ipV4">Remote ip address.</param>
+        /// <param name="connectionId">Connection identifier.</param>
         internal void Disconnected(
             IpV4Address ipV4,
             Guid connectionId)
@@ -139,6 +175,10 @@ namespace UdpToolkit.Framework
             OnDisconnected?.Invoke(ipV4, connectionId);
         }
 
+        /// <summary>
+        /// Update RTT time for host client (Internal use only).
+        /// </summary>
+        /// <param name="rtt">Round-trip time in ms.</param>
         internal void HeartbeatReceived(
             double rtt)
         {

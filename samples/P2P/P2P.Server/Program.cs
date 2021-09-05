@@ -58,8 +58,7 @@
                         delayInMs: 0,
                         broadcastMode: BroadcastMode.Caller,
                         channelId: ReliableChannel.Id);
-                },
-                broadcastMode: BroadcastMode.None);
+                });
 
             host.Run();
 

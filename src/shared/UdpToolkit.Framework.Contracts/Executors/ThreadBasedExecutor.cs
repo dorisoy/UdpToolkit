@@ -4,24 +4,42 @@ namespace UdpToolkit.Framework.Contracts.Executors
     using System.Collections.Generic;
     using System.Threading;
 
+    /// <summary>
+    /// Executor implementation based on threads.
+    /// </summary>
     public sealed class ThreadBasedExecutor : IExecutor
     {
         private readonly List<Thread> _threads = new List<Thread>();
         private bool _disposed;
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="ThreadBasedExecutor"/> class.
+        /// </summary>
         ~ThreadBasedExecutor()
         {
             Dispose(false);
         }
 
+        /// <summary>
+        /// Raised when an exception is thrown while action executing.
+        /// </summary>
         public event Action<Exception> OnException;
 
+        /// <summary>
+        /// Dispose.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Execute provided action.
+        /// </summary>
+        /// <param name="action">Action to execute.</param>
+        /// <param name="opName">Operation name.</param>
+        /// <param name="cancellationToken">Cancellation token.</param>
         public void Execute(
             Action action,
             string opName,

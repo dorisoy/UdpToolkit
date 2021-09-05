@@ -4,43 +4,65 @@ namespace UdpToolkit.Framework.Contracts
     using System.Collections.Concurrent;
     using UdpToolkit.Logging;
 
-    public sealed class BlockingAsyncQueue<TEvent> : IAsyncQueue<TEvent>
+    /// <summary>
+    /// Async queue based on .NET BlockingCollection.
+    /// </summary>
+    /// <typeparam name="TItem">
+    /// Type of item in the async queue.
+    /// </typeparam>
+    public sealed class BlockingAsyncQueue<TItem> : IAsyncQueue<TItem>
     {
-        private readonly Action<TEvent> _action;
-        private readonly BlockingCollection<TEvent> _input;
+        private readonly Action<TItem> _action;
+        private readonly BlockingCollection<TItem> _input;
         private readonly IUdpToolkitLogger _logger;
 
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
+        /// </summary>
+        /// <param name="boundedCapacity">Size of capacity for the async queue.</param>
+        /// <param name="action">Action for process consumed items.</param>
+        /// <param name="logger">Logger instance.</param>
         public BlockingAsyncQueue(
             int boundedCapacity,
-            Action<TEvent> action,
+            Action<TItem> action,
             IUdpToolkitLogger logger)
         {
             _action = action;
             _logger = logger;
-            _input = new BlockingCollection<TEvent>(
+            _input = new BlockingCollection<TItem>(
                 boundedCapacity: boundedCapacity,
-                collection: new ConcurrentQueue<TEvent>());
+                collection: new ConcurrentQueue<TItem>());
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
+        /// </summary>
         ~BlockingAsyncQueue()
         {
             Dispose(false);
         }
 
+        /// <summary>
+        /// Dispose.
+        /// </summary>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <summary>
+        /// Produces items to the async queue.
+        /// </summary>
+        /// <param name="item">Produced item.</param>
         public void Produce(
-            TEvent @event)
+            TItem item)
         {
             try
             {
-                _input.Add(@event);
+                _input.Add(item);
             }
             catch (ObjectDisposedException)
             {
@@ -48,6 +70,9 @@ namespace UdpToolkit.Framework.Contracts
             }
         }
 
+        /// <summary>
+        /// Consumes items in the async queue.
+        /// </summary>
         public void Consume()
         {
             try

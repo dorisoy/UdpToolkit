@@ -4,8 +4,14 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Null object.
+    /// </summary>
     public sealed class DummyHostClient : IHostClient
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="DummyHostClient"/> class.
+        /// </summary>
         public DummyHostClient()
         {
             OnDisconnected += (ipV4, connectionId) => { };
@@ -19,19 +25,25 @@ namespace UdpToolkit.Framework
             OnRttReceived?.Invoke(default);
         }
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnDisconnected;
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;
 
+        /// <inheritdoc />
         public event Action OnConnectionTimeout;
 
+        /// <inheritdoc />
         public event Action<double> OnRttReceived;
 
+        /// <inheritdoc />
         public void Connect()
         {
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Connect(
             string host,
             int port)
@@ -39,6 +51,7 @@ namespace UdpToolkit.Framework
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Disconnect(
             string host,
             int port)
@@ -46,11 +59,13 @@ namespace UdpToolkit.Framework
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Disconnect()
         {
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)
@@ -58,6 +73,7 @@ namespace UdpToolkit.Framework
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             IpV4Address destination,
@@ -66,6 +82,7 @@ namespace UdpToolkit.Framework
             // nothing to do
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             // nothing to do

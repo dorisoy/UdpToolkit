@@ -1,10 +1,28 @@
 namespace UdpToolkit.Network.Contracts.Channels
 {
+    /// <summary>
+    /// Reserved identifiers for channels.
+    /// </summary>
     internal static class ReliableChannelConsts
     {
-        internal const byte RawChannel = 1;
-        internal const byte ReliableChannel = 2;
-        internal const byte ReliableOrderedChannel = 3;
-        internal const byte SequencedChannel = 4;
+        /// <summary>
+        /// RawChannel Id.
+        /// </summary>
+        internal const byte RawChannel = 252;
+
+        /// <summary>
+        /// ReliableChannel Id.
+        /// </summary>
+        internal const byte ReliableChannel = 253;
+
+        /// <summary>
+        /// ReliableOrderedChannel Id.
+        /// </summary>
+        internal const byte ReliableOrderedChannel = 254;
+
+        /// <summary>
+        /// SequencedChannel Id.
+        /// </summary>
+        internal const byte SequencedChannel = 255;
     }
 }

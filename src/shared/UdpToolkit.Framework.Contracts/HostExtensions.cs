@@ -1,11 +1,26 @@
-namespace UdpToolkit.Framework
+namespace UdpToolkit.Framework.Contracts
 {
     using System;
-    using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Extensions for creating subscriptions on events, with broadcasting (Server/MasterClient semantic).
+    /// </summary>
     public static class HostExtensions
     {
+        /// <summary>
+        /// Subscribing on the `event`.
+        /// </summary>
+        /// <param name="host">Instance of host.</param>
+        /// <param name="onEvent">Callback for `event`.</param>
+        /// <param name="broadcastMode">Broadcast mode.</param>
+        /// <param name="onTimeout">Timeout callback.</param>
+        /// <typeparam name="TEvent">
+        /// Type of user-defined event.
+        /// </typeparam>
+        /// <exception cref="ArgumentNullException">
+        /// If host instance is null.
+        /// </exception>
         public static void On<TEvent>(
             this IHost host,
             Func<Guid, IpV4Address, TEvent, int> onEvent,
@@ -33,10 +48,18 @@ namespace UdpToolkit.Framework
                 onTimeout: onTimeout));
         }
 
+        /// <summary>
+        /// Subscribing on the `event`.
+        /// </summary>
+        /// <param name="host">Instance of host.</param>
+        /// <param name="onEvent">Callback for `event`.</param>
+        /// <param name="onTimeout">Timeout callback.</param>
+        /// <typeparam name="TInEvent">Type of user-defined input event.</typeparam>
+        /// <typeparam name="TOutEvent">Type of user-defined output event.</typeparam>
+        /// <exception cref="ArgumentNullException">If host instance is null.</exception>
         public static void On<TInEvent, TOutEvent>(
             this IHost host,
             Func<Guid, IpV4Address, TInEvent, IRoomManager, OutEvent<TOutEvent>> onEvent,
-            BroadcastMode broadcastMode,
             Action<Guid> onTimeout = null)
         {
 #pragma warning disable
@@ -61,6 +84,19 @@ namespace UdpToolkit.Framework
                 onTimeout: onTimeout));
         }
 
+        /// <summary>
+        /// Subscribing on the `event`.
+        /// </summary>
+        /// <param name="host">Instance of host.</param>
+        /// <param name="onEvent">Callback for `event`.</param>
+        /// <param name="broadcastMode">Broadcast mode.</param>
+        /// <param name="onTimeout">Timeout callback.</param>
+        /// <typeparam name="TEvent">
+        /// Type of user-defined event.
+        /// </typeparam>
+        /// <exception cref="ArgumentNullException">
+        /// If host instance is null.
+        /// </exception>
         public static void On<TEvent>(
             this IHost host,
             Func<Guid, IpV4Address, TEvent, IRoomManager, int> onEvent,

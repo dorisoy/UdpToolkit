@@ -8,6 +8,7 @@ namespace UdpToolkit.Network.Connections
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Utils;
 
+    /// <inheritdoc />
     internal sealed class ConnectionPool : IConnectionPool
     {
         private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ConcurrentDictionary<Guid, IConnection>();
@@ -19,6 +20,13 @@ namespace UdpToolkit.Network.Connections
 
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConnectionPool"/> class.
+        /// </summary>
+        /// <param name="dateTimeProvider">Instance of date time provider.</param>
+        /// <param name="logger">Instance of logger.</param>
+        /// <param name="settings">Instance of settings.</param>
+        /// <param name="connectionFactory">Instance of connection factory.</param>
         internal ConnectionPool(
             IDateTimeProvider dateTimeProvider,
             IUdpToolkitLogger logger,
@@ -36,23 +44,29 @@ namespace UdpToolkit.Network.Connections
                 period: settings.ConnectionsCleanupFrequency);
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="ConnectionPool"/> class.
+        /// </summary>
         ~ConnectionPool()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc />
         public void Remove(
             IConnection connection)
         {
             _connections.TryRemove(connection.ConnectionId, out _);
         }
 
+        /// <inheritdoc />
         public bool TryGetConnection(
             Guid connectionId,
             out IConnection connection)
@@ -60,6 +74,7 @@ namespace UdpToolkit.Network.Connections
             return _connections.TryGetValue(connectionId, out connection);
         }
 
+        /// <inheritdoc />
         public IConnection GetOrAdd(
             Guid connectionId,
             bool keepAlive,
@@ -73,21 +88,6 @@ namespace UdpToolkit.Network.Connections
                 ipAddress: ipV4Address);
 
             return _connections.GetOrAdd(connectionId, newConnection);
-        }
-
-        public void Apply(
-            Action<IConnection> action)
-        {
-            for (var i = 0; i < _connections.Count; i++)
-            {
-                var pair = _connections.ElementAt(i);
-                if (pair.Value == null)
-                {
-                    continue;
-                }
-
-                action(pair.Value);
-            }
         }
 
         private void ScanForCleaningInactiveConnections(object state)

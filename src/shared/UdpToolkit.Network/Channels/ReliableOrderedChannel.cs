@@ -1,16 +1,25 @@
 namespace UdpToolkit.Network.Channels
 {
     using System;
-    using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Network.Contracts.Channels;
 
-    [ExcludeFromCodeCoverage]
+    /// <summary>
+    /// Reliable ordered UDP channel.
+    /// </summary>
     public sealed class ReliableOrderedChannel : IChannel
     {
+        /// <summary>
+        /// Reserved chanel identifier.
+        /// </summary>
+        public static readonly byte Id = ReliableChannelConsts.ReliableOrderedChannel;
+
+        /// <inheritdoc />
         public bool IsReliable { get; } = true;
 
-        public byte ChannelId { get; } = ReliableChannelConsts.ReliableOrderedChannel;
+        /// <inheritdoc />
+        public byte ChannelId { get; } = Id;
 
+        /// <inheritdoc />
         public bool HandleInputPacket(
             ushort id,
             uint acks)
@@ -18,12 +27,14 @@ namespace UdpToolkit.Network.Channels
             throw new System.NotImplementedException();
         }
 
+        /// <inheritdoc />
         public bool IsDelivered(
             ushort id)
         {
             throw new NotImplementedException();
         }
 
+        /// <inheritdoc />
         public void HandleOutputPacket(
             out ushort id,
             out uint acks)
@@ -31,6 +42,7 @@ namespace UdpToolkit.Network.Channels
             throw new System.NotImplementedException();
         }
 
+        /// <inheritdoc />
         public bool HandleAck(
             ushort id,
             uint acks)

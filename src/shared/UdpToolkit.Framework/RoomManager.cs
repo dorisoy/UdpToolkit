@@ -9,6 +9,9 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// RoomManager.
+    /// </summary>
     public sealed class RoomManager : IRoomManager
     {
         private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
@@ -19,6 +22,13 @@ namespace UdpToolkit.Framework
 
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="RoomManager"/> class.
+        /// </summary>
+        /// <param name="dateTimeProvider">Instance of date time provider.</param>
+        /// <param name="roomTtl">Room ttl.</param>
+        /// <param name="scanFrequency">Scan frequency for cleanup inactive rooms.</param>
+        /// <param name="logger">Instance of logger.</param>
         public RoomManager(
             IDateTimeProvider dateTimeProvider,
             TimeSpan roomTtl,
@@ -35,17 +45,22 @@ namespace UdpToolkit.Framework
                 period: scanFrequency);
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="RoomManager"/> class.
+        /// </summary>
         ~RoomManager()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc />
         public void JoinOrCreate(
             int roomId,
             Guid connectionId,
@@ -76,12 +91,14 @@ namespace UdpToolkit.Framework
                 });
         }
 
+        /// <inheritdoc />
         public Room GetRoom(int roomId)
         {
             _rooms.TryGetValue(roomId, out var room);
             return room;
         }
 
+        /// <inheritdoc />
         public void Leave(
             int roomId,
             Guid connectionId)

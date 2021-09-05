@@ -7,10 +7,22 @@
     using Microsoft.CodeAnalysis.CSharp;
     using Microsoft.CodeAnalysis.CSharp.Syntax;
 
+    /// <summary>
+    /// Shared code generator part between Roslyn and source generator.
+    /// </summary>
     public static class SyntaxTreesProcessor
     {
+        /// <summary>
+        /// Generated file name.
+        /// </summary>
         public const string GeneratedFileName = "HostWorkerGenerated.cs";
 
+        /// <summary>
+        /// Process.
+        /// </summary>
+        /// <param name="syntaxTrees">The parsed representations of a source documents.</param>
+        /// <param name="filterByAttribute">Flag determines the needs filtering of classes by annotation attribute.</param>
+        /// <returns>String representation of generated class.</returns>
         public static string Process(
             IEnumerable<SyntaxTree> syntaxTrees,
             bool filterByAttribute)

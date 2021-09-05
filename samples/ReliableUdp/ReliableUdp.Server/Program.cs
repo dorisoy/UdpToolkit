@@ -61,8 +61,7 @@
                         delayInMs: 20_000,
                         broadcastMode: BroadcastMode.Room,
                         channelId: ReliableChannel.Id);
-                },
-                broadcastMode: BroadcastMode.None);
+                });
 
             host.Run();
 

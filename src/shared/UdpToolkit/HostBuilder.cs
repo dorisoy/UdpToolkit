@@ -14,10 +14,18 @@ namespace UdpToolkit
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Host builder.
+    /// </summary>
     public sealed class HostBuilder : IHostBuilder
     {
         private bool _clientConfigured = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="HostBuilder"/> class.
+        /// </summary>
+        /// <param name="hostClientSettings">Host client settings.</param>
+        /// <param name="networkSettings">Network settings.</param>
         public HostBuilder(
             HostClientSettings hostClientSettings,
             INetworkSettings networkSettings)
@@ -34,6 +42,7 @@ namespace UdpToolkit
 
         private IHostWorker HostWorkerInternal { get; set; }
 
+        /// <inheritdoc/>
         public IHostBuilder ConfigureNetwork(
             Action<INetworkSettings> configurator)
         {
@@ -42,6 +51,7 @@ namespace UdpToolkit
             return this;
         }
 
+        /// <inheritdoc/>
         public IHostBuilder ConfigureHost(
             HostSettings settings,
             Action<HostSettings> configurator)
@@ -52,7 +62,9 @@ namespace UdpToolkit
             return this;
         }
 
-        public IHostBuilder ConfigureHostClient(Action<HostClientSettings> configurator)
+        /// <inheritdoc/>
+        public IHostBuilder ConfigureHostClient(
+            Action<HostClientSettings> configurator)
         {
             configurator(HostClientSettings);
             _clientConfigured = true;
@@ -60,13 +72,16 @@ namespace UdpToolkit
             return this;
         }
 
-        public IHostBuilder BootstrapWorker(IHostWorker hostWorker)
+        /// <inheritdoc/>
+        public IHostBuilder BootstrapWorker(
+            IHostWorker hostWorker)
         {
             HostWorkerInternal = hostWorker;
 
             return this;
         }
 
+        /// <inheritdoc/>
         public IHost Build()
         {
             ValidateSettings(HostSettings);
@@ -165,7 +180,7 @@ namespace UdpToolkit
                     inQueueDispatcher
                         .Dispatch(connectionId)
                         .Produce(
-                            @event: new InPacket(
+                            item: new InPacket(
                                 channelId: channelId,
                                 payload: payload,
                                 connectionId: connectionId,
@@ -178,7 +193,7 @@ namespace UdpToolkit
                     inQueueDispatcher
                         .Dispatch(connectionId)
                         .Produce(
-                            @event: new InPacket(
+                            item: new InPacket(
                                 channelId: channelId,
                                 payload: payload,
                                 connectionId: connectionId,
@@ -282,7 +297,7 @@ namespace UdpToolkit
                 executor: HostSettings.Executor,
                 hostClient: hostClient,
                 inQueueDispatcher: inQueueDispatcher,
-                hostOutQueueDispatcher: outQueueDispatcher,
+                outQueueDispatcher: outQueueDispatcher,
                 toDispose: toDispose);
         }
 

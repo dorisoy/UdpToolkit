@@ -2,8 +2,15 @@ namespace UdpToolkit.Network.Sockets
 {
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Abstraction for native socket creation.
+    /// </summary>
+    /// <remarks>
+    /// Works not for all platforms.
+    /// </remarks>
     public sealed class NativeSocketFactory : ISocketFactory
     {
+        /// <inheritdoc />
         public ISocket Create(
             IpV4Address ipV4Address)
         {

@@ -8,7 +8,9 @@ namespace UdpToolkit.Framework
     using System.Runtime.CompilerServices;
 
     /// <summary>
+    /// Algorithm description:
     /// https://en.wikipedia.org/wiki/MurmurHash
+    /// Original version ported to C# from kafka:
     /// https://github.com/apache/kafka/blob/2.8/streams/src/main/java/org/apache/kafka/streams/state/internals/Murmur3.java#L140.
     /// </summary>
     public static class MurMurHash
@@ -21,6 +23,11 @@ namespace UdpToolkit.Framework
         private static int R2_32 = 13;
         private static int R1_32 = 15;
 
+        /// <summary>
+        /// MurMur hash implementation.
+        /// </summary>
+        /// <param name="guid">Any guid.</param>
+        /// <returns>Hash.</returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Hash3_x86_32(Guid guid)
         {

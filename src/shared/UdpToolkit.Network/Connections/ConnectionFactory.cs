@@ -5,16 +5,22 @@ namespace UdpToolkit.Network.Connections
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <inheritdoc />
     internal sealed class ConnectionFactory : IConnectionFactory
     {
         private readonly IChannelsFactory _channelsFactory;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConnectionFactory"/> class.
+        /// </summary>
+        /// <param name="channelsFactory">Instance of channels factory.</param>
         internal ConnectionFactory(
             IChannelsFactory channelsFactory)
         {
             _channelsFactory = channelsFactory;
         }
 
+        /// <inheritdoc />
         public IConnection Create(
             Guid connectionId,
             bool keepAlive,

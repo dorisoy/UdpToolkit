@@ -6,6 +6,7 @@
         <LangVersion>9</LangVersion>
         <IsPackable>true</IsPackable>
         <PackAsTool>true</PackAsTool>
+        <NoWarn>SA0001, SA1600</NoWarn>
         <AssemblyName>udptoolkit-cli</AssemblyName>
         <ToolCommandName>udptoolkit-cli</ToolCommandName>
 

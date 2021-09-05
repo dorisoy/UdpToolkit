@@ -6,6 +6,9 @@ namespace UdpToolkit.Network.Sockets
     using System.Net.Sockets;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Managed .NET socket implementation of ISocket.
+    /// </summary>
     public sealed class ManagedSocket : ISocket
     {
         private readonly Socket _socket;
@@ -14,6 +17,10 @@ namespace UdpToolkit.Network.Sockets
         private EndPoint _remoteIp = new IPEndPoint(IPAddress.Any, 0);
         private bool _disposed;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ManagedSocket"/> class.
+        /// </summary>
+        /// <param name="socket">Instance of .NET socket.</param>
         public ManagedSocket(
             Socket socket)
         {
@@ -21,21 +28,27 @@ namespace UdpToolkit.Network.Sockets
             _sockets = new List<Socket>();
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="ManagedSocket"/> class.
+        /// </summary>
         ~ManagedSocket()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
         }
 
+        /// <inheritdoc />
         public IpV4Address GetLocalIp()
         {
             return ((IPEndPoint)_socket.LocalEndPoint).ToIp();
         }
 
+        /// <inheritdoc />
         public int ReceiveFrom(ref IpV4Address address, byte[] buffer, int length)
         {
             if (_sockets.Count == 0)
@@ -68,6 +81,7 @@ namespace UdpToolkit.Network.Sockets
             return bytes;
         }
 
+        /// <inheritdoc />
         public int Send(ref IpV4Address address, byte[] buffer, int length)
         {
             try
@@ -82,12 +96,14 @@ namespace UdpToolkit.Network.Sockets
             return 0;
         }
 
+        /// <inheritdoc />
         public int Bind(ref IpV4Address address)
         {
             _socket.Bind(new IPEndPoint(new IPAddress(address.Address), address.Port));
             return 1;
         }
 
+        /// <inheritdoc />
         public int Poll(long timeout)
         {
             try
@@ -107,12 +123,14 @@ namespace UdpToolkit.Network.Sockets
             return 0;
         }
 
+        /// <inheritdoc />
         public int SetNonBlocking()
         {
             _socket.Blocking = false;
             return 1;
         }
 
+        /// <inheritdoc />
         public void Close()
         {
             Dispose(true);

@@ -13,6 +13,7 @@ namespace UdpToolkit.Network.Clients
     using UdpToolkit.Network.Serialization;
     using UdpToolkit.Network.Utils;
 
+    /// <inheritdoc />
     internal sealed unsafe class UdpClient : IUdpClient
     {
         private static readonly int NetworkHeaderSize = sizeof(NetworkHeader);
@@ -27,6 +28,16 @@ namespace UdpToolkit.Network.Clients
 
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="UdpClient"/> class.
+        /// </summary>
+        /// <param name="connectionPool">Instance of connection pool.</param>
+        /// <param name="logger">Instance of logger.</param>
+        /// <param name="dateTimeProvider">Instance of date time provider.</param>
+        /// <param name="client">Instance of socket.</param>
+        /// <param name="resendQueue">Instance of resend queue.</param>
+        /// <param name="settings">Instance of settings.</param>
+        /// <param name="connectionIdFactory">Instance of connection id factory.</param>
         internal UdpClient(
             IConnectionPool connectionPool,
             IUdpToolkitLogger logger,
@@ -45,35 +56,46 @@ namespace UdpToolkit.Network.Clients
             _connectionIdFactory = connectionIdFactory;
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="UdpClient"/> class.
+        /// </summary>
         ~UdpClient()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid, byte[], byte> OnPacketReceived;
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid, byte[], byte> OnPacketExpired;
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;
 
+        /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnDisconnected;
 
+        /// <inheritdoc />
         public event Action<Guid, TimeSpan> OnHeartbeat;
 
         private Guid? ConnectionId { get; set; }
 
+        /// <inheritdoc />
         public bool IsConnected(out Guid connectionId)
         {
             connectionId = ConnectionId ?? default;
             return ConnectionId.HasValue;
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc />
         public unsafe void Connect(
             IpV4Address ipV4Address)
         {
@@ -86,7 +108,7 @@ namespace UdpToolkit.Network.Clients
                 ipV4Address: _client.GetLocalIp());
 
             connection
-                .GetOutcomingChannel(ReliableChannel.Id)
+                .GetOutgoingChannel(ReliableChannel.Id)
                 .HandleOutputPacket(out var id, out var acks);
 
             var networkHeader = new NetworkHeader(
@@ -117,6 +139,7 @@ namespace UdpToolkit.Network.Clients
                     channelId: networkHeader.ChannelId));
         }
 
+        /// <inheritdoc />
         public unsafe void Disconnect(
             IpV4Address ipV4Address)
         {
@@ -130,7 +153,7 @@ namespace UdpToolkit.Network.Clients
             if (_connectionPool.TryGetConnection(ConnectionId.Value, connection: out var connection))
             {
                 connection
-                    .GetOutcomingChannel(ReliableChannel.Id)
+                    .GetOutgoingChannel(ReliableChannel.Id)
                     .HandleOutputPacket(out var id, out var acks);
 
                 var networkHeader = new NetworkHeader(
@@ -162,6 +185,7 @@ namespace UdpToolkit.Network.Clients
             }
         }
 
+        /// <inheritdoc />
         public unsafe void Heartbeat(
             IpV4Address ipV4Address)
         {
@@ -177,7 +201,7 @@ namespace UdpToolkit.Network.Clients
 #endif
 
                 connection
-                    .GetOutcomingChannel(ReliableChannel.Id)
+                    .GetOutgoingChannel(ReliableChannel.Id)
                     .HandleOutputPacket(out var id, out var acks);
 
                 connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
@@ -197,11 +221,12 @@ namespace UdpToolkit.Network.Clients
             }
         }
 
+        /// <inheritdoc />
         public unsafe void Send(
             Guid connectionId,
             byte channelId,
             byte[] bytes,
-            IpV4Address destination)
+            IpV4Address ipV4Address)
         {
             if (NetworkHeaderSize + bytes.Length > _settings.MtuSizeLimit)
             {
@@ -213,7 +238,7 @@ namespace UdpToolkit.Network.Clients
             if (_connectionPool.TryGetConnection(connectionId, out var connection))
             {
                 var channel = connection
-                    .GetOutcomingChannel(channelId: channelId);
+                    .GetOutgoingChannel(channelId: channelId);
 
                 channel
                     .HandleOutputPacket(out var id, out var acks);
@@ -233,10 +258,10 @@ namespace UdpToolkit.Network.Clients
                 Buffer.BlockCopy(bytes, 0, buffer, nhBuffer.Length, bytes.Length);
 
 #if DEBUG
-                _logger.Debug($"[UdpToolkit.Network] Sending message to: {destination} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+                _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
 #endif
 
-                _client.Send(ref destination, buffer, buffer.Length);
+                _client.Send(ref ipV4Address, buffer, buffer.Length);
 
                 if (channel.IsReliable)
                 {
@@ -246,7 +271,7 @@ namespace UdpToolkit.Network.Clients
                             packetType: networkHeader.PacketType,
                             connectionId: connection.ConnectionId,
                             payload: bytes,
-                            to: destination,
+                            to: ipV4Address,
                             createdAt: _dateTimeProvider.GetUtcNow(),
                             id: id,
                             channelId: channelId));
@@ -254,6 +279,7 @@ namespace UdpToolkit.Network.Clients
             }
         }
 
+        /// <inheritdoc />
         public void StartReceive(
             CancellationToken cancellationToken)
         {
@@ -266,7 +292,8 @@ namespace UdpToolkit.Network.Clients
 
             while (!cancellationToken.IsCancellationRequested)
             {
-                if (_client.Poll(_settings.PollFrequency) > 0)
+                var result = _client.Poll(_settings.PollFrequency);
+                if (result > 0)
                 {
                     var receivedBytes = 0;
                     while ((receivedBytes = _client.ReceiveFrom(ref remoteIp, buffer, buffer.Length)) > 0)
@@ -400,7 +427,7 @@ namespace UdpToolkit.Network.Clients
             NetworkHeader networkHeader)
         {
             return connection
-                .GetOutcomingChannel(networkHeader.ChannelId)
+                .GetOutgoingChannel(networkHeader.ChannelId)
                 .HandleAck(networkHeader.Id, networkHeader.Acks);
         }
 
@@ -484,7 +511,7 @@ namespace UdpToolkit.Network.Clients
                 var pendingPacket = resendQueue[i];
 
                 var isDelivered = connection
-                    .GetOutcomingChannel(pendingPacket.ChannelId)
+                    .GetOutgoingChannel(pendingPacket.ChannelId)
                     .IsDelivered(pendingPacket.Id);
 
                 var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > _settings.ResendTimeout;

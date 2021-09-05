@@ -4,6 +4,7 @@
         <TargetFramework>netstandard2.0</TargetFramework>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+        <NoWarn>SA0001, SA1600</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>

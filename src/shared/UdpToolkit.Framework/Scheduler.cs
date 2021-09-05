@@ -1,11 +1,15 @@
-namespace UdpToolkit.Framework.Contracts
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
     using System.Linq;
     using System.Threading;
+    using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
 
+    /// <summary>
+    /// Scheduler, implementation for sending delayed packets.
+    /// </summary>
     public sealed class Scheduler : IScheduler
     {
         private readonly IRoomManager _roomManager;
@@ -14,6 +18,12 @@ namespace UdpToolkit.Framework.Contracts
         private readonly ConcurrentDictionary<TimerKey, Lazy<Timer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<Timer>>();
         private bool _disposed = false;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Scheduler"/> class.
+        /// </summary>
+        /// <param name="logger">Logger.</param>
+        /// <param name="outQueueDispatcher">Queue dispatcher.</param>
+        /// <param name="roomManager">Room manager.</param>
         public Scheduler(
             IUdpToolkitLogger logger,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
@@ -24,17 +34,22 @@ namespace UdpToolkit.Framework.Contracts
             _roomManager = roomManager;
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="Scheduler"/> class.
+        /// </summary>
         ~Scheduler()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(true);
             GC.SuppressFinalize(this);
         }
 
+        /// <inheritdoc/>
         public void Schedule<TEvent>(
             TEvent @event,
             Guid caller,

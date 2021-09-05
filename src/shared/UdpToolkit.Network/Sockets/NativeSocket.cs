@@ -3,6 +3,9 @@ namespace UdpToolkit.Network.Sockets
     using System.Runtime.InteropServices;
     using UdpToolkit.Network.Contracts.Sockets;
 
+    /// <summary>
+    /// Native socket implementation of ISocket.
+    /// </summary>
     public sealed class NativeSocket : ISocket
     {
         private const string LibName = "udp_toolkit_native";
@@ -11,34 +14,45 @@ namespace UdpToolkit.Network.Sockets
         private int _socket;
         private bool _disposed;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="NativeSocket"/> class.
+        /// </summary>
         public NativeSocket()
         {
             _socket = CreateNative();
             StartupNative();
         }
 
+        /// <summary>
+        /// Finalizes an instance of the <see cref="NativeSocket"/> class.
+        /// </summary>
         ~NativeSocket()
         {
             Dispose(false);
         }
 
+        /// <inheritdoc />
         public void Dispose()
         {
             Dispose(true);
         }
 
+        /// <inheritdoc />
         public IpV4Address GetLocalIp() => _me;
 
+        /// <inheritdoc />
         public int ReceiveFrom(ref IpV4Address address, byte[] buffer, int length)
         {
             return ReceiveNative(_socket, ref address, buffer, length);
         }
 
+        /// <inheritdoc />
         public int Send(ref IpV4Address address, byte[] buffer, int length)
         {
             return SendNative(_socket, ref address, buffer, length);
         }
 
+        /// <inheritdoc />
         public int Bind(ref IpV4Address address)
         {
             _me = new IpV4Address(address.Address, address.Port);
@@ -46,16 +60,19 @@ namespace UdpToolkit.Network.Sockets
             return BindNative(_socket, ref address);
         }
 
+        /// <inheritdoc />
         public int Poll(long timeout)
         {
             return PollNative(_socket, timeout);
         }
 
+        /// <inheritdoc />
         public int SetNonBlocking()
         {
             return SetNonBlockingNative(_socket);
         }
 
+        /// <inheritdoc />
         public void Close()
         {
             CloseNative(ref _socket);

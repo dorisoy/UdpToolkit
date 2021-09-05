@@ -5,15 +5,20 @@ namespace UdpToolkit.Network.Queues
     using System.Collections.Generic;
     using UdpToolkit.Network.Packets;
 
+    /// <inheritdoc />
     internal sealed class ResendQueue : IResendQueue
     {
         private readonly ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>> _resendQueue;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ResendQueue"/> class.
+        /// </summary>
         internal ResendQueue()
         {
             _resendQueue = new ConcurrentDictionary<Guid, Lazy<List<PendingPacket>>>();
         }
 
+        /// <inheritdoc />
         public void Add(
             Guid connectionId,
             PendingPacket pendingPacket)
@@ -35,6 +40,7 @@ namespace UdpToolkit.Network.Queues
             _ = lazyQueue.Value;
         }
 
+        /// <inheritdoc />
         public List<PendingPacket> Get(
             Guid connectionId)
         {

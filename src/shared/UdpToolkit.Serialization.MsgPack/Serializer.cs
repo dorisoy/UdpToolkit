@@ -5,9 +5,9 @@
 
     public sealed class Serializer : ISerializer
     {
-        public byte[] Serialize<T>(T @event)
+        public byte[] Serialize<T>(T item)
         {
-            return MessagePackSerializer.Serialize(@event);
+            return MessagePackSerializer.Serialize(item);
         }
 
         public T Deserialize<T>(ArraySegment<byte> bytes)
