@@ -10,8 +10,4 @@
     <ProjectReference Include="..\UdpToolkit.Network.Contracts\UdpToolkit.Network.Contracts.csproj" />
     <ProjectReference Include="..\UdpToolkit.Serialization\UdpToolkit.Serialization.csproj" />
   </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Subscriptions" />
-  </ItemGroup>
 </Project>
