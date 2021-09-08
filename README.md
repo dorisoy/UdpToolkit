@@ -1,7 +1,8 @@
 # UdpToolkit
 
-`UdpToolkit` - library for building simple client/server applications communicated over UDP.
-Library implements own expandable mechanism for sending reliable UDP datagrams.
+`UdpToolkit` - library for building client/server applications communicated over UDP.
+
+[Docs](https://udptoolkit.github.io/).
 
 ![cudes](https://user-images.githubusercontent.com/11910763/127455450-ce2f6b6a-abc9-4ccb-b030-a5b12ad23792.gif)
 
@@ -21,6 +22,6 @@ This project still under development and I see several stages for him:
 - Fully asynchronous via callbacks not freeze UI thread
 - Unity support via `*.unitypackage`
 - Dependency free
-- Channeling (Reliable, Sequenced)
+- Channeling (Reliable, Sequenced, Custom)
 - P2P support
 - Native sockets support (win/mac/linux)

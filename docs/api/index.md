@@ -1,2 +1,2 @@
-# PLACEHOLDER
-TODO: Add .NET projects to the *src* folder and run `docfx` to generate **REAL** *API Documentation*!
+# This documentation is auto-generated from XML annotations from code.
+[GitHub](https://github.com/UdpToolkit/UdpToolkit/tree/develop).
