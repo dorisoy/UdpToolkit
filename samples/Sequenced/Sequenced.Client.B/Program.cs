@@ -95,8 +95,7 @@
         private static IHost BuildHost()
         {
             var hostSettings = new HostSettings(
-                serializer: new Serializer(),
-                loggerFactory: new SerilogLoggerFactory());
+                serializer: new Serializer());
 
             return UdpHost
                 .CreateHostBuilder()
@@ -106,6 +105,7 @@
                     settings.HostPorts = new[] { 5000, 5001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
+                    settings.LoggerFactory = new SerilogLoggerFactory();
                 })
                 .ConfigureHostClient((settings) =>
                 {

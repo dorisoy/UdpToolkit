@@ -4,7 +4,7 @@ namespace UdpToolkit.Framework.Contracts
     using UdpToolkit.Framework.Contracts.Settings;
 
     /// <summary>
-    /// Host builder.
+    /// Abstraction for host configuration in a fluent style.
     /// </summary>
     public interface IHostBuilder
     {

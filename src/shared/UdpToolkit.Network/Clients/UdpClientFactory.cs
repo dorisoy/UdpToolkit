@@ -15,7 +15,7 @@ namespace UdpToolkit.Network.Clients
         private readonly IConnectionIdFactory _connectionIdFactory;
         private readonly UdpClientSettings _udpClientSettings;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IUdpToolkitLoggerFactory _loggerFactory;
+        private readonly ILoggerFactory _loggerFactory;
         private readonly Lazy<IConnectionPool> _lazyConnectionPool;
         private readonly Lazy<IResendQueue> _lazyResendQueue;
 
@@ -30,7 +30,7 @@ namespace UdpToolkit.Network.Clients
         public UdpClientFactory(
             UdpClientSettings udpClientSettings,
             ConnectionPoolSettings connectionPoolSettings,
-            IUdpToolkitLoggerFactory loggerFactory,
+            ILoggerFactory loggerFactory,
             IConnectionIdFactory connectionIdFactory,
             IDateTimeProvider dateTimeProvider = null)
         {

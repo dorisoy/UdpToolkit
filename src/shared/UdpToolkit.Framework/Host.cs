@@ -15,7 +15,7 @@ namespace UdpToolkit.Framework
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IExecutor _executor;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
         private readonly IHostClient _hostClient;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
         private readonly IQueueDispatcher<InPacket> _inQueueDispatcher;
@@ -36,7 +36,7 @@ namespace UdpToolkit.Framework
         /// <param name="toDispose">Array of host resources for disposing.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         public Host(
-            IUdpToolkitLogger logger,
+            ILogger logger,
             IHostClient hostClient,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
             IQueueDispatcher<InPacket> inQueueDispatcher,

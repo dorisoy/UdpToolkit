@@ -20,10 +20,10 @@ jobs:
           dotnet-version: '5.0.100'
 
       - name: Build project
-        run: ./tools/build.sh
+        run: ./scripts/build.sh
 
       - name: Pack nugets
-        run: ./tools/pack_nugets.sh
+        run: ./scripts/pack_nugets.sh
 
       - name: Decrypt the license file
         run: openssl aes-256-cbc -d -in .github/Unity_v2019.x.ulf.enc -k ${{ secrets.UNITY_LICENSE_DECRYPT_KEY }} >> .github/Unity_v2019.x.ulf
@@ -32,7 +32,7 @@ jobs:
         run: /opt/Unity/Editor/Unity -quit -batchmode -nographics -silent-crashes -logFile -manualLicenseFile .github/Unity_v2019.x.ulf || exit 0
 
       - name: Publish UdpToolkit Unitypackage
-        run: ./tools/publish_unitypckage.sh
+        run: ./scripts/publish_unitypckage.sh
 
       - name: Upload Unitypackage Build
         uses: actions/upload-artifact@v2
@@ -42,4 +42,4 @@ jobs:
           path: ./unity_package/UdpToolkit.${{ env.PACKAGE_VERSION }}.unitypackage
 
       - name: Publish nugets
-        run: ./tools/push_nuget.sh
+        run: ./scripts/push_nuget.sh

@@ -3,19 +3,15 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Numerics;
     using ReliableUdp.Contracts;
-    using Serilog;
-    using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
-    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
-    using UdpToolkit.Serialization.MsgPack;
-    using UnityEngine;
 
     public static class Program
     {
@@ -31,11 +27,6 @@
 
         public static void Main()
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
-                .WriteTo.Console()
-                .CreateLogger();
-
             var host = BuildHost();
 
             host.On<JoinEvent, StartGame>(
@@ -44,7 +35,7 @@
                     roomManager
                         .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
 
                     var peers = roomManager
                         .GetRoom(joinEvent.RoomId)
@@ -71,8 +62,7 @@
         private static IHost BuildHost()
         {
             var hostSettings = new HostSettings(
-                serializer: new Serializer(),
-                loggerFactory: new SerilogLoggerFactory());
+                serializer: new NetJsonSerializer());
 
             return UdpHost
                 .CreateHostBuilder()

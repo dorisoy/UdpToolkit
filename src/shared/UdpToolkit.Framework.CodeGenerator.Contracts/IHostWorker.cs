@@ -6,14 +6,14 @@ namespace UdpToolkit.Framework.Contracts
     using UdpToolkit.Serialization;
 
     /// <summary>
-    /// Abstraction for processing input and output host events.
+    /// Abstraction for processing input and output host packets.
     /// </summary>
     public interface IHostWorker : IDisposable
     {
         /// <summary>
         /// Gets or sets instance of logger.
         /// </summary>
-        IUdpToolkitLogger Logger { get; set; }
+        ILogger Logger { get; set; }
 
         /// <summary>
         /// Gets or sets instance of room manager.

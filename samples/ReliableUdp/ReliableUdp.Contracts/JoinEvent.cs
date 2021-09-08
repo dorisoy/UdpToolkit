@@ -1,10 +1,8 @@
 namespace ReliableUdp.Contracts
 {
-    using MessagePack;
     using UdpToolkit.Annotations;
 
     [UdpEvent]
-    [MessagePackObject]
     public class JoinEvent
     {
         public JoinEvent(
@@ -15,10 +13,8 @@ namespace ReliableUdp.Contracts
             Nickname = nickname;
         }
 
-        [Key(0)]
         public int RoomId { get; set; }
 
-        [Key(1)]
         public string Nickname { get; set; }
     }
 }

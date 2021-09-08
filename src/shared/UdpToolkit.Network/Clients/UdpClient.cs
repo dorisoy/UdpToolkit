@@ -22,7 +22,7 @@ namespace UdpToolkit.Network.Clients
         private readonly IConnectionIdFactory _connectionIdFactory;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISocket _client;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
         private readonly IConnectionPool _connectionPool;
         private readonly IResendQueue _resendQueue;
 
@@ -40,7 +40,7 @@ namespace UdpToolkit.Network.Clients
         /// <param name="connectionIdFactory">Instance of connection id factory.</param>
         internal UdpClient(
             IConnectionPool connectionPool,
-            IUdpToolkitLogger logger,
+            ILogger logger,
             IDateTimeProvider dateTimeProvider,
             ISocket client,
             IResendQueue resendQueue,
@@ -121,9 +121,10 @@ namespace UdpToolkit.Network.Clients
             var buffer = new byte[NetworkHeaderSize];
             UnsafeSerialization.Write(buffer: buffer, value: networkHeader);
 
-#if DEBUG
-            _logger.Debug($"[UdpToolkit.Network] Connecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
-#endif
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Network] Connecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+            }
 
             _client.Send(ref ipV4Address, buffer, buffer.Length);
 
@@ -166,9 +167,10 @@ namespace UdpToolkit.Network.Clients
                 var buffer = new byte[NetworkHeaderSize];
                 UnsafeSerialization.Write(buffer: buffer, value: networkHeader);
 
-#if DEBUG
-                _logger.Debug($"[UdpToolkit.Network] Disconnecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
-#endif
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Debug($"[UdpToolkit.Network] Disconnecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+                }
 
                 _client.Send(ref ipV4Address, buffer, buffer.Length);
 
@@ -196,9 +198,10 @@ namespace UdpToolkit.Network.Clients
 
             if (_connectionPool.TryGetConnection(ConnectionId.Value, connection: out var connection))
             {
-#if DEBUG
-                _logger.Debug($"[UdpToolkit.Network] Heartbeat from: {_client.GetLocalIp()} to: {ipV4Address}");
-#endif
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Debug($"[UdpToolkit.Network] Heartbeat from: {_client.GetLocalIp()} to: {ipV4Address}");
+                }
 
                 connection
                     .GetOutgoingChannel(ReliableChannel.Id)
@@ -257,9 +260,10 @@ namespace UdpToolkit.Network.Clients
                 Buffer.BlockCopy(nhBuffer, 0, buffer, 0, nhBuffer.Length);
                 Buffer.BlockCopy(bytes, 0, buffer, nhBuffer.Length, bytes.Length);
 
-#if DEBUG
-                _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
-#endif
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+                }
 
                 _client.Send(ref ipV4Address, buffer, buffer.Length);
 
@@ -283,9 +287,10 @@ namespace UdpToolkit.Network.Clients
         public void StartReceive(
             CancellationToken cancellationToken)
         {
-#if DEBUG
-            _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {_client.GetLocalIp()}");
-#endif
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {_client.GetLocalIp()}");
+            }
 
             var remoteIp = new IpV4Address(0, 0);
             var buffer = new byte[_settings.UdpClientBufferSize];
@@ -322,9 +327,11 @@ namespace UdpToolkit.Network.Clients
                 .AsSpan();
 
             var networkHeader = UnsafeSerialization.Read<NetworkHeader>(headerSpan);
-#if DEBUG
-            _logger.Debug($"[UdpToolkit.Network] Message received from: {remoteIp} bytes length: {receivedBytes}, type: {networkHeader.PacketType}");
-#endif
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Network] Message received from: {remoteIp} bytes length: {receivedBytes}, type: {networkHeader.PacketType}");
+            }
+
             var connectionId = networkHeader.ConnectionId;
 
             if (!TryGetConnection(networkHeader, connectionId, remoteIp, out var connection))
@@ -401,9 +408,11 @@ namespace UdpToolkit.Network.Clients
         {
             if (!_settings.AllowIncomingConnections && networkHeader.PacketType == PacketType.Connect)
             {
-#if DEBUG
-                _logger.Warning($"[UdpToolkit.Network] Attempt connect from: {remoteIp}, incoming connections not allowed");
-#endif
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Warning($"[UdpToolkit.Network] Attempt connect from: {remoteIp}, incoming connections not allowed");
+                }
+
                 connection = null;
                 return false;
             }
@@ -457,13 +466,11 @@ namespace UdpToolkit.Network.Clients
                     var buffer = new byte[NetworkHeaderSize];
                     UnsafeSerialization.Write(buffer, ackPacket);
 
-#if DEBUG
-                    if (networkHeader.PacketType != PacketType.Heartbeat)
+                    if (_logger.IsEnabled(LogLevel.Debug) && networkHeader.PacketType != PacketType.Heartbeat)
                     {
                         _logger.Debug(
                             $"[UdpToolkit.Network] Resend ack from: - {_client.GetLocalIp()} to: {connection.IpV4Address} packetId: {networkHeader.Id}, packetType {PacketType.Ack}, threadId - {Thread.CurrentThread.ManagedThreadId}");
                     }
-#endif
 
                     var to = connection.IpV4Address;
 
@@ -485,8 +492,7 @@ namespace UdpToolkit.Network.Clients
                 var buffer = new byte[NetworkHeaderSize];
                 UnsafeSerialization.Write(buffer, ackPacket);
 
-#if DEBUG
-                if (networkHeader.PacketType != PacketType.Heartbeat)
+                if (_logger.IsEnabled(LogLevel.Debug) && networkHeader.PacketType != PacketType.Heartbeat)
                 {
                     _logger.Debug(
                         $"[UdpToolkit.Network] " +
@@ -496,7 +502,6 @@ namespace UdpToolkit.Network.Clients
                         $"packetType: {ackPacket.PacketType} " +
                         $"threadId: - {Thread.CurrentThread.ManagedThreadId}");
                 }
-#endif
 
                 _client.Send(ref remoteIp, buffer, buffer.Length);
             }
@@ -517,17 +522,19 @@ namespace UdpToolkit.Network.Clients
                 var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > _settings.ResendTimeout;
                 if (isDelivered || isExpired)
                 {
-#if DEBUG
-                    if (isDelivered)
+                    if (_logger.IsEnabled(LogLevel.Debug))
                     {
-                        _logger.Debug($"[UdpToolkit.Network] Packet delivered {pendingPacket.Id}");
+                        if (isDelivered)
+                        {
+                            _logger.Debug($"[UdpToolkit.Network] Packet delivered {pendingPacket.Id}");
+                        }
+
+                        if (isExpired)
+                        {
+                            _logger.Debug($"[UdpToolkit.Network] Packet expired {pendingPacket.Id}");
+                        }
                     }
 
-                    if (isExpired)
-                    {
-                        _logger.Debug($"[UdpToolkit.Network] Packet expired {pendingPacket.Id}");
-                    }
-#endif
                     resendQueue.RemoveAt(i);
 
                     if (pendingPacket.PacketType == PacketType.UserDefined)
@@ -540,9 +547,10 @@ namespace UdpToolkit.Network.Clients
 
                 var to = pendingPacket.To;
 
-#if DEBUG
-                _logger.Debug($"[UdpToolkit.Network] Resend packet {pendingPacket.Id}|{pendingPacket.PacketType} to {to} ");
-#endif
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Debug($"[UdpToolkit.Network] Resend packet {pendingPacket.Id}|{pendingPacket.PacketType} to {to} ");
+                }
 
                 _client.Send(ref to, pendingPacket.Payload, pendingPacket.Payload.Length);
             }

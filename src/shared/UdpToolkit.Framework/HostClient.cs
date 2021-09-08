@@ -19,7 +19,7 @@ namespace UdpToolkit.Framework
         private readonly HostClientSettingsInternal _hostClientSettingsInternal;
 
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
         private readonly IUdpClient _udpClient;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
 
@@ -38,7 +38,7 @@ namespace UdpToolkit.Framework
         public HostClient(
             HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
-            IUdpToolkitLogger logger,
+            ILogger logger,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
             IQueueDispatcher<OutPacket> outQueueDispatcher)

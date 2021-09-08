@@ -14,9 +14,7 @@ namespace UdpToolkit
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    /// <summary>
-    /// Host builder.
-    /// </summary>
+    /// <inheritdoc />
     public sealed class HostBuilder : IHostBuilder
     {
         private bool _clientConfigured = false;
@@ -253,7 +251,7 @@ namespace UdpToolkit
         private IHost BuildHost(
             IUdpClient[] udpClients,
             IDateTimeProvider dateTimeProvider,
-            IUdpToolkitLoggerFactory loggerFactory,
+            ILoggerFactory loggerFactory,
             IHostClient hostClient,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
             IQueueDispatcher<InPacket> inQueueDispatcher,

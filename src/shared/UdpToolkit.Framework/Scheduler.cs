@@ -14,7 +14,7 @@ namespace UdpToolkit.Framework
     {
         private readonly IRoomManager _roomManager;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
         private readonly ConcurrentDictionary<TimerKey, Lazy<Timer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<Timer>>();
         private bool _disposed = false;
 
@@ -25,7 +25,7 @@ namespace UdpToolkit.Framework
         /// <param name="outQueueDispatcher">Queue dispatcher.</param>
         /// <param name="roomManager">Room manager.</param>
         public Scheduler(
-            IUdpToolkitLogger logger,
+            ILogger logger,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
             IRoomManager roomManager)
         {

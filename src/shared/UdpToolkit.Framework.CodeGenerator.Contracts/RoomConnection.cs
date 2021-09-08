@@ -5,7 +5,7 @@ namespace UdpToolkit.Framework.Contracts
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
-    /// Room connection.
+    /// Information about connection in the room.
     /// </summary>
     public readonly struct RoomConnection
     {

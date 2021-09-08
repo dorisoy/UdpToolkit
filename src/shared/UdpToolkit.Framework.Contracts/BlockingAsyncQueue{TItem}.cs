@@ -14,7 +14,7 @@ namespace UdpToolkit.Framework.Contracts
     {
         private readonly Action<TItem> _action;
         private readonly BlockingCollection<TItem> _input;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
 
         private bool _disposed = false;
 
@@ -27,7 +27,7 @@ namespace UdpToolkit.Framework.Contracts
         public BlockingAsyncQueue(
             int boundedCapacity,
             Action<TItem> action,
-            IUdpToolkitLogger logger)
+            ILogger logger)
         {
             _action = action;
             _logger = logger;

@@ -9,16 +9,14 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Sockets;
 
-    /// <summary>
-    /// RoomManager.
-    /// </summary>
+    /// <inheritdoc />
     public sealed class RoomManager : IRoomManager
     {
         private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _roomTtl;
         private readonly Timer _houseKeeper;
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
 
         private bool _disposed = false;
 
@@ -33,7 +31,7 @@ namespace UdpToolkit.Framework
             IDateTimeProvider dateTimeProvider,
             TimeSpan roomTtl,
             TimeSpan scanFrequency,
-            IUdpToolkitLogger logger)
+            ILogger logger)
         {
             _dateTimeProvider = dateTimeProvider;
             _roomTtl = roomTtl;
@@ -128,9 +126,11 @@ namespace UdpToolkit.Framework
 
         private void ScanForCleaningInactiveConnections(object state)
         {
-#if DEBUG
-            _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive rooms");
-#endif
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive rooms");
+            }
+
             var now = _dateTimeProvider.GetUtcNow();
             for (var i = 0; i < _rooms.Count; i++)
             {

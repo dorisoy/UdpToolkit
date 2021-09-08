@@ -24,13 +24,13 @@ namespace UdpToolkit.Network.Packets
         Heartbeat = 4,
 
         /// <summary>
-        /// Ack packet.
-        /// </summary>
-        Ack = 8,
-
-        /// <summary>
         /// User-defined packet.
         /// </summary>
-        UserDefined = 16,
+        UserDefined = 8,
+
+        /// <summary>
+        /// Ack packet.
+        /// </summary>
+        Ack = 16,
     }
 }

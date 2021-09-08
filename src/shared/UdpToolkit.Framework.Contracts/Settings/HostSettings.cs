@@ -15,13 +15,10 @@ namespace UdpToolkit.Framework.Contracts.Settings
         /// Initializes a new instance of the <see cref="HostSettings"/> class.
         /// </summary>
         /// <param name="serializer">Instance of serializer.</param>
-        /// <param name="loggerFactory">Instance of logger factory.</param>
         public HostSettings(
-            ISerializer serializer,
-            IUdpToolkitLoggerFactory loggerFactory)
+            ISerializer serializer)
         {
             Serializer = serializer;
-            LoggerFactory = loggerFactory;
         }
 
         /// <summary>
@@ -58,9 +55,9 @@ namespace UdpToolkit.Framework.Contracts.Settings
         public ISerializer Serializer { get; }
 
         /// <summary>
-        /// Gets instance of logger factory.
+        /// Gets or sets instance of logger factory.
         /// </summary>
-        public IUdpToolkitLoggerFactory LoggerFactory { get; }
+        public ILoggerFactory LoggerFactory { get; set; } = new SimpleConsoleLoggerFactory(LogLevel.Debug);
 
         /// <summary>
         /// Gets or sets frequency of cleanup inactive rooms.

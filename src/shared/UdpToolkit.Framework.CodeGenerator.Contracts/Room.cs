@@ -5,9 +5,9 @@ namespace UdpToolkit.Framework.Contracts
     using System.Collections.Generic;
 
     /// <summary>
-    /// Room.
+    /// Represent logical scope of connections.
     /// </summary>
-    public class Room
+    public sealed class Room
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="Room"/> class.

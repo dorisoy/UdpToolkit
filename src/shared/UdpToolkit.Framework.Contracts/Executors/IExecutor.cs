@@ -4,7 +4,7 @@ namespace UdpToolkit.Framework.Contracts.Executors
     using System.Threading;
 
     /// <summary>
-    /// Executor, abstraction for a run any actions in Threads, Tasks, Unity Jobs System e.t.c.
+    /// Abstraction for a run any actions in Threads, Tasks, Unity Jobs System e.t.c.
     /// </summary>
     public interface IExecutor : IDisposable
     {

@@ -4,27 +4,18 @@
     using System.Linq;
     using System.Threading;
     using ReliableUdp.Contracts;
-    using Serilog;
-    using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
-    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
-    using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
         public static void Main()
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
-                .WriteTo.Console()
-                .CreateLogger();
-
             var host = BuildHost();
             var client = host.HostClient;
 
@@ -56,10 +47,10 @@
                         .JoinOrCreate(startGame.RoomId, connectionId, ip);
 
                     var positions = startGame.Positions
-                        .Select(pair => pair.Key + "|" + pair.Value.x + pair.Value.y + pair.Value.z)
+                        .Select(pair => pair.Key + "|" + pair.Value.X + pair.Value.Y + pair.Value.Z)
                         .ToArray();
 
-                    Log.Logger.Information("Spawn positions - {@positions}!", positions);
+                    Console.WriteLine($"Spawn positions - {positions}!", positions.Length);
                     return startGame.RoomId;
                 });
 
@@ -87,8 +78,7 @@
         private static IHost BuildHost()
         {
             var hostSettings = new HostSettings(
-                serializer: new Serializer(),
-                loggerFactory: new SerilogLoggerFactory());
+                serializer: new NetJsonSerializer());
 
             return UdpHost
                 .CreateHostBuilder()

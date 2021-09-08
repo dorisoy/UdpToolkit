@@ -12,7 +12,7 @@ namespace UdpToolkit.Network.Connections
     internal sealed class ConnectionPool : IConnectionPool
     {
         private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ConcurrentDictionary<Guid, IConnection>();
-        private readonly IUdpToolkitLogger _logger;
+        private readonly ILogger _logger;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IConnectionFactory _connectionFactory;
         private readonly TimeSpan _inactivityTimeout;
@@ -29,7 +29,7 @@ namespace UdpToolkit.Network.Connections
         /// <param name="connectionFactory">Instance of connection factory.</param>
         internal ConnectionPool(
             IDateTimeProvider dateTimeProvider,
-            IUdpToolkitLogger logger,
+            ILogger logger,
             ConnectionPoolSettings settings,
             IConnectionFactory connectionFactory)
         {
@@ -92,9 +92,10 @@ namespace UdpToolkit.Network.Connections
 
         private void ScanForCleaningInactiveConnections(object state)
         {
-#if DEBUG
-            _logger.Debug($"[UdpToolkit.Network] Cleanup inactive connections");
-#endif
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Network] Cleanup inactive connections");
+            }
 
             var now = _dateTimeProvider.GetUtcNow();
             for (var i = 0; i < _connections.Count; i++)
