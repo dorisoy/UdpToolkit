@@ -264,14 +264,16 @@ namespace UdpToolkit
                 scanFrequency: HostSettings.RoomsCleanupFrequency,
                 logger: loggerFactory.Create<RoomManager>());
 
+            var broadcaster = new Broadcaster(
+                roomManager: roomManager,
+                outQueueDispatcher: outQueueDispatcher);
+
             var scheduler = new Scheduler(
-                outQueueDispatcher: outQueueDispatcher,
+                broadcaster: broadcaster,
                 roomManager: roomManager,
                 logger: HostSettings.LoggerFactory.Create<Scheduler>());
 
             HostWorkerInternal.Logger = loggerFactory.Create<IHostWorker>();
-            HostWorkerInternal.RoomManager = roomManager;
-            HostWorkerInternal.Scheduler = scheduler;
             HostWorkerInternal.Serializer = HostSettings.Serializer;
 
             var toDispose = new List<IDisposable>
@@ -282,6 +284,7 @@ namespace UdpToolkit
                 inQueueDispatcher,
                 outQueueDispatcher,
                 HostWorkerInternal,
+                broadcaster,
             };
 
             toDispose.AddRange(inQueues);
@@ -289,6 +292,10 @@ namespace UdpToolkit
             toDispose.Add(HostSettings.Executor);
 
             return new Host(
+                serviceProvider: new ServiceProvider(
+                    roomManager: roomManager,
+                    scheduler: scheduler,
+                    broadcaster: broadcaster),
                 cancellationTokenSource: cancellationTokenSource,
                 udpClients: udpClients,
                 logger: loggerFactory.Create<Host>(),

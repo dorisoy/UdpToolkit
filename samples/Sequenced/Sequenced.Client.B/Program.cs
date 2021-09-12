@@ -21,7 +21,7 @@
         public static async Task Main(string[] args)
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
+                .MinimumLevel.Is(LogEventLevel.Error)
                 .WriteTo.Console()
                 .CreateLogger();
 
@@ -47,14 +47,12 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
-                    return joinEvent.RoomId;
                 });
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, move) =>
                 {
-                    Log.Debug($"Id {move.Id} - from - {move.From}");
-                    return move.RoomId;
+                    Console.WriteLine($"Id {move.Id} - from - {move.From}");
                 });
 
             host.Run();
@@ -67,7 +65,7 @@
 
             client.Send(
                 @event: new JoinEvent(
-                    roomId: 0,
+                    roomId: Guid.Empty,
                     nickname: nickname),
                 channelId: ReliableChannel.Id);
 
@@ -78,7 +76,7 @@
                 client.Send(
                     @event: new MoveEvent(
                         id: i,
-                        roomId: 0,
+                        roomId: Guid.Empty,
                         from: nickname),
                     channelId: SequencedChannel.Id);
                 Thread.Sleep(1000 / 60);

@@ -8,6 +8,11 @@ namespace UdpToolkit.Framework.Contracts
     public interface IHost : IDisposable
     {
         /// <summary>
+        /// Gets service provider.
+        /// </summary>
+        IServiceProvider ServiceProvider { get; }
+
+        /// <summary>
         /// Gets client, for interacting with other hosts.
         /// </summary>
         IHostClient HostClient { get; }

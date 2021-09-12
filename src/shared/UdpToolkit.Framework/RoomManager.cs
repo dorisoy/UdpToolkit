@@ -12,7 +12,7 @@ namespace UdpToolkit.Framework
     /// <inheritdoc />
     public sealed class RoomManager : IRoomManager
     {
-        private readonly ConcurrentDictionary<int, Room> _rooms = new ConcurrentDictionary<int, Room>();
+        private readonly ConcurrentDictionary<Guid, Room> _rooms = new ConcurrentDictionary<Guid, Room>();
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _roomTtl;
         private readonly Timer _houseKeeper;
@@ -60,7 +60,7 @@ namespace UdpToolkit.Framework
 
         /// <inheritdoc />
         public void JoinOrCreate(
-            int roomId,
+            Guid roomId,
             Guid connectionId,
             IpV4Address ipV4Address)
         {
@@ -90,23 +90,10 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
-        public Room GetRoom(int roomId)
+        public Room GetRoom(Guid roomId)
         {
             _rooms.TryGetValue(roomId, out var room);
             return room;
-        }
-
-        /// <inheritdoc />
-        public void Leave(
-            int roomId,
-            Guid connectionId)
-        {
-            var room = _rooms[roomId];
-            var index = room.RoomConnections.FindIndex(x => x.ConnectionId == connectionId);
-            if (index >= 0)
-            {
-                room.RoomConnections.RemoveAt(index);
-            }
         }
 
         private void Dispose(bool disposing)

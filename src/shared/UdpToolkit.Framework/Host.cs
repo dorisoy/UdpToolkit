@@ -34,6 +34,7 @@ namespace UdpToolkit.Framework
         /// <param name="udpClients">Array of udp-clients.</param>
         /// <param name="executor">Instance of executor.</param>
         /// <param name="toDispose">Array of host resources for disposing.</param>
+        /// <param name="serviceProvider">Providing internal services.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         public Host(
             ILogger logger,
@@ -43,6 +44,7 @@ namespace UdpToolkit.Framework
             IUdpClient[] udpClients,
             IExecutor executor,
             IList<IDisposable> toDispose,
+            Contracts.IServiceProvider serviceProvider,
             CancellationTokenSource cancellationTokenSource)
         {
             _logger = logger;
@@ -53,6 +55,7 @@ namespace UdpToolkit.Framework
             _executor = executor;
             _toDispose = toDispose;
             _cancellationTokenSource = cancellationTokenSource;
+            ServiceProvider = serviceProvider;
         }
 
         /// <summary>
@@ -62,6 +65,9 @@ namespace UdpToolkit.Framework
         {
             Dispose(false);
         }
+
+        /// <inheritdoc />
+        public Contracts.IServiceProvider ServiceProvider { get; }
 
         /// <inheritdoc />
         public IHostClient HostClient => _hostClient;

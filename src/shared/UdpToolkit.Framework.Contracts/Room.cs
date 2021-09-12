@@ -1,4 +1,3 @@
-// ReSharper disable once CheckNamespace
 namespace UdpToolkit.Framework.Contracts
 {
     using System;
@@ -16,7 +15,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="roomConnections">List for room connections.</param>
         /// <param name="createdAt">Date of creation.</param>
         public Room(
-            int id,
+            Guid id,
             List<RoomConnection> roomConnections,
             DateTimeOffset createdAt)
         {
@@ -28,7 +27,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Gets room identifier.
         /// </summary>
-        public int Id { get; }
+        public Guid Id { get; }
 
         /// <summary>
         /// Gets list of room connections.

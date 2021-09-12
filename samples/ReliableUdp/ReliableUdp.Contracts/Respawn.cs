@@ -4,14 +4,14 @@ namespace ReliableUdp.Contracts
     using UdpToolkit.Annotations;
 
     [UdpEvent]
-    public class JoinEvent
+    public class Respawn
     {
-        public JoinEvent(
-            Guid roomId,
-            string nickname)
+        public Respawn(
+            string nickname,
+            Guid roomId)
         {
-            RoomId = roomId;
             Nickname = nickname;
+            RoomId = roomId;
         }
 
         public Guid RoomId { get; }

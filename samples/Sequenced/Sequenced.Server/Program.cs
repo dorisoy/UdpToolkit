@@ -19,32 +19,42 @@
         public static void Main()
         {
             Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
+                .MinimumLevel.Is(LogEventLevel.Information)
                 .WriteTo.Console()
                 .CreateLogger();
 
             var host = BuildHost();
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, ip, joinEvent, roomManager) =>
+                onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    roomManager
+                    host.ServiceProvider.RoomManager
                         .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
-                    return joinEvent.RoomId;
-                },
-                broadcastMode: BroadcastMode.RoomExceptCaller);
+                    host.ServiceProvider.Broadcaster
+                        .Broadcast(
+                            caller: connectionId,
+                            roomId: joinEvent.RoomId,
+                            @event: joinEvent,
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                });
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, moveEvent) =>
                 {
-                    Log.Logger.Information($"Moved!");
+                    Log.Logger.Information($"{moveEvent.From} Moved!");
 
-                    return moveEvent.RoomId;
-                },
-                broadcastMode: BroadcastMode.RoomExceptCaller);
+                    host.ServiceProvider.Broadcaster
+                        .Broadcast(
+                            caller: connectionId,
+                            roomId: moveEvent.RoomId,
+                            @event: moveEvent,
+                            channelId: SequencedChannel.Id,
+                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                });
 
             host.Run();
 

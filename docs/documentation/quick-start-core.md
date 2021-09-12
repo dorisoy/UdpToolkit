@@ -269,10 +269,10 @@ namespace Client
 }
 ```
 
-## Up and running:
+## Up and running
 1) Run Server.
 2) Run Client.
 3) Observe output logs.
 4) Enjoy :)
 
-More samples available [Here](https://github.com/rdcm/UdpToolkit/tree/master/samples).
+More samples available [Here](https://github.com/UdpToolkit/UdpToolkit/tree/master/samples).

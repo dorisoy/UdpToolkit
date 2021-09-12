@@ -18,22 +18,22 @@ namespace UdpToolkit.Logging
 
         public void Warning(string message)
         {
-            Console.WriteLine(message);
+            Console.WriteLine($"[{DateTime.UtcNow:yyyy:MM:dd hh:mm:ss.fff}]{message}");
         }
 
         public void Error(string message)
         {
-            Console.WriteLine(message);
+            Console.WriteLine($"[{DateTime.UtcNow:yyyy:MM:dd hh:mm:ss.fff}]{message}");
         }
 
         public void Information(string message)
         {
-            Console.WriteLine(message);
+            Console.WriteLine($"[{DateTime.UtcNow:yyyy:MM:dd hh:mm:ss.fff}]{message}");
         }
 
         public void Debug(string message)
         {
-            Console.WriteLine(message);
+            Console.WriteLine($"[{DateTime.UtcNow:yyyy:MM:dd hh:mm:ss.fff}]{message}");
         }
     }
 }

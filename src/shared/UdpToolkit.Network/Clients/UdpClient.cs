@@ -149,8 +149,6 @@ namespace UdpToolkit.Network.Clients
                 return;
             }
 
-            ConnectionId = null;
-
             if (_connectionPool.TryGetConnection(ConnectionId.Value, connection: out var connection))
             {
                 connection
@@ -365,6 +363,7 @@ namespace UdpToolkit.Network.Clients
                 case PacketType.Disconnect | PacketType.Ack when connection != null:
                     if (TryHandleAck(connection, networkHeader))
                     {
+                        ConnectionId = null;
                         OnDisconnected?.Invoke(remoteIp, connectionId);
                     }
 

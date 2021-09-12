@@ -5,4 +5,4 @@ Unity3d support out of the box. For more information see [quick start guide](doc
 
 ![cudes](images/cubes.gif)
 
-Source code available on [GitHub](https://github.com/rdcm/UdpToolkit).
+Source code available on [GitHub](https://github.com/UdpToolkit/UdpToolkit).

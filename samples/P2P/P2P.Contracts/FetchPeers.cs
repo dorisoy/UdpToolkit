@@ -1,5 +1,6 @@
 namespace P2P.Contracts
 {
+    using System;
     using MessagePack;
     using UdpToolkit.Annotations;
 
@@ -8,7 +9,7 @@ namespace P2P.Contracts
     public class FetchPeers
     {
         public FetchPeers(
-            int roomId,
+            Guid roomId,
             string nickname)
         {
             RoomId = roomId;
@@ -16,7 +17,7 @@ namespace P2P.Contracts
         }
 
         [Key(0)]
-        public int RoomId { get; }
+        public Guid RoomId { get; }
 
         [Key(1)]
         public string Nickname { get; }

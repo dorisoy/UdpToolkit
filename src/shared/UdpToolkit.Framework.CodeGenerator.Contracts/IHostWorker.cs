@@ -16,16 +16,6 @@ namespace UdpToolkit.Framework.Contracts
         ILogger Logger { get; set; }
 
         /// <summary>
-        /// Gets or sets instance of room manager.
-        /// </summary>
-        IRoomManager RoomManager { get; set; }
-
-        /// <summary>
-        /// Gets or sets instance of scheduler.
-        /// </summary>
-        IScheduler Scheduler { get; set; }
-
-        /// <summary>
         /// Gets or sets instance of serializer.
         /// </summary>
         ISerializer Serializer { get; set; }

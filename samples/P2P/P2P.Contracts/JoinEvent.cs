@@ -1,5 +1,6 @@
 namespace P2P.Contracts
 {
+    using System;
     using MessagePack;
     using UdpToolkit.Annotations;
 
@@ -8,7 +9,7 @@ namespace P2P.Contracts
     public class JoinEvent
     {
         public JoinEvent(
-            int roomId,
+            Guid roomId,
             string nickname)
         {
             RoomId = roomId;
@@ -16,7 +17,7 @@ namespace P2P.Contracts
         }
 
         [Key(0)]
-        public int RoomId { get; set; }
+        public Guid RoomId { get; set; }
 
         [Key(1)]
         public string Nickname { get; set; }

@@ -4,18 +4,18 @@ namespace ReliableUdp.Contracts
     using UdpToolkit.Annotations;
 
     [UdpEvent]
-    public class JoinEvent
+    public class GameOver
     {
-        public JoinEvent(
+        public GameOver(
             Guid roomId,
-            string nickname)
+            string message)
         {
             RoomId = roomId;
-            Nickname = nickname;
+            Message = message;
         }
 
-        public Guid RoomId { get; }
+        public string Message { get; }
 
-        public string Nickname { get; }
+        public Guid RoomId { get; }
     }
 }

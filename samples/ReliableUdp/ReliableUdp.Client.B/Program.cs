@@ -9,17 +9,19 @@
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
+    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
     public static class Program
     {
+        private static bool _isOver = false;
+
         public static void Main()
         {
             var host = BuildHost();
             var client = host.HostClient;
             var nickname = "Client B";
-            var cts = new CancellationTokenSource();
 
             var isConnected = false;
 
@@ -41,18 +43,31 @@
             };
 
             host.On<StartGame>(
-                onEvent: (connectionId, ip, startGame, roomManager) =>
+                onEvent: (connectionId, ip, startGame) =>
                 {
-                    roomManager
+                    host.ServiceProvider.RoomManager
                         .JoinOrCreate(startGame.RoomId, connectionId, ip);
 
                     var positions = startGame.Positions
-                        .Select(pair => pair.Key + "|" + pair.Value.X + pair.Value.Y + pair.Value.Z)
-                        .ToArray();
+                        .Select(pair => $"{pair.Key}|X - {pair.Value.X}|Y - {pair.Value.Y}|Z - {pair.Value.Z}");
 
-                    Console.WriteLine($"Spawn positions - {@positions}!", positions.Length);
+                    foreach (var position in positions)
+                    {
+                        Console.WriteLine($"Spawn positions - {position}!");
+                    }
+                });
 
-                    return startGame.RoomId;
+            host.On<GameOver>(
+                onEvent: (connectionId, ip, gameOver) =>
+                {
+                    Console.WriteLine("End of Game!");
+                    _isOver = true;
+                });
+
+            host.On<Respawn>(
+                onEvent: (connectionId, ip, respawn) =>
+                {
+                    Console.WriteLine($"Respawn for {respawn.Nickname}!");
                 });
 
             host.Run();
@@ -64,13 +79,15 @@
             Console.WriteLine($"IsConnected - {isConnected}");
 
             client.Send(
-                @event: new JoinEvent(roomId: 11, nickname: nickname),
+                @event: new JoinEvent(roomId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
-            Console.WriteLine("Press any key...");
-            Console.ReadLine();
+            SpinWait.SpinUntil(() => _isOver, waitTimeout);
 
-            cts.Cancel();
+            client.Disconnect();
+            SpinWait.SpinUntil(() => !isConnected, waitTimeout);
+            Console.WriteLine($"Client closed!");
+
             host.Dispose();
         }
 
@@ -87,6 +104,7 @@
                     settings.HostPorts = new[] { 5000, 5001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
+                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Error);
                 })
                 .ConfigureHostClient((settings) =>
                 {

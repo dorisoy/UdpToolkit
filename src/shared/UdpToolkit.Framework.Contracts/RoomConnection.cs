@@ -1,4 +1,3 @@
-// ReSharper disable once CheckNamespace
 namespace UdpToolkit.Framework.Contracts
 {
     using System;

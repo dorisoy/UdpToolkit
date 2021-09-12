@@ -282,10 +282,10 @@ public class ClientScript : MonoBehaviour
 
 8) Create empty `GameObject` on scene and attach script `ClientScript.cs`.
 
-## Up and running:
+## Up and running
 1) Run Server.
 2) Run Client.
 3) Observe output logs.
 4) Enjoy :)
 
-More samples available [Here](https://github.com/rdcm/UdpToolkit/tree/master/samples).
+More samples available [Here](https://github.com/UdpToolkit/UdpToolkit/tree/master/samples).

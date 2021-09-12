@@ -1,5 +1,6 @@
 ﻿namespace Sequenced.Contracts
 {
+    using System;
     using MessagePack;
     using UdpToolkit.Annotations;
 
@@ -8,7 +9,7 @@
     public class MoveEvent
     {
         public MoveEvent(
-            int roomId,
+            Guid roomId,
             int id,
             string @from)
         {
@@ -18,7 +19,7 @@
         }
 
         [Key(0)]
-        public int RoomId { get; }
+        public Guid RoomId { get; }
 
         [Key(1)]
         public int Id { get; }

@@ -52,14 +52,12 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room! (event)");
-                    return joinEvent.RoomId;
                 });
 
             host.On<Message>(
                 onEvent: (connectionId, ip, message) =>
                 {
                     Log.Logger.Information($"P2P message received - {message.Text}! (event)");
-                    return message.RoomId;
                 });
 
             host.Run();
@@ -69,7 +67,7 @@
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
 
             client.Send(
-                @event: new JoinEvent(roomId: 11, nickname: nickname),
+                @event: new JoinEvent(roomId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
             client.Connect(host: Host, port: Port);
@@ -80,7 +78,7 @@
             while (counter < 1000)
             {
                 client.Send(
-                    @event: new Message(text: $"p2p message from {nickname}", roomId: 11),
+                    @event: new Message(text: $"p2p message from {nickname}", roomId: Guid.Empty),
                     destination: new IpV4Address(Host.ToInt(), (ushort)Port),
                     channelId: ReliableChannel.Id);
 

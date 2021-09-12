@@ -141,8 +141,6 @@
         {
             sb.Append(@"
         public global::UdpToolkit.Logging.ILogger Logger { get; set; }
-        public global::UdpToolkit.Framework.Contracts.IRoomManager RoomManager { get; set; }
-        public global::UdpToolkit.Framework.Contracts.IScheduler Scheduler { get; set; }
         public global::UdpToolkit.Serialization.ISerializer Serializer { get; set; }
 ");
         }
@@ -215,8 +213,7 @@
 
             if (disposing)
             {
-                RoomManager.Dispose();
-                Scheduler.Dispose();
+                // TODO
             }
 
             _disposed = true;
@@ -249,12 +246,9 @@
                     else
                     {
                         SUBSCRIPTION?.OnEvent?.Invoke(
-                            EVENT,
                             inPacket.ConnectionId,
                             inPacket.IpV4Address,
-                            inPacket.ChannelId,
-                            RoomManager,
-                            Scheduler);
+                            EVENT);
                     }
 
                     break;

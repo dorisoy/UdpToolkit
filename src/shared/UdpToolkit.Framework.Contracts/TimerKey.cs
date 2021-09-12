@@ -1,5 +1,7 @@
 namespace UdpToolkit.Framework.Contracts
 {
+    using System;
+
     /// <summary>
     /// Key for scheduled action.
     /// </summary>
@@ -8,24 +10,56 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Initializes a new instance of the <see cref="TimerKey"/> struct.
         /// </summary>
-        /// <param name="roomId">Room identifier.</param>
         /// <param name="timerId">Timer identifier.</param>
+        /// <param name="eventType">Event type.</param>
         public TimerKey(
-            int roomId,
-            string timerId)
+            Guid timerId,
+            Type eventType)
         {
-            RoomId = roomId;
             TimerId = timerId;
+            EventType = eventType;
         }
 
         /// <summary>
         /// Gets room identifier.
         /// </summary>
-        public int RoomId { get; }
+        public Guid TimerId { get; }
 
         /// <summary>
         /// Gets timer identifier.
         /// </summary>
-        public string TimerId { get; }
+        public Type EventType { get; }
+
+        /// <summary>
+        /// Equals.
+        /// </summary>
+        /// <param name="other">Other key.</param>
+        /// <returns>True/False.</returns>
+        public bool Equals(TimerKey other)
+        {
+            return TimerId.Equals(other.TimerId) && Equals(EventType, other.EventType);
+        }
+
+        /// <summary>
+        /// Equals.
+        /// </summary>
+        /// <param name="obj">Other key.</param>
+        /// <returns>True/False.</returns>
+        public override bool Equals(object obj)
+        {
+            return obj is TimerKey other && Equals(other);
+        }
+
+        /// <summary>
+        /// GetHashCode.
+        /// </summary>
+        /// <returns>Hash.</returns>
+        public override int GetHashCode()
+        {
+            unchecked
+            {
+                return (TimerId.GetHashCode() * 397) ^ (EventType != null ? EventType.GetHashCode() : 0);
+            }
+        }
     }
 }

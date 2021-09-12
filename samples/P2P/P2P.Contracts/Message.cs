@@ -1,5 +1,6 @@
 ﻿namespace P2P.Contracts
 {
+    using System;
     using MessagePack;
     using UdpToolkit.Annotations;
 
@@ -9,7 +10,7 @@
     {
         public Message(
             string text,
-            int roomId)
+            Guid roomId)
         {
             Text = text;
             RoomId = roomId;
@@ -19,6 +20,6 @@
         public string Text { get; }
 
         [Key(1)]
-        public int RoomId { get; }
+        public Guid RoomId { get; }
     }
 }

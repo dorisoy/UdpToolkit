@@ -1,5 +1,6 @@
 namespace P2P.Contracts
 {
+    using System;
     using System.Collections.Generic;
     using MessagePack;
     using UdpToolkit.Annotations;
@@ -9,7 +10,7 @@ namespace P2P.Contracts
     public class RoomPeers
     {
         public RoomPeers(
-            int roomId,
+            Guid roomId,
             List<Peer> peers)
         {
             RoomId = roomId;
@@ -17,7 +18,7 @@ namespace P2P.Contracts
         }
 
         [Key(0)]
-        public int RoomId { get; }
+        public Guid RoomId { get; }
 
         [Key(1)]
         public List<Peer> Peers { get; }

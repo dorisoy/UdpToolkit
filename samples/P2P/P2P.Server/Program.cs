@@ -28,37 +28,44 @@
             var host = BuildHost();
 
             host.On<JoinEvent>(
-                onEvent: (connectionId, ip, joinEvent, roomManager) =>
+                onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    roomManager
+                    host.ServiceProvider.RoomManager
                         .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
 
-                    return joinEvent.RoomId;
-                },
-                broadcastMode: BroadcastMode.RoomExceptCaller);
-
-            host.On<FetchPeers, RoomPeers>(
-                onEvent: (connectionId, ip, fetchPeers, roomManager) =>
-                {
-                    var room = roomManager
-                        .GetRoom(fetchPeers.RoomId);
-
-                    var peers = room.RoomConnections
-                        .Where(x => x.ConnectionId != connectionId)
-                        .Select(x => new Peer(x.IpV4Address.Address.ToHost(), x.IpV4Address.Port))
-                        .ToList();
-
-                    Log.Logger.Information($"{fetchPeers.Nickname} Fetch peers!");
-
-                    return new OutEvent<RoomPeers>(
-                        roomId: fetchPeers.RoomId,
-                        @event: new RoomPeers(fetchPeers.RoomId, peers),
-                        delayInMs: 0,
-                        broadcastMode: BroadcastMode.Caller,
-                        channelId: ReliableChannel.Id);
+                    host.ServiceProvider.Broadcaster
+                        .Broadcast(
+                            caller: connectionId,
+                            roomId: joinEvent.RoomId,
+                            @event: joinEvent,
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.RoomExceptCaller);
                 });
+
+            host
+                .On<FetchPeers>(
+                    onEvent: (connectionId, ip, fetchPeers) =>
+                    {
+                        var room = host.ServiceProvider.RoomManager
+                            .GetRoom(fetchPeers.RoomId);
+
+                        var peers = room.RoomConnections
+                            .Where(x => x.ConnectionId != connectionId)
+                            .Select(x => new Peer(x.IpV4Address.Address.ToHost(), x.IpV4Address.Port))
+                            .ToList();
+
+                        Log.Logger.Information($"{fetchPeers.Nickname} Fetch peers!");
+
+                        host.ServiceProvider.Broadcaster
+                            .Broadcast(
+                                caller: connectionId,
+                                roomId: fetchPeers.RoomId,
+                                @event: new RoomPeers(fetchPeers.RoomId, peers),
+                                channelId: ReliableChannel.Id,
+                                broadcastMode: BroadcastMode.Caller);
+                    });
 
             host.Run();
 
