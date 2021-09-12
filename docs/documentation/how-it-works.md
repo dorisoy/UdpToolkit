@@ -60,15 +60,13 @@ The client should include `RoomId:Guid` (16 bytes) in each event. This is requir
 
 All actions performed in `onEvent` callback are not thread-safe. This is absolutely the same behavior as in popular web frameworks for .net like `asp.net core` or `GRPC`.
 
-But each connection deterministically dispatches into the same thread and all events from this connection are processed by the same thread.
+Note: But each connection deterministically dispatches into the same thread and all events from this connection are processed by the same thread.
 ```c#
 host.On<Message>(
-    onEvent: (connectionId, ip, message, roomManager) =>
+    onEvent: (connectionId, ip, message) =>
     {
         // not thread-safe here
         Console.WriteLine($"Message received: {message.Text}");
-        roomManager.JoinOrCreate(1, connectionId, ip);
-        return message.RoomId;
     });
 ```
 

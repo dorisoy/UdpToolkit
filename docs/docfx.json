@@ -57,7 +57,7 @@
       "_appTitle": "UdpToolkit website",
       "_gitContribute": {
         "repo": "https://github.com/UdpToolkit/UdpToolkit",
-        "branch": "develop",
+        "branch": "master",
         "apiSpecFolder": "docs-ref-overwrite"
       }
     },

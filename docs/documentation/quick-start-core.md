@@ -34,10 +34,6 @@ SampleProject.sln
 
     <PropertyGroup>
         <TargetFramework>net5.0</TargetFramework>
-        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-        <CompilerGeneratedFilesOutputPath>
-            $(BaseIntermediateOutputPath)GeneratedFiles
-        </CompilerGeneratedFilesOutputPath>
     </PropertyGroup>
 
     <ItemGroup>
@@ -48,8 +44,6 @@ SampleProject.sln
     </ItemGroup>
 
 </Project>
-
-
 ```
 
 2) Add class `Message` to library:
@@ -129,16 +123,16 @@ namespace Server
             // 1) Create UDP host:
             var host = BuildHost();
 
-            // 2) Subscribe on event:
+            // 4) Subscribe on event:
             host.On<Message>(
-                onEvent: (connectionId, ip, message, roomManager) =>
+                onEvent: (connectionId, ip, message) =>
                 {
                     Console.WriteLine($"Message received: {message.Text}");
-                    roomManager.JoinOrCreate(1, connectionId, ip);
-                    return 1;
+                    host.ServiceProvider.RoomManager
+                        .JoinOrCreate(Guid.Empty, connectionId, ip);
                 });
 
-            // 3) Run host.:
+            // 5) Run host:
             host.Run();
 
             Console.WriteLine("Press any key..");
@@ -154,10 +148,12 @@ namespace Server
                 .CreateHostBuilder()
                 .ConfigureHost(hostSettings, settings =>
                 {
+                    // 2) Assign port:
                     settings.HostPorts = new[] { 7000 };
                 })
                 .ConfigureNetwork((settings) =>
                 {
+                    // 3) Allow incoming connections:
                     settings.AllowIncomingConnections = true;
                 })
                 .BootstrapWorker(new HostWorkerGenerated())
@@ -179,14 +175,14 @@ namespace Server
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="UdpToolkit" Version="<latest_version>"/>
+        <PackageReference Include="UdpToolkit" Version="<latest_version>" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="../Contracts/Contracts.csproj" />
     </ItemGroup>
-
 </Project>
+
 ```
 
 2) Add code to `Main` method: 
@@ -220,13 +216,13 @@ namespace Client
                     $"with id: {connectionId}");
             };
 
-            // 2) Run host:
+            // 4) Run host:
             host.Run();
 
-            // 3) Connect to server:
+            // 5) Connect to server:
             host.HostClient.Connect();
 
-            // 4) Wait connection:
+            // 6) Wait connection:
             SpinWait.SpinUntil(() => _isConnected, 120);
 
             // 5) Start sending messages:
@@ -256,11 +252,13 @@ namespace Client
                 .CreateHostBuilder()
                 .ConfigureHost(hostSettings, settings =>
                 {
+                    // 2) Assign port:
                     settings.HostPorts = new[] { 5000 };
                 })
                 .ConfigureHostClient(settings =>
                 {
-                    settings.ServerPorts = new int[] { 7000 };
+                    // 3) Specify remote host port:
+                    settings.ServerPorts = new[] { 7000 };
                 })
                 .BootstrapWorker(new HostWorkerGenerated())
                 .Build();

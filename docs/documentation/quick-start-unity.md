@@ -40,10 +40,8 @@ SampleProject.sln
    </PropertyGroup>
 
    <ItemGroup>
-      <PackageReference Include="MessagePack" Version="<latest_version>" />
-      <PackageReference 
-              Include="UdpToolkit.Framework.CodeGenerator.Contracts" 
-              Version="<latest_version>" />
+      <PackageReference Include="MessagePack" Version="2.3.75" />
+      <PackageReference Include="UdpToolkit.Framework.CodeGenerator.Contracts" Version="<latest_version>" />
    </ItemGroup>
 
    <ItemGroup>
@@ -100,16 +98,16 @@ namespace Server
             // 1) Create UDP host:
             var host = BuildHost();
 
-            // 2) Subscribe on event:
+            // 4) Subscribe on event:
             host.On<Message>(
-                onEvent: (connectionId, ip, message, roomManager) =>
+                onEvent: (connectionId, ip, message) =>
                 {
                     Console.WriteLine($"Message received: {message.Text}");
-                    roomManager.JoinOrCreate(1, connectionId, ip);
-                    return 1;
+                    host.ServiceProvider.RoomManager
+                        .JoinOrCreate(Guid.Empty, connectionId, ip);
                 });
 
-            // 3) Run host.:
+            // 5) Run host:
             host.Run();
 
             Console.WriteLine("Press any key..");
@@ -125,10 +123,12 @@ namespace Server
                 .CreateHostBuilder()
                 .ConfigureHost(hostSettings, settings =>
                 {
+                    // 2) Assign port:
                     settings.HostPorts = new[] { 7000 };
                 })
                 .ConfigureNetwork((settings) =>
                 {
+                    // 3) Allow incoming connections:
                     settings.AllowIncomingConnections = true;
                 })
                 .BootstrapWorker(new HostWorkerGenerated())
@@ -229,10 +229,10 @@ public class ClientScript : MonoBehaviour
                 $"with id: {connectionId}");
         };
 
-        // 3) Run host:
+        // 6) Run host:
         _host.Run();
 
-        // 4) Connect to server:
+        // 7) Connect to server:
         _host.HostClient.Connect();
     }
 
@@ -267,11 +267,14 @@ public class ClientScript : MonoBehaviour
             .CreateHostBuilder()
             .ConfigureHost(hostSettings, settings =>
             {
+                // 3) Assign port:
                 settings.HostPorts = new[] { 5000 };
+                // 4) Replace default logger implementation: 
                 settings.LoggerFactory = new UnityLoggerFactory(LogLevel.Debug);
             })
             .ConfigureHostClient(settings =>
             {
+                // 5) Specify remote host port:
                 settings.ServerPorts = new[] { 7000 };
             })
             .BootstrapWorker(new HostWorkerGenerated())
