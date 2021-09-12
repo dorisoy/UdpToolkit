@@ -10,6 +10,8 @@
 [Pp]ackages/
 [Dd]ist/
 [Bb]uild/
+[Bb]enchmarks_build/
+[Bb]enchmarkDotNet.Artifacts/
 [Cc]lient_build/
 [Ss]erver_build/
 [Uu]nity_package/
