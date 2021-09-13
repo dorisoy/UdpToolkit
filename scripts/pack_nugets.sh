@@ -10,7 +10,6 @@ dotnet pack ./src/shared/UdpToolkit.Logging.Serilog/UdpToolkit.Logging.Serilog.c
 dotnet pack ./src/shared/UdpToolkit.Network/UdpToolkit.Network.csproj                                                       -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages
 dotnet pack ./src/shared/UdpToolkit.Network.Contracts/UdpToolkit.Network.Contracts.csproj                                   -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages
 dotnet pack ./src/shared/UdpToolkit.Serialization/UdpToolkit.Serialization.csproj                                           -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages
-dotnet pack ./src/shared/UdpToolkit.Serialization.MsgPack/UdpToolkit.Serialization.MsgPack.csproj                           -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages
 
 dotnet pack ./src/tools/UdpToolkit.CodeGenerator/UdpToolkit.CodeGenerator.csproj  -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages
 dotnet pack ./src/tools/UdpToolkit.Cli/UdpToolkit.Cli.csproj                      -p:PackageVersion=$PACKAGE_VERSION --configuration Release -o ./packages

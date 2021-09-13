@@ -12,7 +12,6 @@
     using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
-    using UdpToolkit.Serialization.MsgPack;
 
     public static class Program
     {
@@ -64,7 +63,7 @@
         private static IHost BuildHost()
         {
             var hostSettings = new HostSettings(
-                serializer: new Serializer());
+                serializer: new MessagePackSerializer());
 
             return UdpHost
                 .CreateHostBuilder()

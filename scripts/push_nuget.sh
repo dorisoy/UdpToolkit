@@ -8,7 +8,6 @@ dotnet nuget push ./packages/UdpToolkit.Framework.Contracts.$PACKAGE_VERSION.nup
 dotnet nuget push ./packages/UdpToolkit.Network.$PACKAGE_VERSION.nupkg                               --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 dotnet nuget push ./packages/UdpToolkit.Network.Contracts.$PACKAGE_VERSION.nupkg                     --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 dotnet nuget push ./packages/UdpToolkit.Serialization.$PACKAGE_VERSION.nupkg                         --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
-dotnet nuget push ./packages/UdpToolkit.Serialization.MsgPack.$PACKAGE_VERSION.nupkg                 --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 dotnet nuget push ./packages/UdpToolkit.Logging.$PACKAGE_VERSION.nupkg                               --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 dotnet nuget push ./packages/UdpToolkit.Logging.Serilog.$PACKAGE_VERSION.nupkg                       --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 
