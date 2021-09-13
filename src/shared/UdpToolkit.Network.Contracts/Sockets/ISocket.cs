@@ -3,7 +3,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
     using System;
 
     /// <summary>
-    /// Socket abstraction for different socket types support.
+    /// Abstraction for different socket types support.
     /// </summary>
     public interface ISocket : IDisposable
     {

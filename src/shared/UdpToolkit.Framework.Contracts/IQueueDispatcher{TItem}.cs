@@ -3,7 +3,7 @@ namespace UdpToolkit.Framework.Contracts
     using System;
 
     /// <summary>
-    /// QueueDispatcher, abstraction for dispatch all data from connection each time into the same queue.
+    /// Abstraction for dispatch all data from connection each time into the same queue.
     /// </summary>
     /// <typeparam name="TItem">
     /// Type of item for en queue.
