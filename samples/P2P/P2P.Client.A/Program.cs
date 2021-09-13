@@ -3,14 +3,11 @@
     using System;
     using System.Threading;
     using P2P.Contracts;
-    using Serilog;
-    using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
-    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
@@ -23,11 +20,6 @@
 
         public static void Main()
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
-                .WriteTo.Console()
-                .CreateLogger();
-
             var nickname = "ClientA";
             var host = BuildHost();
             var client = host.HostClient;
@@ -50,13 +42,13 @@
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room! (event)");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to room! (event)");
                 });
 
             host.On<Message>(
                 onEvent: (connectionId, ip, message) =>
                 {
-                    Log.Logger.Information($"P2P message received - {message.Text}! (event)");
+                    Console.WriteLine($"P2P message received - {message.Text}! (event)");
                 });
 
             host.Run();
@@ -102,7 +94,6 @@
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                 })
                 .ConfigureHostClient((settings) =>
                 {

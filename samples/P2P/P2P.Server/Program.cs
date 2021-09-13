@@ -3,14 +3,11 @@
     using System;
     using System.Linq;
     using P2P.Contracts;
-    using Serilog;
-    using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
-    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
@@ -19,11 +16,6 @@
     {
         public static void Main()
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Debug)
-                .WriteTo.Console()
-                .CreateLogger();
-
             var host = BuildHost();
 
             host.On<JoinEvent>(
@@ -32,7 +24,7 @@
                     host.ServiceProvider.RoomManager
                         .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
 
                     host.ServiceProvider.Broadcaster
                         .Broadcast(
@@ -55,7 +47,7 @@
                             .Select(x => new Peer(x.IpV4Address.Address.ToHost(), x.IpV4Address.Port))
                             .ToList();
 
-                        Log.Logger.Information($"{fetchPeers.Nickname} Fetch peers!");
+                        Console.WriteLine($"{fetchPeers.Nickname} Fetch peers!");
 
                         host.ServiceProvider.Broadcaster
                             .Broadcast(
@@ -84,7 +76,6 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                 })
                 .ConfigureNetwork((settings) =>
                 {

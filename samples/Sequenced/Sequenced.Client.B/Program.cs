@@ -4,14 +4,11 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Sequenced.Contracts;
-    using Serilog;
-    using Serilog.Events;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Framework.Contracts.Settings;
-    using UdpToolkit.Logging.Serilog;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
@@ -19,11 +16,6 @@
     {
         public static async Task Main(string[] args)
         {
-            Log.Logger = new LoggerConfiguration()
-                .MinimumLevel.Is(LogEventLevel.Error)
-                .WriteTo.Console()
-                .CreateLogger();
-
             var host = BuildHost();
             var client = host.HostClient;
             var nickname = "Client B";
@@ -45,7 +37,7 @@
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    Log.Logger.Information($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
                 });
 
             host.On<MoveEvent>(
@@ -102,7 +94,6 @@
                     settings.HostPorts = new[] { 5000, 5001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SerilogLoggerFactory();
                 })
                 .ConfigureHostClient((settings) =>
                 {
