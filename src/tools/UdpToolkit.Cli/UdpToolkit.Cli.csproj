@@ -13,8 +13,9 @@
         <PackageId>UdpToolkit.Cli</PackageId>
         <Title>UdpToolkit Cli</Title>
         <Description>UdpToolkit tooling for code generation.</Description>
-        <PackageTags>UdpToolkit;Serialization;Serializer;Unity</PackageTags>
+        <PackageTags>UdpToolkit;Cli;Unity</PackageTags>
         <RootNamespace>UdpToolkit.Cli</RootNamespace>
+        <PackageDescription>CLI tool for UdpToolkit.</PackageDescription>
     </PropertyGroup>
 
     <ItemGroup>

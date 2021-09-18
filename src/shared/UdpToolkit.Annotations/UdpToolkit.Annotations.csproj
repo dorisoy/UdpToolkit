@@ -3,6 +3,7 @@
     <PropertyGroup>
         <TargetFramework>netstandard2.0</TargetFramework>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageDescription>Annotations of UdpToolkit required for code generation.</PackageDescription>
     </PropertyGroup>
 
 </Project>

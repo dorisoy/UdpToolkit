@@ -1,6 +1,6 @@
 # UdpToolkit
 
-`UdpToolkit` - library for building client/server applications communicated over UDP.
+`UdpToolkit` - library for building client/server applications interacting over UDP.
 
 [Docs](https://udptoolkit.github.io/).
 

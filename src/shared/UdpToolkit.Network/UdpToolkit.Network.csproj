@@ -4,6 +4,8 @@
         <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <LangVersion>8.0</LangVersion>
         <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <PackageDescription>Network for UdpToolkit.</PackageDescription>
+        <PackageTags>Unity;Udp;Reliable;Multiplayer;Unity3D;Reliable Udp;Network</PackageTags>
     </PropertyGroup>
     
     <ItemGroup>

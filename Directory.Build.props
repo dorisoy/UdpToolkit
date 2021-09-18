@@ -8,6 +8,8 @@
         <CodeAnalysisRuleSet>../../../Analyzers.ruleset</CodeAnalysisRuleSet>
         <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <Authors>Timofey Myagkikh (rdcm)</Authors>
+        <RepositoryUrl>https://github.com/UdpToolkit/UdpToolkit</RepositoryUrl>
     </PropertyGroup>
     
     <ItemGroup>
