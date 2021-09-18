@@ -7,18 +7,18 @@ namespace P2P.Contracts
 
     [UdpEvent]
     [MessagePackObject]
-    public class RoomPeers
+    public class GroupPeers
     {
-        public RoomPeers(
-            Guid roomId,
+        public GroupPeers(
+            Guid groupId,
             List<Peer> peers)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Peers = peers;
         }
 
         [Key(0)]
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         [Key(1)]
         public List<Peer> Peers { get; }

@@ -35,7 +35,7 @@
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to group!");
                 });
 
             host.On<MoveEvent>(
@@ -54,7 +54,7 @@
 
             client.Send(
                 @event: new JoinEvent(
-                    roomId: Guid.Empty,
+                    groupId: Guid.Empty,
                     nickname: nickname),
                 channelId: ReliableChannel.Id);
 
@@ -65,7 +65,7 @@
                 client.Send(
                     @event: new MoveEvent(
                         id: i,
-                        roomId: Guid.Empty,
+                        groupId: Guid.Empty,
                         from: nickname),
                     channelId: SequencedChannel.Id);
                 Thread.Sleep(1000 / 60);

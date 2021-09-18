@@ -103,7 +103,7 @@ namespace Server
                 onEvent: (connectionId, ip, message) =>
                 {
                     Console.WriteLine($"Message received: {message.Text}");
-                    host.ServiceProvider.RoomManager
+                    host.ServiceProvider.GroupManager
                         .JoinOrCreate(Guid.Empty, connectionId, ip);
                 });
 

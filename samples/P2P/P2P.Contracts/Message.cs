@@ -10,16 +10,16 @@
     {
         public Message(
             string text,
-            Guid roomId)
+            Guid groupId)
         {
             Text = text;
-            RoomId = roomId;
+            GroupId = groupId;
         }
 
         [Key(0)]
         public string Text { get; }
 
         [Key(1)]
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
     }
 }

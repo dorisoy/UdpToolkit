@@ -8,13 +8,13 @@ namespace ReliableUdp.Contracts
     {
         public Respawn(
             string nickname,
-            Guid roomId)
+            Guid groupId)
         {
             Nickname = nickname;
-            RoomId = roomId;
+            GroupId = groupId;
         }
 
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         public string Nickname { get; }
     }

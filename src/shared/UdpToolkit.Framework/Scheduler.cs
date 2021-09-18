@@ -11,7 +11,7 @@ namespace UdpToolkit.Framework
     public sealed class Scheduler : IScheduler
     {
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly TimeSpan _roomTtl;
+        private readonly TimeSpan _groupTtl;
         private readonly ILogger _logger;
         private readonly ConcurrentDictionary<TimerKey, Lazy<SmartTimer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<SmartTimer>>();
         private readonly Timer _housekeeper;
@@ -24,16 +24,16 @@ namespace UdpToolkit.Framework
         /// <param name="logger">Instance of logger.</param>
         /// <param name="dateTimeProvider">Instance of dateTimeProvider.</param>
         /// <param name="cleanupFrequency">Cleanup frequency for housekeeper.</param>
-        /// <param name="roomTtl">Room ttl.</param>
+        /// <param name="groupTtl">Group ttl.</param>
         public Scheduler(
             ILogger logger,
             IDateTimeProvider dateTimeProvider,
             TimeSpan cleanupFrequency,
-            TimeSpan roomTtl)
+            TimeSpan groupTtl)
         {
             _logger = logger;
             _dateTimeProvider = dateTimeProvider;
-            _roomTtl = roomTtl;
+            _groupTtl = groupTtl;
 
             _housekeeper = new Timer(
                 callback: CleanupExpiredTimers,
@@ -68,7 +68,7 @@ namespace UdpToolkit.Framework
             var lazyTimer = _timers.GetOrAdd(
                 key: timerKey,
                 valueFactory: (key) => new Lazy<SmartTimer>(() => new SmartTimer(
-                    ttl: ttl ?? _roomTtl,
+                    ttl: ttl ?? _groupTtl,
                     createdAt: _dateTimeProvider.GetUtcNow(),
                     callback: (_) => action(),
                     delay: delay,

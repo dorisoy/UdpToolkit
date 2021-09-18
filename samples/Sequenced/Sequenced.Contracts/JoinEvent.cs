@@ -9,15 +9,15 @@ namespace Sequenced.Contracts
     public class JoinEvent
     {
         public JoinEvent(
-            Guid roomId,
+            Guid groupId,
             string nickname)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Nickname = nickname;
         }
 
         [Key(0)]
-        public Guid RoomId { get; set; }
+        public Guid GroupId { get; set; }
 
         [Key(1)]
         public string Nickname { get; set; }

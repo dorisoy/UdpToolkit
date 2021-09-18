@@ -6,7 +6,7 @@ namespace UdpToolkit.Framework
     /// <inheritdoc />
     public sealed class Broadcaster : IBroadcaster
     {
-        private readonly IRoomManager _roomManager;
+        private readonly IGroupManager _groupManager;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
 
         private bool _disposed = false;
@@ -14,13 +14,13 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Initializes a new instance of the <see cref="Broadcaster"/> class.
         /// </summary>
-        /// <param name="roomManager">Instance of room manager.</param>
+        /// <param name="groupManager">Instance of group manager.</param>
         /// <param name="outQueueDispatcher">Instance of queue dispatcher.</param>
         public Broadcaster(
-            IRoomManager roomManager,
+            IGroupManager groupManager,
             IQueueDispatcher<OutPacket> outQueueDispatcher)
         {
-            _roomManager = roomManager;
+            _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
         }
 
@@ -42,20 +42,20 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void Broadcast<TEvent>(
             Guid caller,
-            Guid roomId,
+            Guid groupId,
             TEvent @event,
             byte channelId,
             BroadcastMode broadcastMode)
         {
-            var room = _roomManager.GetRoom(roomId);
+            var group = _groupManager.GetGroup(groupId);
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
 
-                    for (int i = 0; i < room.RoomConnections.Count; i++)
+                    for (int i = 0; i < group.GroupConnections.Count; i++)
                     {
-                        var roomConnection = room.RoomConnections[i];
-                        if (roomConnection.ConnectionId != caller)
+                        var groupConnection = group.GroupConnections[i];
+                        if (groupConnection.ConnectionId != caller)
                         {
                             continue;
                         }
@@ -63,45 +63,45 @@ namespace UdpToolkit.Framework
                         _outQueueDispatcher
                             .Dispatch(caller)
                             .Produce(new OutPacket(
-                                connectionId: roomConnection.ConnectionId,
+                                connectionId: groupConnection.ConnectionId,
                                 channelId: channelId,
                                 @event: @event,
-                                ipV4Address: roomConnection.IpV4Address));
+                                ipV4Address: groupConnection.IpV4Address));
                     }
 
                     return;
 
-                case BroadcastMode.RoomExceptCaller:
-                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                case BroadcastMode.GroupExceptCaller:
+                    for (var i = 0; i < group.GroupConnections.Count; i++)
                     {
-                        var roomConnection = room.RoomConnections[i];
-                        if (roomConnection.ConnectionId == caller)
+                        var groupConnection = group.GroupConnections[i];
+                        if (groupConnection.ConnectionId == caller)
                         {
                             continue;
                         }
 
                         _outQueueDispatcher
-                            .Dispatch(roomConnection.ConnectionId)
+                            .Dispatch(groupConnection.ConnectionId)
                             .Produce(new OutPacket(
-                                connectionId: roomConnection.ConnectionId,
+                                connectionId: groupConnection.ConnectionId,
                                 channelId: channelId,
                                 @event: @event,
-                                ipV4Address: roomConnection.IpV4Address));
+                                ipV4Address: groupConnection.IpV4Address));
                     }
 
                     return;
-                case BroadcastMode.Room:
-                    for (var i = 0; i < room.RoomConnections.Count; i++)
+                case BroadcastMode.Group:
+                    for (var i = 0; i < group.GroupConnections.Count; i++)
                     {
-                        var roomConnection = room.RoomConnections[i];
+                        var groupConnection = group.GroupConnections[i];
 
                         _outQueueDispatcher
-                            .Dispatch(roomConnection.ConnectionId)
+                            .Dispatch(groupConnection.ConnectionId)
                             .Produce(new OutPacket(
-                                connectionId: roomConnection.ConnectionId,
+                                connectionId: groupConnection.ConnectionId,
                                 channelId: channelId,
                                 @event: @event,
-                                ipV4Address: roomConnection.IpV4Address));
+                                ipV4Address: groupConnection.IpV4Address));
                     }
 
                     return;
@@ -125,7 +125,7 @@ namespace UdpToolkit.Framework
             if (disposing)
             {
                 _outQueueDispatcher.Dispose();
-                _roomManager.Dispose();
+                _groupManager.Dispose();
             }
 
             _disposed = true;

@@ -8,14 +8,14 @@ namespace ReliableUdp.Contracts
     {
         public Death(
             string nickname,
-            Guid roomId)
+            Guid groupId)
         {
             Nickname = nickname;
-            RoomId = roomId;
+            GroupId = groupId;
         }
 
         public string Nickname { get; }
 
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
     }
 }

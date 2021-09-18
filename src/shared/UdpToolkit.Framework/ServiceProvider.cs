@@ -8,21 +8,21 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Initializes a new instance of the <see cref="ServiceProvider"/> class.
         /// </summary>
-        /// <param name="roomManager">Instance of room manager.</param>
+        /// <param name="groupManager">Instance of group manager.</param>
         /// <param name="scheduler">Instance of scheduler.</param>
         /// <param name="broadcaster">Instance of broadcaster.</param>
         public ServiceProvider(
-            IRoomManager roomManager,
+            IGroupManager groupManager,
             IScheduler scheduler,
             IBroadcaster broadcaster)
         {
-            RoomManager = roomManager;
+            GroupManager = groupManager;
             Scheduler = scheduler;
             Broadcaster = broadcaster;
         }
 
         /// <inheritdoc />
-        public IRoomManager RoomManager { get; }
+        public IGroupManager GroupManager { get; }
 
         /// <inheritdoc />
         public IScheduler Scheduler { get; }

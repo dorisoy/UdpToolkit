@@ -65,17 +65,17 @@ namespace UdpToolkit.Framework
         public TimeSpan TimersCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
         /// <summary>
-        /// Gets or sets frequency of cleanup inactive rooms.
+        /// Gets or sets frequency of cleanup inactive groups.
         /// </summary>
-        public TimeSpan RoomsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
+        public TimeSpan GroupsCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
         /// <summary>
-        /// Gets or sets ttl for each room.
+        /// Gets or sets ttl for each group.
         /// </summary>
         /// <remarks>
         /// Typically equal to the time of game session.
         /// </remarks>
-        public TimeSpan RoomTtl { get; set; } = TimeSpan.FromMinutes(10);
+        public TimeSpan GroupTtl { get; set; } = TimeSpan.FromMinutes(10);
 
         /// <summary>
         /// Gets or sets Executor instance.

@@ -6,9 +6,9 @@ namespace UdpToolkit.Framework.Contracts
     public interface IServiceProvider
     {
         /// <summary>
-        /// Gets room manager.
+        /// Gets group manager.
         /// </summary>
-        IRoomManager RoomManager { get; }
+        IGroupManager GroupManager { get; }
 
         /// <summary>
         /// Gets scheduler.

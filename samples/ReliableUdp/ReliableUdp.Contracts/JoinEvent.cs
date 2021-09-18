@@ -7,14 +7,14 @@ namespace ReliableUdp.Contracts
     public class JoinEvent
     {
         public JoinEvent(
-            Guid roomId,
+            Guid groupId,
             string nickname)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Nickname = nickname;
         }
 
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         public string Nickname { get; }
     }

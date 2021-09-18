@@ -13,22 +13,22 @@
         public static void Main()
         {
             var host = BuildHost();
-            var roomManager = host.ServiceProvider.RoomManager;
+            var groupManager = host.ServiceProvider.GroupManager;
             var broadcaster = host.ServiceProvider.Broadcaster;
 
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                    groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
 
-                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 
                     broadcaster.Broadcast(
                         caller: connectionId,
-                        roomId: joinEvent.RoomId,
+                        groupId: joinEvent.GroupId,
                         @event: joinEvent,
                         channelId: ReliableChannel.Id,
-                        broadcastMode: BroadcastMode.RoomExceptCaller);
+                        broadcastMode: BroadcastMode.GroupExceptCaller);
                 });
 
             host.On<MoveEvent>(
@@ -38,10 +38,10 @@
 
                     broadcaster.Broadcast(
                         caller: connectionId,
-                        roomId: moveEvent.RoomId,
+                        groupId: moveEvent.GroupId,
                         @event: moveEvent,
                         channelId: SequencedChannel.Id,
-                        broadcastMode: BroadcastMode.RoomExceptCaller);
+                        broadcastMode: BroadcastMode.GroupExceptCaller);
                 });
 
             host.Run();

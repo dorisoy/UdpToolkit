@@ -54,7 +54,7 @@ Required for matching user-defined types with serialization actions.
 
 ### Protocol header (Implicit)
 
-The client should include `RoomId:Guid` (16 bytes) in each event. This is required to restrict broadcasting scope on the framework side.
+The client should include `GroupId:Guid` (16 bytes) in each event. This is required to restrict broadcasting scope on the framework side.
 
 ### Concurrency
 
@@ -70,4 +70,4 @@ host.On<Message>(
     });
 ```
 
-For thread-safe events processing in-room scope, you could use other libraries or implement locking (named lock) the room by yourself.
+For thread-safe events processing in-room scope, you could use other libraries or implement locking the room by yourself.

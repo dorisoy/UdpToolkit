@@ -9,15 +9,15 @@ namespace P2P.Contracts
     public class FetchPeers
     {
         public FetchPeers(
-            Guid roomId,
+            Guid groupId,
             string nickname)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Nickname = nickname;
         }
 
         [Key(0)]
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         [Key(1)]
         public string Nickname { get; }

@@ -7,15 +7,15 @@ namespace ReliableUdp.Contracts
     public class GameOver
     {
         public GameOver(
-            Guid roomId,
+            Guid groupId,
             string message)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Message = message;
         }
 
         public string Message { get; }
 
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
     }
 }

@@ -8,14 +8,14 @@ namespace ReliableUdp.Contracts
     public class StartGame
     {
         public StartGame(
-            Guid roomId,
+            Guid groupId,
             Dictionary<Guid, Position> positions)
         {
-            RoomId = roomId;
+            GroupId = groupId;
             Positions = positions;
         }
 
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         public Dictionary<Guid, Position> Positions { get; }
     }

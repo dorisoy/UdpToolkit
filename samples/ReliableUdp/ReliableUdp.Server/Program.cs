@@ -29,35 +29,35 @@
 
             var broadcaster = host.ServiceProvider.Broadcaster;
             var scheduler = host.ServiceProvider.Scheduler;
-            var roomManager = host.ServiceProvider.RoomManager;
+            var groupManager = host.ServiceProvider.GroupManager;
 
             host
                 .On<JoinEvent>(
                     onEvent: (connectionId, ip, joinEvent) =>
                     {
-                        roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                        groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
 
                         scheduler.ScheduleOnce<StartGame>(
-                            roomId: joinEvent.RoomId,
+                            groupId: joinEvent.GroupId,
                             delay: TimeSpan.FromSeconds(3),
-                            action: () => SendSpawnPoints(connectionId, joinEvent.RoomId, roomManager, broadcaster));
+                            action: () => SendSpawnPoints(connectionId, joinEvent.GroupId, groupManager, broadcaster));
 
                         scheduler.ScheduleOnce<GameOver>(
-                            roomId: joinEvent.RoomId,
+                            groupId: joinEvent.GroupId,
                             delay: TimeSpan.FromSeconds(20),
                             action: () => broadcaster.Broadcast(
                                 caller: connectionId,
-                                roomId: joinEvent.RoomId,
-                                @event: new GameOver(joinEvent.RoomId, "Game Over!"),
+                                groupId: joinEvent.GroupId,
+                                @event: new GameOver(joinEvent.GroupId, "Game Over!"),
                                 channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.Room));
+                                broadcastMode: BroadcastMode.Group));
 
                         broadcaster.Broadcast(
                             caller: connectionId,
-                            roomId: joinEvent.RoomId,
+                            groupId: joinEvent.GroupId,
                             @event: joinEvent,
                             channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                            broadcastMode: BroadcastMode.GroupExceptCaller);
                     });
 
             host
@@ -69,18 +69,18 @@
                         scheduler.Schedule<Respawn>(
                             action: () => broadcaster.Broadcast(
                                 caller: connectionId,
-                                roomId: death.RoomId,
-                                @event: new Respawn(death.Nickname, death.RoomId),
+                                groupId: death.GroupId,
+                                @event: new Respawn(death.Nickname, death.GroupId),
                                 channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.Room),
+                                broadcastMode: BroadcastMode.Group),
                             delay: TimeSpan.FromSeconds(1));
 
                         broadcaster.Broadcast(
                             caller: connectionId,
-                            roomId: death.RoomId,
+                            groupId: death.GroupId,
                             @event: death,
                             channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                            broadcastMode: BroadcastMode.GroupExceptCaller);
                     });
 
             host.Run();
@@ -90,23 +90,23 @@
 
         private static void SendSpawnPoints(
             Guid connectionId,
-            Guid roomId,
-            IRoomManager roomManager,
+            Guid groupId,
+            IGroupManager groupManager,
             IBroadcaster broadcaster)
         {
-            var room = roomManager.GetRoom(roomId);
+            var group = groupManager.GetGroup(groupId);
 
-            var spawnPositions = room.RoomConnections
+            var spawnPositions = group.GroupConnections
                 .Select(x => x.ConnectionId)
                 .Select(id => new { id, position = Positions.Dequeue() })
                 .ToDictionary(pair => pair.id, pair => pair.position);
 
             broadcaster.Broadcast(
                 caller: connectionId,
-                roomId: roomId,
-                @event: new StartGame(roomId, spawnPositions),
+                groupId: groupId,
+                @event: new StartGame(groupId, spawnPositions),
                 channelId: ReliableChannel.Id,
-                broadcastMode: BroadcastMode.Room);
+                broadcastMode: BroadcastMode.Group);
         }
 
         private static IHost BuildHost()

@@ -257,18 +257,18 @@ namespace UdpToolkit
             IAsyncQueue<InPacket>[] inQueues,
             CancellationTokenSource cancellationTokenSource)
         {
-            var roomManager = new RoomManager(
+            var groupManager = new GroupManager(
                 dateTimeProvider: dateTimeProvider,
-                roomTtl: HostSettings.RoomTtl,
-                scanFrequency: HostSettings.RoomsCleanupFrequency,
-                logger: loggerFactory.Create<RoomManager>());
+                groupTtl: HostSettings.GroupTtl,
+                scanFrequency: HostSettings.GroupsCleanupFrequency,
+                logger: loggerFactory.Create<GroupManager>());
 
             var broadcaster = new Broadcaster(
-                roomManager: roomManager,
+                groupManager: groupManager,
                 outQueueDispatcher: outQueueDispatcher);
 
             var scheduler = new Scheduler(
-                roomTtl: HostSettings.RoomTtl,
+                groupTtl: HostSettings.GroupTtl,
                 dateTimeProvider: dateTimeProvider,
                 cleanupFrequency: HostSettings.TimersCleanupFrequency,
                 logger: HostSettings.LoggerFactory.Create<Scheduler>());
@@ -280,7 +280,7 @@ namespace UdpToolkit
             {
                 scheduler,
                 hostClient,
-                roomManager,
+                groupManager,
                 inQueueDispatcher,
                 outQueueDispatcher,
                 HostWorkerInternal,
@@ -293,7 +293,7 @@ namespace UdpToolkit
 
             return new Host(
                 serviceProvider: new ServiceProvider(
-                    roomManager: roomManager,
+                    groupManager: groupManager,
                     scheduler: scheduler,
                     broadcaster: broadcaster),
                 cancellationTokenSource: cancellationTokenSource,

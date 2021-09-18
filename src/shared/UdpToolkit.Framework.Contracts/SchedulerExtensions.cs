@@ -38,10 +38,10 @@ namespace UdpToolkit.Framework.Contracts
         }
 
         /// <summary>
-        /// Schedule action once per room.
+        /// Schedule action once per group.
         /// </summary>
         /// <param name="scheduler">Instance of scheduler.</param>
-        /// <param name="roomId">Room identifier.</param>
+        /// <param name="groupId">Group identifier.</param>
         /// <param name="action">Scheduled action.</param>
         /// <param name="delay">Delay value.</param>
         /// <typeparam name="TEvent">
@@ -52,7 +52,7 @@ namespace UdpToolkit.Framework.Contracts
         /// </exception>
         public static void ScheduleOnce<TEvent>(
             this IScheduler scheduler,
-            Guid roomId,
+            Guid groupId,
             Action action,
             TimeSpan delay)
         {
@@ -61,7 +61,7 @@ namespace UdpToolkit.Framework.Contracts
 #pragma warning restore SA1503
 
             scheduler.Schedule(
-                timerKey: new TimerKey(roomId, typeof(TEvent)),
+                timerKey: new TimerKey(groupId, typeof(TEvent)),
                 delay: delay,
                 frequency: TimeSpan.FromMilliseconds(Timeout.Infinite),
                 ttl: delay + TimeSpan.FromSeconds(5),
@@ -69,10 +69,10 @@ namespace UdpToolkit.Framework.Contracts
         }
 
         /// <summary>
-        /// Schedule repeatable action per room.
+        /// Schedule repeatable action per group.
         /// </summary>
         /// <param name="scheduler">Instance of scheduler.</param>
-        /// <param name="roomId">Room identifier.</param>
+        /// <param name="groupId">Group identifier.</param>
         /// <param name="action">Scheduled action.</param>
         /// <param name="delay">Delay value.</param>
         /// <param name="frequency">Frequency of call.</param>
@@ -84,7 +84,7 @@ namespace UdpToolkit.Framework.Contracts
         /// </exception>
         public static void ScheduleRepeatable<TEvent>(
             this IScheduler scheduler,
-            Guid roomId,
+            Guid groupId,
             Action action,
             TimeSpan delay,
             TimeSpan frequency)
@@ -94,10 +94,10 @@ namespace UdpToolkit.Framework.Contracts
 #pragma warning restore SA1503
 
             scheduler.Schedule(
-                timerKey: new TimerKey(roomId, typeof(TEvent)),
+                timerKey: new TimerKey(groupId, typeof(TEvent)),
                 delay: delay,
                 frequency: frequency,
-                ttl: null, // roomTtl
+                ttl: null, // groupTtl
                 action: action);
         }
     }

@@ -6,33 +6,33 @@ namespace UdpToolkit.Framework.Contracts
     /// <summary>
     /// Represent logical scope of connections.
     /// </summary>
-    public sealed class Room
+    public sealed class Group
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Room"/> class.
+        /// Initializes a new instance of the <see cref="Group"/> class.
         /// </summary>
-        /// <param name="id">Room identifier.</param>
-        /// <param name="roomConnections">List for room connections.</param>
+        /// <param name="id">Group identifier.</param>
+        /// <param name="groupConnections">List of group connections.</param>
         /// <param name="createdAt">Date of creation.</param>
-        public Room(
+        public Group(
             Guid id,
-            List<RoomConnection> roomConnections,
+            List<GroupConnection> groupConnections,
             DateTimeOffset createdAt)
         {
-            RoomConnections = roomConnections;
+            GroupConnections = groupConnections;
             CreatedAt = createdAt;
             Id = id;
         }
 
         /// <summary>
-        /// Gets room identifier.
+        /// Gets group identifier.
         /// </summary>
         public Guid Id { get; }
 
         /// <summary>
-        /// Gets list of room connections.
+        /// Gets list of group connections.
         /// </summary>
-        public List<RoomConnection> RoomConnections { get; }
+        public List<GroupConnection> GroupConnections { get; }
 
         /// <summary>
         /// Gets creation date.

@@ -16,9 +16,9 @@ namespace UdpToolkit.Framework.Contracts
         Caller = 1,
 
         /// <summary>
-        /// The event will be processed by callback with broadcasting to all room clients.
+        /// The event will be processed by callback with broadcasting to all group clients.
         /// </summary>
-        Room = 2,
+        Group = 2,
 
         /// <summary>
         /// The event will be processed by callback with broadcasting to all server clients (not implemented).
@@ -26,8 +26,8 @@ namespace UdpToolkit.Framework.Contracts
         Server = 3,
 
         /// <summary>
-        /// The event will be processed by callback with broadcasting to all room clients except the caller.
+        /// The event will be processed by callback with broadcasting to all group clients except the caller.
         /// </summary>
-        RoomExceptCaller = 4,
+        GroupExceptCaller = 4,
     }
 }

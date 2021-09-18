@@ -24,7 +24,7 @@
             var nickname = "Client A";
 
             var isConnected = false;
-            var roomManager = host.ServiceProvider.RoomManager;
+            var groupManager = host.ServiceProvider.GroupManager;
 
             host.HostClient.OnConnectionTimeout += () =>
             {
@@ -48,7 +48,7 @@
                 {
                     _isStarted = true;
 
-                    roomManager.JoinOrCreate(startGame.RoomId, connectionId, ip);
+                    groupManager.JoinOrCreate(startGame.GroupId, connectionId, ip);
 
                     var positions = startGame.Positions
                         .Select(pair => $"{pair.Key}|X - {pair.Value.X}|Y - {pair.Value.Y}|Z - {pair.Value.Z}");
@@ -81,7 +81,7 @@
             Console.WriteLine($"IsConnected - {isConnected}");
 
             client.Send(
-                @event: new JoinEvent(roomId: Guid.Empty, nickname: nickname),
+                @event: new JoinEvent(groupId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
             SpinWait.SpinUntil(() => _isStarted, waitTimeout);

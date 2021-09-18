@@ -15,31 +15,31 @@
         public static void Main()
         {
             var host = BuildHost();
-            var roomManager = host.ServiceProvider.RoomManager;
+            var groupManager = host.ServiceProvider.GroupManager;
             var broadcaster = host.ServiceProvider.Broadcaster;
 
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                    groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
 
-                    Console.WriteLine($"{joinEvent.Nickname} joined to room!");
+                    Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 
                     broadcaster.Broadcast(
                         caller: connectionId,
-                        roomId: joinEvent.RoomId,
+                        groupId: joinEvent.GroupId,
                         @event: joinEvent,
                         channelId: ReliableChannel.Id,
-                        broadcastMode: BroadcastMode.RoomExceptCaller);
+                        broadcastMode: BroadcastMode.GroupExceptCaller);
                 });
 
             host
                 .On<FetchPeers>(
                     onEvent: (connectionId, ip, fetchPeers) =>
                     {
-                        var room = roomManager.GetRoom(fetchPeers.RoomId);
+                        var group = groupManager.GetGroup(fetchPeers.GroupId);
 
-                        var peers = room.RoomConnections
+                        var peers = group.GroupConnections
                             .Where(x => x.ConnectionId != connectionId)
                             .Select(x => new Peer(x.IpV4Address.Address.ToHost(), x.IpV4Address.Port))
                             .ToList();
@@ -48,8 +48,8 @@
 
                         broadcaster.Broadcast(
                             caller: connectionId,
-                            roomId: fetchPeers.RoomId,
-                            @event: new RoomPeers(fetchPeers.RoomId, peers),
+                            groupId: fetchPeers.GroupId,
+                            @event: new GroupPeers(fetchPeers.GroupId, peers),
                             channelId: ReliableChannel.Id,
                             broadcastMode: BroadcastMode.Caller);
                     });

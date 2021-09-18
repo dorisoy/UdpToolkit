@@ -9,17 +9,17 @@
     public class MoveEvent
     {
         public MoveEvent(
-            Guid roomId,
+            Guid groupId,
             int id,
             string @from)
         {
             Id = id;
-            RoomId = roomId;
+            GroupId = groupId;
             From = @from;
         }
 
         [Key(0)]
-        public Guid RoomId { get; }
+        public Guid GroupId { get; }
 
         [Key(1)]
         public int Id { get; }

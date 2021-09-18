@@ -10,31 +10,31 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <inheritdoc />
-    public sealed class RoomManager : IRoomManager
+    public sealed class GroupManager : IGroupManager
     {
-        private readonly ConcurrentDictionary<Guid, Room> _rooms = new ConcurrentDictionary<Guid, Room>();
+        private readonly ConcurrentDictionary<Guid, Group> _groups = new ConcurrentDictionary<Guid, Group>();
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly TimeSpan _roomTtl;
+        private readonly TimeSpan _groupTtl;
         private readonly Timer _houseKeeper;
         private readonly ILogger _logger;
 
         private bool _disposed = false;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="RoomManager"/> class.
+        /// Initializes a new instance of the <see cref="GroupManager"/> class.
         /// </summary>
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
-        /// <param name="roomTtl">Room ttl.</param>
-        /// <param name="scanFrequency">Scan frequency for cleanup inactive rooms.</param>
+        /// <param name="groupTtl">Group ttl.</param>
+        /// <param name="scanFrequency">Scan frequency for cleanup inactive groups.</param>
         /// <param name="logger">Instance of logger.</param>
-        public RoomManager(
+        public GroupManager(
             IDateTimeProvider dateTimeProvider,
-            TimeSpan roomTtl,
+            TimeSpan groupTtl,
             TimeSpan scanFrequency,
             ILogger logger)
         {
             _dateTimeProvider = dateTimeProvider;
-            _roomTtl = roomTtl;
+            _groupTtl = groupTtl;
             _logger = logger;
             _houseKeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
@@ -44,9 +44,9 @@ namespace UdpToolkit.Framework
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="RoomManager"/> class.
+        /// Finalizes an instance of the <see cref="GroupManager"/> class.
         /// </summary>
-        ~RoomManager()
+        ~GroupManager()
         {
             Dispose(false);
         }
@@ -60,40 +60,40 @@ namespace UdpToolkit.Framework
 
         /// <inheritdoc />
         public void JoinOrCreate(
-            Guid roomId,
+            Guid groupId,
             Guid connectionId,
             IpV4Address ipV4Address)
         {
-            _rooms.AddOrUpdate(
-                key: roomId,
-                addValueFactory: (id) => new Room(
+            _groups.AddOrUpdate(
+                key: groupId,
+                addValueFactory: (id) => new Group(
                     id: id,
-                    roomConnections: new List<RoomConnection>
+                    groupConnections: new List<GroupConnection>
                     {
-                        new RoomConnection(
+                        new GroupConnection(
                             connectionId: connectionId,
                             ipV4Address: ipV4Address),
                     },
                     createdAt: _dateTimeProvider.GetUtcNow()),
-                updateValueFactory: (id, room) =>
+                updateValueFactory: (id, group) =>
                 {
-                    if (room.RoomConnections.All(x => x.ConnectionId != connectionId))
+                    if (group.GroupConnections.All(x => x.ConnectionId != connectionId))
                     {
-                        room.RoomConnections.Add(
-                            item: new RoomConnection(
+                        group.GroupConnections.Add(
+                            item: new GroupConnection(
                                 connectionId: connectionId,
                                 ipV4Address: ipV4Address));
                     }
 
-                    return room;
+                    return group;
                 });
         }
 
         /// <inheritdoc />
-        public Room GetRoom(Guid roomId)
+        public Group GetGroup(Guid groupId)
         {
-            _rooms.TryGetValue(roomId, out var room);
-            return room;
+            _groups.TryGetValue(groupId, out var group);
+            return group;
         }
 
         private void Dispose(bool disposing)
@@ -115,18 +115,18 @@ namespace UdpToolkit.Framework
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive rooms");
+                _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive groups");
             }
 
             var now = _dateTimeProvider.GetUtcNow();
-            for (var i = 0; i < _rooms.Count; i++)
+            for (var i = 0; i < _groups.Count; i++)
             {
-                var room = _rooms.ElementAt(i);
+                var group = _groups.ElementAt(i);
 
-                var ttlDiff = now - room.Value.CreatedAt;
-                if (ttlDiff > _roomTtl)
+                var ttlDiff = now - group.Value.CreatedAt;
+                if (ttlDiff > _groupTtl)
                 {
-                    _rooms.TryRemove(room.Key, out _);
+                    _groups.TryRemove(group.Key, out _);
                 }
             }
         }

@@ -4,16 +4,16 @@ namespace UdpToolkit.Framework.Contracts
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
-    /// Information about connection in the room.
+    /// Information about connection in the group.
     /// </summary>
-    public readonly struct RoomConnection
+    public readonly struct GroupConnection
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="RoomConnection"/> struct.
+        /// Initializes a new instance of the <see cref="GroupConnection"/> struct.
         /// </summary>
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="ipV4Address">Ip address of connection.</param>
-        public RoomConnection(
+        public GroupConnection(
             Guid connectionId,
             IpV4Address ipV4Address)
         {

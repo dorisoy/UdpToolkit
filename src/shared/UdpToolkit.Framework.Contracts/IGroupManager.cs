@@ -4,29 +4,29 @@ namespace UdpToolkit.Framework.Contracts
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
-    /// Abstraction for managing room connections.
+    /// Abstraction for managing groups of connections.
     /// </summary>
-    public interface IRoomManager : IDisposable
+    public interface IGroupManager : IDisposable
     {
         /// <summary>
-        /// Join or create room.
+        /// Join or create group.
         /// </summary>
-        /// <param name="roomId">Room identifier.</param>
+        /// <param name="groupId">Group identifier.</param>
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="ipV4Address">Ip address.</param>
         void JoinOrCreate(
-            Guid roomId,
+            Guid groupId,
             Guid connectionId,
             IpV4Address ipV4Address);
 
         /// <summary>
-        /// Get existing room.
+        /// Get existing group.
         /// </summary>
-        /// <param name="roomId">Room identifier.</param>
+        /// <param name="groupId">Group identifier.</param>
         /// <returns>
-        /// Room.
+        /// Group.
         /// </returns>
-        Room GetRoom(
-            Guid roomId);
+        Group GetGroup(
+            Guid groupId);
     }
 }

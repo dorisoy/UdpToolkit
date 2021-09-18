@@ -21,7 +21,7 @@ namespace UdpToolkit.Framework.Contracts
         }
 
         /// <summary>
-        /// Gets room identifier.
+        /// Gets timer identifier.
         /// </summary>
         public Guid TimerId { get; }
 

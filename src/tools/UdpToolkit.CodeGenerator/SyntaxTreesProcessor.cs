@@ -258,7 +258,6 @@
                 var body = caseTemplate
                     .Replace("VALUE", i.ToString())
                     .Replace("EVENT", $"@event{i.ToString()}")
-                    .Replace("ROOMID", $"roomId{i.ToString()}")
                     .Replace("SUBSCRIPTION", $"subscription{i.ToString()}")
                     .Replace("TYPE", $"global::{ns.Name.ToString()}.{@class.Identifier.Text}");
 
