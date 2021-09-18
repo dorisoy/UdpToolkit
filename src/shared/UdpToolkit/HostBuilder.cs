@@ -7,7 +7,6 @@ namespace UdpToolkit
     using System.Threading;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Connections;
@@ -269,8 +268,9 @@ namespace UdpToolkit
                 outQueueDispatcher: outQueueDispatcher);
 
             var scheduler = new Scheduler(
-                broadcaster: broadcaster,
-                roomManager: roomManager,
+                roomTtl: HostSettings.RoomTtl,
+                dateTimeProvider: dateTimeProvider,
+                cleanupFrequency: HostSettings.TimersCleanupFrequency,
                 logger: HostSettings.LoggerFactory.Create<Scheduler>());
 
             HostWorkerInternal.Logger = loggerFactory.Create<IHostWorker>();

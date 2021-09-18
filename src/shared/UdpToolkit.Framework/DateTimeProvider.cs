@@ -1,6 +1,7 @@
-namespace UdpToolkit.Framework.Contracts
+namespace UdpToolkit.Framework
 {
     using System;
+    using UdpToolkit.Framework.Contracts;
 
     /// <inheritdoc />
     public sealed class DateTimeProvider : IDateTimeProvider

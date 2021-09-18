@@ -7,14 +7,13 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
     public static class Program
     {
+        private static bool _isStarted = false;
         private static bool _isOver = false;
 
         public static void Main()
@@ -25,6 +24,7 @@
             var nickname = "Client A";
 
             var isConnected = false;
+            var roomManager = host.ServiceProvider.RoomManager;
 
             host.HostClient.OnConnectionTimeout += () =>
             {
@@ -46,8 +46,9 @@
             host.On<StartGame>(
                 onEvent: (connectionId, ip, startGame) =>
                 {
-                    host.ServiceProvider.RoomManager
-                        .JoinOrCreate(startGame.RoomId, connectionId, ip);
+                    _isStarted = true;
+
+                    roomManager.JoinOrCreate(startGame.RoomId, connectionId, ip);
 
                     var positions = startGame.Positions
                         .Select(pair => $"{pair.Key}|X - {pair.Value.X}|Y - {pair.Value.Y}|Z - {pair.Value.Z}");
@@ -83,25 +84,20 @@
                 @event: new JoinEvent(roomId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
-            Thread.Sleep(10_000);
+            SpinWait.SpinUntil(() => _isStarted, waitTimeout);
+            Console.WriteLine($"Game started!");
 
-            client.Send(
-                @event: new Death(nickname, Guid.Empty),
-                channelId: ReliableChannel.Id);
+            for (var i = 0; i < 3; i++)
+            {
+                client.Send(
+                    @event: new Death(nickname, Guid.Empty),
+                    channelId: ReliableChannel.Id);
 
-            Thread.Sleep(2_000);
-
-            client.Send(
-                @event: new Death(nickname, Guid.Empty),
-                channelId: ReliableChannel.Id);
-
-            Thread.Sleep(2_000);
-
-            client.Send(
-                @event: new Death(nickname, Guid.Empty),
-                channelId: ReliableChannel.Id);
+                Thread.Sleep(1000);
+            }
 
             SpinWait.SpinUntil(() => _isOver, waitTimeout);
+            Console.WriteLine($"Game over!");
 
             client.Disconnect();
             SpinWait.SpinUntil(() => !isConnected, waitTimeout);

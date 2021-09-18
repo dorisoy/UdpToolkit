@@ -7,8 +7,6 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 

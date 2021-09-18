@@ -6,8 +6,6 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
@@ -17,30 +15,29 @@
         public static void Main()
         {
             var host = BuildHost();
+            var roomManager = host.ServiceProvider.RoomManager;
+            var broadcaster = host.ServiceProvider.Broadcaster;
 
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    host.ServiceProvider.RoomManager
-                        .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                    roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to room!");
 
-                    host.ServiceProvider.Broadcaster
-                        .Broadcast(
-                            caller: connectionId,
-                            roomId: joinEvent.RoomId,
-                            @event: joinEvent,
-                            channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                    broadcaster.Broadcast(
+                        caller: connectionId,
+                        roomId: joinEvent.RoomId,
+                        @event: joinEvent,
+                        channelId: ReliableChannel.Id,
+                        broadcastMode: BroadcastMode.RoomExceptCaller);
                 });
 
             host
                 .On<FetchPeers>(
                     onEvent: (connectionId, ip, fetchPeers) =>
                     {
-                        var room = host.ServiceProvider.RoomManager
-                            .GetRoom(fetchPeers.RoomId);
+                        var room = roomManager.GetRoom(fetchPeers.RoomId);
 
                         var peers = room.RoomConnections
                             .Where(x => x.ConnectionId != connectionId)
@@ -49,13 +46,12 @@
 
                         Console.WriteLine($"{fetchPeers.Nickname} Fetch peers!");
 
-                        host.ServiceProvider.Broadcaster
-                            .Broadcast(
-                                caller: connectionId,
-                                roomId: fetchPeers.RoomId,
-                                @event: new RoomPeers(fetchPeers.RoomId, peers),
-                                channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.Caller);
+                        broadcaster.Broadcast(
+                            caller: connectionId,
+                            roomId: fetchPeers.RoomId,
+                            @event: new RoomPeers(fetchPeers.RoomId, peers),
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.Caller);
                     });
 
             host.Run();

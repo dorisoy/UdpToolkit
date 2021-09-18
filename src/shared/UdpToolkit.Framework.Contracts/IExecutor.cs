@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework.Contracts.Executors
+namespace UdpToolkit.Framework.Contracts
 {
     using System;
     using System.Threading;

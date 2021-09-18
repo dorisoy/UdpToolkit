@@ -1,7 +1,8 @@
-namespace UdpToolkit.Framework.Contracts
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
+    using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
 
     /// <summary>
@@ -44,9 +45,7 @@ namespace UdpToolkit.Framework.Contracts
             Dispose(false);
         }
 
-        /// <summary>
-        /// Dispose.
-        /// </summary>
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(true);

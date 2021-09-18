@@ -1,6 +1,7 @@
 namespace UdpToolkit
 {
     using System;
+    using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Channels;

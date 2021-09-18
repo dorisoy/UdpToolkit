@@ -1,8 +1,9 @@
-namespace UdpToolkit.Framework.Contracts.Executors
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Threading;
     using System.Threading.Tasks;
+    using UdpToolkit.Framework.Contracts;
 
     /// <summary>
     /// Executor implementation based on tasks.
@@ -22,9 +23,7 @@ namespace UdpToolkit.Framework.Contracts.Executors
         /// <inheritdoc />
         public event Action<Exception> OnException;
 
-        /// <summary>
-        /// Dispose.
-        /// </summary>
+        /// <inheritdoc/>
         public void Dispose()
         {
             Dispose(true);

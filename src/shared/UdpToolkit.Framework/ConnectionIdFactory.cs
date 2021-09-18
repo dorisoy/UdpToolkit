@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework.Contracts
+namespace UdpToolkit.Framework
 {
     using System;
     using UdpToolkit.Network.Contracts.Connections;

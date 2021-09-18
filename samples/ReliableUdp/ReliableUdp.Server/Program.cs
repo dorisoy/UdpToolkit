@@ -7,8 +7,6 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
@@ -29,36 +27,37 @@
         {
             var host = BuildHost();
 
+            var broadcaster = host.ServiceProvider.Broadcaster;
+            var scheduler = host.ServiceProvider.Scheduler;
+            var roomManager = host.ServiceProvider.RoomManager;
+
             host
                 .On<JoinEvent>(
                     onEvent: (connectionId, ip, joinEvent) =>
                     {
-                        host.ServiceProvider.RoomManager
-                            .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                        roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
-                        host.ServiceProvider.Scheduler
-                            .Schedule<JoinEvent>(
-                                inEvent: joinEvent,
-                                caller: connectionId,
-                                timerKey: new TimerKey(joinEvent.RoomId, typeof(StartGame)),
-                                dueTime: TimeSpan.FromMilliseconds(20_000),
-                                action: SendSpawnPoints);
+                        scheduler.ScheduleOnce<StartGame>(
+                            roomId: joinEvent.RoomId,
+                            delay: TimeSpan.FromSeconds(3),
+                            action: () => SendSpawnPoints(connectionId, joinEvent.RoomId, roomManager, broadcaster));
 
-                        host.ServiceProvider.Scheduler
-                            .Schedule<JoinEvent>(
-                                inEvent: joinEvent,
-                                caller: connectionId,
-                                timerKey: new TimerKey(joinEvent.RoomId, typeof(GameOver)),
-                                dueTime: TimeSpan.FromMilliseconds(40_000),
-                                action: SendGameOver);
-
-                        host.ServiceProvider.Broadcaster
-                            .Broadcast(
+                        scheduler.ScheduleOnce<GameOver>(
+                            roomId: joinEvent.RoomId,
+                            delay: TimeSpan.FromSeconds(20),
+                            action: () => broadcaster.Broadcast(
                                 caller: connectionId,
                                 roomId: joinEvent.RoomId,
-                                @event: joinEvent,
+                                @event: new GameOver(joinEvent.RoomId, "Game Over!"),
                                 channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.RoomExceptCaller);
+                                broadcastMode: BroadcastMode.Room));
+
+                        broadcaster.Broadcast(
+                            caller: connectionId,
+                            roomId: joinEvent.RoomId,
+                            @event: joinEvent,
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.RoomExceptCaller);
                     });
 
             host
@@ -67,21 +66,21 @@
                     {
                         Console.WriteLine($"{death.Nickname} is dead!");
 
-                        host.ServiceProvider.Scheduler
-                            .Schedule<Death>(
-                                inEvent: death,
-                                caller: connectionId,
-                                timerKey: new TimerKey(Guid.NewGuid(), typeof(Respawn)),
-                                dueTime: TimeSpan.FromMilliseconds(20_000),
-                                action: SendRespawn);
-
-                        host.ServiceProvider.Broadcaster
-                            .Broadcast(
+                        scheduler.Schedule<Respawn>(
+                            action: () => broadcaster.Broadcast(
                                 caller: connectionId,
                                 roomId: death.RoomId,
-                                @event: death,
+                                @event: new Respawn(death.Nickname, death.RoomId),
                                 channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.RoomExceptCaller);
+                                broadcastMode: BroadcastMode.Room),
+                            delay: TimeSpan.FromSeconds(1));
+
+                        broadcaster.Broadcast(
+                            caller: connectionId,
+                            roomId: death.RoomId,
+                            @event: death,
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.RoomExceptCaller);
                     });
 
             host.Run();
@@ -89,56 +88,25 @@
             Console.ReadLine();
         }
 
-        private static void SendRespawn(
-            Guid connectionId,
-            Death death,
-            IRoomManager roomManager,
-            IBroadcaster broadcaster)
-        {
-            broadcaster
-                .Broadcast(
-                    caller: connectionId,
-                    roomId: death.RoomId,
-                    @event: new Respawn(death.Nickname, death.RoomId),
-                    channelId: ReliableChannel.Id,
-                    broadcastMode: BroadcastMode.Room);
-        }
-
-        private static void SendGameOver(
-            Guid connectionId,
-            JoinEvent joinEvent,
-            IRoomManager roomManager,
-            IBroadcaster broadcaster)
-        {
-            broadcaster
-                .Broadcast(
-                    caller: connectionId,
-                    roomId: joinEvent.RoomId,
-                    @event: new GameOver(joinEvent.RoomId, "Game Over!"),
-                    channelId: ReliableChannel.Id,
-                    broadcastMode: BroadcastMode.Room);
-        }
-
         private static void SendSpawnPoints(
             Guid connectionId,
-            JoinEvent joinEvent,
+            Guid roomId,
             IRoomManager roomManager,
             IBroadcaster broadcaster)
         {
-            var room = roomManager.GetRoom(joinEvent.RoomId);
+            var room = roomManager.GetRoom(roomId);
 
             var spawnPositions = room.RoomConnections
                 .Select(x => x.ConnectionId)
                 .Select(id => new { id, position = Positions.Dequeue() })
                 .ToDictionary(pair => pair.id, pair => pair.position);
 
-            broadcaster
-                .Broadcast(
-                    caller: connectionId,
-                    roomId: joinEvent.RoomId,
-                    @event: new StartGame(joinEvent.RoomId, spawnPositions),
-                    channelId: ReliableChannel.Id,
-                    broadcastMode: BroadcastMode.Room);
+            broadcaster.Broadcast(
+                caller: connectionId,
+                roomId: roomId,
+                @event: new StartGame(roomId, spawnPositions),
+                channelId: ReliableChannel.Id,
+                broadcastMode: BroadcastMode.Room);
         }
 
         private static IHost BuildHost()
@@ -154,7 +122,7 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Error);
+                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Debug);
                 })
                 .ConfigureNetwork((settings) =>
                 {

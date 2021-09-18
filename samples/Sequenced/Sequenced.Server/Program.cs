@@ -5,8 +5,6 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
@@ -15,22 +13,22 @@
         public static void Main()
         {
             var host = BuildHost();
+            var roomManager = host.ServiceProvider.RoomManager;
+            var broadcaster = host.ServiceProvider.Broadcaster;
 
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    host.ServiceProvider.RoomManager
-                        .JoinOrCreate(joinEvent.RoomId, connectionId, ip);
+                    roomManager.JoinOrCreate(joinEvent.RoomId, connectionId, ip);
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to room!");
 
-                    host.ServiceProvider.Broadcaster
-                        .Broadcast(
-                            caller: connectionId,
-                            roomId: joinEvent.RoomId,
-                            @event: joinEvent,
-                            channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                    broadcaster.Broadcast(
+                        caller: connectionId,
+                        roomId: joinEvent.RoomId,
+                        @event: joinEvent,
+                        channelId: ReliableChannel.Id,
+                        broadcastMode: BroadcastMode.RoomExceptCaller);
                 });
 
             host.On<MoveEvent>(
@@ -38,13 +36,12 @@
                 {
                     Console.WriteLine($"{moveEvent.From} Moved!");
 
-                    host.ServiceProvider.Broadcaster
-                        .Broadcast(
-                            caller: connectionId,
-                            roomId: moveEvent.RoomId,
-                            @event: moveEvent,
-                            channelId: SequencedChannel.Id,
-                            broadcastMode: BroadcastMode.RoomExceptCaller);
+                    broadcaster.Broadcast(
+                        caller: connectionId,
+                        roomId: moveEvent.RoomId,
+                        @event: moveEvent,
+                        channelId: SequencedChannel.Id,
+                        broadcastMode: BroadcastMode.RoomExceptCaller);
                 });
 
             host.Run();

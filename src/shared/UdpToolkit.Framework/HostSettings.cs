@@ -1,8 +1,8 @@
-namespace UdpToolkit.Framework.Contracts.Settings
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
-    using UdpToolkit.Framework.Contracts.Executors;
+    using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Serialization;
 
@@ -58,6 +58,11 @@ namespace UdpToolkit.Framework.Contracts.Settings
         /// Gets or sets instance of logger factory.
         /// </summary>
         public ILoggerFactory LoggerFactory { get; set; } = new SimpleConsoleLoggerFactory(LogLevel.Debug);
+
+        /// <summary>
+        /// Gets or sets frequency of cleanup expired timers.
+        /// </summary>
+        public TimeSpan TimersCleanupFrequency { get; set; } = TimeSpan.FromSeconds(10);
 
         /// <summary>
         /// Gets or sets frequency of cleanup inactive rooms.

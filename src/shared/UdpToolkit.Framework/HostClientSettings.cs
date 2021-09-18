@@ -1,4 +1,4 @@
-namespace UdpToolkit.Framework.Contracts.Settings
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;

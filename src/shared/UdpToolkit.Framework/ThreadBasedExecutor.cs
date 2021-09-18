@@ -1,8 +1,9 @@
-namespace UdpToolkit.Framework.Contracts.Executors
+namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
     using System.Threading;
+    using UdpToolkit.Framework.Contracts;
 
     /// <summary>
     /// Executor implementation based on threads.

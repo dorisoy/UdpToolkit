@@ -25,9 +25,9 @@ namespace UdpToolkit.Framework.Contracts
             Action<Guid, IpV4Address, TEvent> onEvent,
             Action<Guid> onTimeout = null)
         {
-#pragma warning disable
+#pragma warning disable SA1503
             if (host == null) throw new ArgumentNullException(nameof(host));
-#pragma warning restore
+#pragma warning restore SA1503
 
             host.On(new Subscription<TEvent>(
                 onEvent: onEvent,

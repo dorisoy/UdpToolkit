@@ -1,7 +1,6 @@
 namespace UdpToolkit
 {
-    using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Settings;
+    using UdpToolkit.Framework;
 
     /// <summary>
     /// Start point for building host.

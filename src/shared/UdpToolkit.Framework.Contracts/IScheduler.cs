@@ -10,17 +10,16 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Schedules action with a specified delay.
         /// </summary>
-        /// <param name="inEvent">Instance of inEvent.</param>
-        /// <param name="caller">Sending initiator.</param>
         /// <param name="timerKey">Compound key for timer.</param>
-        /// <param name="dueTime">Period of time for delay.</param>
+        /// <param name="delay">Period of time for delay.</param>
+        /// <param name="frequency">Frequency of repetitions.</param>
+        /// <param name="ttl">TTL for created timer.</param>
         /// <param name="action">Scheduled action.</param>
-        /// <typeparam name="TInEvent">Type of InEvent.</typeparam>
-        void Schedule<TInEvent>(
-            TInEvent inEvent,
-            Guid caller,
+        void Schedule(
             TimerKey timerKey,
-            TimeSpan dueTime,
-            Action<Guid, TInEvent, IRoomManager, IBroadcaster> action);
+            TimeSpan delay,
+            TimeSpan frequency,
+            TimeSpan? ttl,
+            Action action);
     }
 }

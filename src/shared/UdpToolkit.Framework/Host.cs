@@ -4,7 +4,6 @@ namespace UdpToolkit.Framework
     using System.Collections.Generic;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Executors;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Clients;
 

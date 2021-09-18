@@ -40,26 +40,25 @@ namespace UdpToolkit.Framework.Contracts
             return TimerId.Equals(other.TimerId) && Equals(EventType, other.EventType);
         }
 
-        /// <summary>
-        /// Equals.
-        /// </summary>
-        /// <param name="obj">Other key.</param>
-        /// <returns>True/False.</returns>
+        /// <inheritdoc />
         public override bool Equals(object obj)
         {
             return obj is TimerKey other && Equals(other);
         }
 
-        /// <summary>
-        /// GetHashCode.
-        /// </summary>
-        /// <returns>Hash.</returns>
+        /// <inheritdoc />
         public override int GetHashCode()
         {
             unchecked
             {
                 return (TimerId.GetHashCode() * 397) ^ (EventType != null ? EventType.GetHashCode() : 0);
             }
+        }
+
+        /// <inheritdoc />
+        public override string ToString()
+        {
+            return $"{TimerId}|{EventType.Name}";
         }
     }
 }

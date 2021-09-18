@@ -7,31 +7,39 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
 
-    /// <summary>
-    /// Scheduler, implementation for sending delayed packets.
-    /// </summary>
+    /// <inheritdoc />
     public sealed class Scheduler : IScheduler
     {
-        private readonly IBroadcaster _broadcaster;
-        private readonly IRoomManager _roomManager;
+        private readonly IDateTimeProvider _dateTimeProvider;
+        private readonly TimeSpan _roomTtl;
         private readonly ILogger _logger;
-        private readonly ConcurrentDictionary<TimerKey, Lazy<Timer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<Timer>>();
+        private readonly ConcurrentDictionary<TimerKey, Lazy<SmartTimer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<SmartTimer>>();
+        private readonly Timer _housekeeper;
+
         private bool _disposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Scheduler"/> class.
         /// </summary>
         /// <param name="logger">Instance of logger.</param>
-        /// <param name="roomManager">Instance of room manager.</param>
-        /// <param name="broadcaster">Instance of broadcaster.</param>
+        /// <param name="dateTimeProvider">Instance of dateTimeProvider.</param>
+        /// <param name="cleanupFrequency">Cleanup frequency for housekeeper.</param>
+        /// <param name="roomTtl">Room ttl.</param>
         public Scheduler(
             ILogger logger,
-            IRoomManager roomManager,
-            IBroadcaster broadcaster)
+            IDateTimeProvider dateTimeProvider,
+            TimeSpan cleanupFrequency,
+            TimeSpan roomTtl)
         {
             _logger = logger;
-            _roomManager = roomManager;
-            _broadcaster = broadcaster;
+            _dateTimeProvider = dateTimeProvider;
+            _roomTtl = roomTtl;
+
+            _housekeeper = new Timer(
+                callback: CleanupExpiredTimers,
+                state: null,
+                dueTime: TimeSpan.FromSeconds(10),
+                period: cleanupFrequency);
         }
 
         /// <summary>
@@ -50,25 +58,47 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc/>
-        public void Schedule<TInEvent>(
-            TInEvent inEvent,
-            Guid caller,
+        public void Schedule(
             TimerKey timerKey,
-            TimeSpan dueTime,
-            Action<Guid, TInEvent, IRoomManager, IBroadcaster> action)
+            TimeSpan delay,
+            TimeSpan frequency,
+            TimeSpan? ttl,
+            Action action)
         {
             var lazyTimer = _timers.GetOrAdd(
                 key: timerKey,
-                valueFactory: (key) => new Lazy<Timer>(() => new Timer(
-                    callback: (state) =>
-                    {
-                        action.Invoke(caller, inEvent, _roomManager, _broadcaster);
-                    },
-                    state: null,
-                    dueTime: dueTime,
-                    period: TimeSpan.FromMilliseconds(Timeout.Infinite))));
+                valueFactory: (key) => new Lazy<SmartTimer>(() => new SmartTimer(
+                    ttl: ttl ?? _roomTtl,
+                    createdAt: _dateTimeProvider.GetUtcNow(),
+                    callback: (_) => action(),
+                    delay: delay,
+                    frequency: frequency)));
 
             _ = lazyTimer.Value;
+        }
+
+        private void CleanupExpiredTimers(
+            object state)
+        {
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Framework] Cleanup expired timers");
+            }
+
+            for (int i = 0; i < _timers.Count; i++)
+            {
+                var pair = _timers.ElementAt(i);
+                var timer = pair.Value.Value;
+                if (timer.IsExpired(_dateTimeProvider.GetUtcNow()))
+                {
+                    timer.Dispose();
+
+                    if (_timers.TryRemove(pair.Key, out _) && _logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.Debug($"[UdpToolkit.Framework] Timer removed {pair.Key}");
+                    }
+                }
+            }
         }
 
         private void Dispose(bool disposing)
@@ -86,7 +116,7 @@ namespace UdpToolkit.Framework
                     timer.Value.Dispose();
                 }
 
-                _roomManager.Dispose();
+                _housekeeper.Dispose();
             }
 
             _disposed = true;
