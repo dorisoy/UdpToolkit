@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
@@ -45,6 +46,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="Scheduler"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~Scheduler()
         {
             Dispose(false);

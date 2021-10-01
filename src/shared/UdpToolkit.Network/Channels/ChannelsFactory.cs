@@ -14,7 +14,7 @@ namespace UdpToolkit.Network.Channels
                 new RawUdpChannel(),
                 new ReliableChannel(windowSize: 1024),
                 new ReliableOrderedChannel(),
-                new SequencedChannel(),
+                new SequencedChannel(sequences: new ushort[ushort.MaxValue]),
             };
         }
     }

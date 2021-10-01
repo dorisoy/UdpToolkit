@@ -1,5 +1,8 @@
 namespace UdpToolkit.Network.Contracts.Channels
 {
+    using System;
+    using UdpToolkit.Network.Contracts.Protocol;
+
     /// <summary>
     /// Abstraction for implementing custom strategies for working with UDP packets.
     /// </summary>
@@ -9,13 +12,9 @@ namespace UdpToolkit.Network.Contracts.Channels
     public interface IChannel
     {
         /// <summary>
-        /// Gets a value indicating whether a reliability requirement.
+        /// Gets a value indicating whether a resending on heartbeat requirement.
         /// </summary>
-        /// <remarks>
-        /// true - for checking pending packets on heartbeat events and resend them.
-        /// false - for ignore checking pending packets.
-        /// </remarks>
-        bool IsReliable { get; }
+        bool ResendOnHeartbeat { get; }
 
         /// <summary>
         /// Gets channel Id.
@@ -25,47 +24,46 @@ namespace UdpToolkit.Network.Contracts.Channels
         /// <summary>
         /// Handle input packets.
         /// </summary>
-        /// <param name="id">Packet id.</param>
-        /// <param name="acks">32 bits of history about previous packets (not implemented but reserved).</param>
+        /// <param name="networkHeader">Network header.</param>
         /// <returns>
         /// true - input packet accepted
         /// false - input packet dropped.
         /// </returns>
         bool HandleInputPacket(
-            ushort id,
-            uint acks);
+            in NetworkHeader networkHeader);
 
         /// <summary>
         /// Handle output packets.
         /// </summary>
-        /// <param name="id">Packet id.</param>
-        /// <param name="acks">32 bits of history about previous packets (not implemented but reserved).</param>
-        void HandleOutputPacket(
-            out ushort id,
-            out uint acks);
+        /// <param name="dataType">Type of data.</param>
+        /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="packetType">Packet type.</param>
+        /// <returns>Network header.</returns>
+        NetworkHeader HandleOutputPacket(
+            byte dataType,
+            Guid connectionId,
+            PacketType packetType);
 
         /// <summary>
         /// Handle incoming acknowledge packets.
         /// </summary>
-        /// <param name="id">Packet id.</param>
-        /// <param name="acks">32 bits of history about previous packets (not implemented but reserved).</param>
+        /// <param name="networkHeader">Network header.</param>
         /// <returns>
         /// true - acknowledge packet accepted
         /// false - acknowledge packet dropped.
         /// </returns>
         bool HandleAck(
-            ushort id,
-            uint acks);
+            in NetworkHeader networkHeader);
 
         /// <summary>
         /// Checking packet delivered state.
         /// </summary>
-        /// <param name="id">Packet id.</param>
+        /// <param name="networkHeader">Network header.</param>
         /// <returns>
         /// true - packet delivered
         /// false - packet not delivered.
         /// </returns>
         bool IsDelivered(
-            ushort id);
+            in NetworkHeader networkHeader);
     }
 }

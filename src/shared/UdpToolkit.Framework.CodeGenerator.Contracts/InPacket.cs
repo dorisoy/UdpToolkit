@@ -14,18 +14,21 @@ namespace UdpToolkit.Framework.Contracts
         /// </summary>
         /// <param name="payload">Bytes array of incoming data.</param>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="subscriptionId">Subscription identifier.</param>
         /// <param name="ipV4Address">Source ip address.</param>
         /// <param name="channelId">Channel identifier.</param>
         /// <param name="expired">Value indicating whether the expiration state.</param>
         public InPacket(
             byte[] payload,
             Guid connectionId,
+            byte subscriptionId,
             IpV4Address ipV4Address,
             byte channelId,
             bool expired)
         {
             Payload = payload;
             ConnectionId = connectionId;
+            SubscriptionId = subscriptionId;
             IpV4Address = ipV4Address;
             ChannelId = channelId;
             Expired = expired;
@@ -45,6 +48,11 @@ namespace UdpToolkit.Framework.Contracts
         /// Gets connection identifier.
         /// </summary>
         public Guid ConnectionId { get; }
+
+        /// <summary>
+        /// Gets subscription identifier.
+        /// </summary>
+        public byte SubscriptionId { get; }
 
         /// <summary>
         /// Gets source ip address.

@@ -2,7 +2,6 @@ namespace UdpToolkit.Framework.Contracts
 {
     using System;
     using UdpToolkit.Network.Contracts.Channels;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -63,10 +62,5 @@ namespace UdpToolkit.Framework.Contracts
         /// Gets or sets ChannelFactory instance, for list providing of available channels.
         /// </summary>
         public IChannelsFactory ChannelsFactory { get; set; }
-
-        /// <summary>
-        /// Gets or sets ConnectionIdFactory instance, for providing connectionId for new connections.
-        /// </summary>
-        public IConnectionIdFactory ConnectionIdFactory { get; set; }
     }
 }

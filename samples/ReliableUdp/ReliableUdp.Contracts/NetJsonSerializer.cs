@@ -1,6 +1,5 @@
 namespace ReliableUdp.Contracts
 {
-    using System;
     using System.Text.Json;
     using UdpToolkit.Serialization;
 
@@ -14,7 +13,7 @@ namespace ReliableUdp.Contracts
             return JsonSerializer.SerializeToUtf8Bytes(item);
         }
 
-        public T Deserialize<T>(ArraySegment<byte> bytes)
+        public T Deserialize<T>(byte[] bytes)
         {
             return JsonSerializer.Deserialize<T>(bytes);
         }

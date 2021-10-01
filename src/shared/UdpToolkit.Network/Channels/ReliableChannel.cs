@@ -1,6 +1,8 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
     /// Reliable UDP channel.
@@ -25,60 +27,64 @@ namespace UdpToolkit.Network.Channels
         }
 
         /// <inheritdoc />
-        public bool IsReliable { get; } = true;
+        public bool ResendOnHeartbeat { get; } = true;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
 
         /// <inheritdoc />
         public bool HandleInputPacket(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
-            if (!_netWindow.CanSet(id))
+            if (_netWindow.GetPacketData(networkHeader.Id))
             {
                 return false;
             }
 
             _netWindow.InsertPacketData(
-                id: id,
-                acks: acks,
-                acked: true);
+                id: networkHeader.Id,
+                acknowledged: true);
 
             return true;
         }
 
         /// <inheritdoc />
         public bool IsDelivered(
-            ushort id)
+            in NetworkHeader networkHeader)
         {
-            return _netWindow.IsDelivered(id);
+            return _netWindow.GetPacketData(networkHeader.Id);
         }
 
         /// <inheritdoc />
-        public void HandleOutputPacket(
-            out ushort id,
-            out uint acks)
+        public NetworkHeader HandleOutputPacket(
+            byte dataType,
+            Guid connectionId,
+            PacketType packetType)
         {
-            id = _netWindow.Next();
-            acks = FillAcks();
+            var id = _netWindow.GetNextPacketId();
+            var acks = FillAcks();
 
             _netWindow.InsertPacketData(
                 id: id,
+                acknowledged: false);
+
+            return new NetworkHeader(
+                channelId: Id,
+                id: id,
                 acks: acks,
-                acked: false);
+                connectionId: connectionId,
+                packetType: packetType,
+                dataType: dataType);
         }
 
         /// <inheritdoc />
         public bool HandleAck(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
-            if (!_netWindow.IsDelivered(id))
+            if (!_netWindow.GetPacketData(networkHeader.Id))
             {
-                return _netWindow.TryAcceptAck(
-                    id: id,
-                    acks: acks);
+                _netWindow.InsertPacketData(networkHeader.Id, true);
+                return true;
             }
 
             return false;
@@ -88,7 +94,7 @@ namespace UdpToolkit.Network.Channels
         private uint FillAcks()
 #pragma warning restore S3400
         {
-            // not supported right now
+            // not supported
             return 0;
         }
     }

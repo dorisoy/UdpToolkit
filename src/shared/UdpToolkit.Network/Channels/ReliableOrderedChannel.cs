@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Channels
 {
     using System;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
     /// Reliable ordered UDP channel.
@@ -14,38 +15,37 @@ namespace UdpToolkit.Network.Channels
         public static readonly byte Id = ReliableChannelConsts.ReliableOrderedChannel;
 
         /// <inheritdoc />
-        public bool IsReliable { get; } = true;
+        public bool ResendOnHeartbeat { get; } = true;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
 
         /// <inheritdoc />
         public bool HandleInputPacket(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
             throw new System.NotImplementedException();
         }
 
         /// <inheritdoc />
         public bool IsDelivered(
-            ushort id)
+            in NetworkHeader networkHeader)
         {
             throw new NotImplementedException();
         }
 
         /// <inheritdoc />
-        public void HandleOutputPacket(
-            out ushort id,
-            out uint acks)
+        public NetworkHeader HandleOutputPacket(
+            byte dataType,
+            Guid connectionId,
+            PacketType packetType)
         {
             throw new System.NotImplementedException();
         }
 
         /// <inheritdoc />
         public bool HandleAck(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
             throw new System.NotImplementedException();
         }

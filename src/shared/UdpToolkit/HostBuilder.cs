@@ -82,7 +82,6 @@ namespace UdpToolkit
         public IHost Build()
         {
             ValidateSettings(HostSettings);
-            ValidateSettings(NetworkSettings);
 
             var dateTimeProvider = new DateTimeProvider();
             var loggerFactory = HostSettings.LoggerFactory;
@@ -99,8 +98,7 @@ namespace UdpToolkit
                     resendTimeout: NetworkSettings.ResendTimeout,
                     channelsFactory: NetworkSettings.ChannelsFactory,
                     socketFactory: NetworkSettings.SocketFactory),
-                loggerFactory: HostSettings.LoggerFactory,
-                connectionIdFactory: NetworkSettings.ConnectionIdFactory);
+                loggerFactory: HostSettings.LoggerFactory);
 
             var hostIps = HostSettings.HostPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(HostSettings.Host), port))
@@ -117,8 +115,15 @@ namespace UdpToolkit
                     boundedCapacity: int.MaxValue,
                     action: (outPacket) =>
                     {
-                        var bytes = HostWorkerInternal.Process(outPacket);
-                        sender.Send(connectionId: outPacket.ConnectionId, channelId: outPacket.ChannelId, bytes: bytes, outPacket.IpV4Address);
+                        if (HostWorkerInternal.Process(outPacket, out var payload, out var subscriptionId))
+                        {
+                            sender.Send(
+                                connectionId: outPacket.ConnectionId,
+                                channelId: outPacket.ChannelId,
+                                dataType: subscriptionId,
+                                bytes: payload,
+                                ipV4Address: outPacket.IpV4Address);
+                        }
                     },
                     logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
                 .ToArray();
@@ -172,7 +177,7 @@ namespace UdpToolkit
 
             foreach (var udpClient in udpClients)
             {
-                udpClient.OnPacketExpired += (ipV4, connectionId, payload, channelId) =>
+                udpClient.OnPacketExpired += (ipV4, connectionId, payload, channelId, subscriptionId) =>
                 {
                     inQueueDispatcher
                         .Dispatch(connectionId)
@@ -180,12 +185,13 @@ namespace UdpToolkit
                             item: new InPacket(
                                 channelId: channelId,
                                 payload: payload,
+                                subscriptionId: subscriptionId,
                                 connectionId: connectionId,
                                 ipV4Address: ipV4,
                                 expired: true));
                 };
 
-                udpClient.OnPacketReceived += (ipV4, connectionId, payload, channelId) =>
+                udpClient.OnPacketReceived += (ipV4, connectionId, payload, channelId, subscriptionId) =>
                 {
                     inQueueDispatcher
                         .Dispatch(connectionId)
@@ -193,6 +199,7 @@ namespace UdpToolkit
                             item: new InPacket(
                                 channelId: channelId,
                                 payload: payload,
+                                subscriptionId: subscriptionId,
                                 connectionId: connectionId,
                                 ipV4Address: ipV4,
                                 expired: false));
@@ -226,10 +233,10 @@ namespace UdpToolkit
                 .Select(ipEndPoint => ipEndPoint.ToIp())
                 .ToArray();
 
-            var connectionId = NetworkSettings.ConnectionIdFactory.Generate();
+            var seed = Guid.NewGuid();
 
-            var randomRemoteHostIp = remoteHostIps[MurMurHash.Hash3_x86_32(connectionId) % remoteHostIps.Length];
-            var udpClient = udpClients[MurMurHash.Hash3_x86_32(connectionId) % udpClients.Length];
+            var randomRemoteHostIp = remoteHostIps[MurMurHash.Hash3_x86_32(seed) % remoteHostIps.Length];
+            var udpClient = udpClients[MurMurHash.Hash3_x86_32(seed) % udpClients.Length];
 
             var hostClientSettingsInternal = new HostClientSettingsInternal(
                 heartbeatDelayMs: HostClientSettings.HeartbeatDelayInMs,
@@ -314,16 +321,6 @@ namespace UdpToolkit
                 throw new ArgumentNullException(nameof(hostSettings.Serializer), "Serializer not provided..");
             }
 
-            if (hostSettings.LoggerFactory == null)
-            {
-                throw new ArgumentNullException(nameof(hostSettings.LoggerFactory), "LoggerFactory not provided..");
-            }
-
-            if (hostSettings.Executor == null)
-            {
-                throw new ArgumentNullException(nameof(hostSettings.Executor), "Executor not provided..");
-            }
-
             if (_clientConfigured && !HostClientSettings.ServerPorts.Any())
             {
                 throw new ArgumentException("Remote host ports not specified for client..");
@@ -332,25 +329,6 @@ namespace UdpToolkit
             if (HostWorkerInternal == null)
             {
                 throw new ArgumentException("HostWorker not provided..");
-            }
-        }
-
-        private void ValidateSettings(
-            INetworkSettings networkSettings)
-        {
-            if (networkSettings.ChannelsFactory == null)
-            {
-                throw new ArgumentNullException(nameof(networkSettings.ChannelsFactory), "ChannelsFactory not provided..");
-            }
-
-            if (networkSettings.SocketFactory == null)
-            {
-                throw new ArgumentNullException(nameof(networkSettings.SocketFactory), "SocketFactory not provided..");
-            }
-
-            if (networkSettings.ConnectionIdFactory == null)
-            {
-                throw new ArgumentNullException(nameof(networkSettings.SocketFactory), "ConnectionIdFactory not provided..");
             }
         }
     }

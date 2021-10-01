@@ -1,6 +1,5 @@
 namespace P2P.Contracts
 {
-    using System;
     using UdpToolkit.Serialization;
 
     public class MessagePackSerializer : ISerializer
@@ -10,7 +9,7 @@ namespace P2P.Contracts
             return MessagePack.MessagePackSerializer.Serialize(item);
         }
 
-        public T Deserialize<T>(ArraySegment<byte> bytes)
+        public T Deserialize<T>(byte[] bytes)
         {
             return MessagePack.MessagePackSerializer.Deserialize<T>(bytes);
         }

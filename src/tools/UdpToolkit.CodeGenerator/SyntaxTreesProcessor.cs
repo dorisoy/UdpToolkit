@@ -61,7 +61,6 @@
             GeneratePublicDisposeMethod(sb);
             GenerateProcessInPacketMethod(sb, allClasses);
             GenerateProcessOutPacketMethod(sb, allClasses);
-            GenerateAddFrameworkHeaderMethod(sb);
             GeneratePrivateDisposeMethod(sb);
             GenerateClosedBraces(sb);
 
@@ -189,18 +188,6 @@
             sb.Append(end);
         }
 
-        private static void GenerateAddFrameworkHeaderMethod(StringBuilder sb)
-        {
-            sb.Append(@"
-        private byte[] AddFrameworkHeader(byte[] bytes, byte frameworkHeader)
-        {
-            var buffer = new byte[bytes.Length + 1];
-            Buffer.BlockCopy(bytes, 0, buffer, 1, bytes.Length);
-            buffer[0] = frameworkHeader;
-            return buffer;
-        }");
-        }
-
         private static void GeneratePrivateDisposeMethod(StringBuilder sb)
         {
             sb.Append(@"
@@ -226,8 +213,7 @@
         public void Process(
             global::UdpToolkit.Framework.Contracts.InPacket inPacket)
         {
-            var frameworkHeader = inPacket.Payload[0];
-            switch (frameworkHeader)
+            switch (inPacket.SubscriptionId)
             {");
 
             for (int i = 0; i < allClasses.Count; i++)
@@ -236,7 +222,7 @@
                 var caseTemplate = @"
                 case VALUE:
                     var SUBSCRIPTION = SubscriptionStorage<TYPE>.GetSubscription();
-                    var EVENT = Serializer.Deserialize<TYPE>(new ArraySegment<byte>(inPacket.Payload, 1, inPacket.Payload.Length - 1));
+                    var EVENT = Serializer.Deserialize<TYPE>(inPacket.Payload);
 
                     if (inPacket.Expired)
                     {
@@ -266,7 +252,7 @@
 
             sb.Append(@"                 
                 default:
-                    Logger.Error($""[UdpToolkit.Framework] Unsupported frameworkHeader(IN): {frameworkHeader}"");
+                    Logger.Error($""[UdpToolkit.Framework] Unsupported SubscriptionId(IN): {inPacket.SubscriptionId}"");
                     break;
             }
         }");
@@ -275,12 +261,18 @@
         private static void GenerateProcessOutPacketMethod(StringBuilder sb, List<ClassDeclarationSyntax> allClasses)
         {
             sb.Append(@"
-        public byte[] Process(
-            global::UdpToolkit.Framework.Contracts.OutPacket outPacket)
+        public bool Process(
+            global::UdpToolkit.Framework.Contracts.OutPacket outPacket,
+            out byte[] payload,
+            out byte subscriptionId)
         {
-            var frameworkHeader = Lookup[outPacket.Event.GetType()];
+            if (!Lookup.TryGetValue(outPacket.Event.GetType(), out subscriptionId))
+            {
+                payload = Array.Empty<byte>();
+                return false;
+            }
 
-            switch (frameworkHeader)
+            switch (subscriptionId)
             {");
 
             for (int i = 0; i < allClasses.Count; i++)
@@ -288,8 +280,8 @@
                 var @class = allClasses[i];
                 var caseTemplate = @"
                 case VALUE:
-                    var eventBytesVALUE = Serializer.Serialize<TYPE>((TYPE)outPacket.Event);
-                    return AddFrameworkHeader(bytes: eventBytesVALUE, frameworkHeader: VALUE);
+                    payload = Serializer.Serialize<TYPE>((TYPE)outPacket.Event);
+                    return true;
                  ";
 
                 var ns = GetNamespace(@class);
@@ -302,11 +294,10 @@
 
             sb.Append(@"                 
                 default:
-                    Logger.Error($""[UdpToolkit.Framework] Unsupported frameworkHeader(OUT): {frameworkHeader}"");
-                    break;
+                    Logger.Error($""[UdpToolkit.Framework] Unsupported subscriptionId(OUT): {subscriptionId}"");
+                    payload = Array.Empty<byte>(); 
+                    return false;
             }
-
-            return Array.Empty<byte>();
         }");
         }
 

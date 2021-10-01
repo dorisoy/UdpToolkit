@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
 
     /// <summary>
@@ -41,6 +42,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="SmartTimer"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~SmartTimer()
         {
             Dispose(false);

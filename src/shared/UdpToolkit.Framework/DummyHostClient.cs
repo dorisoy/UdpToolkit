@@ -38,7 +38,8 @@ namespace UdpToolkit.Framework
         public event Action<double> OnRttReceived;
 
         /// <inheritdoc />
-        public void Connect()
+        public void Connect(
+            Guid? connectionId = null)
         {
             // nothing to do
         }
@@ -46,7 +47,8 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void Connect(
             string host,
-            int port)
+            int port,
+            Guid? connectionId = null)
         {
             // nothing to do
         }

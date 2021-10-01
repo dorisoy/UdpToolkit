@@ -1,5 +1,6 @@
 namespace UdpToolkit.Network.Sockets
 {
+    using System.Diagnostics.CodeAnalysis;
     using System.Runtime.InteropServices;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -26,6 +27,7 @@ namespace UdpToolkit.Network.Sockets
         /// <summary>
         /// Finalizes an instance of the <see cref="NativeSocket"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~NativeSocket()
         {
             Dispose(false);

@@ -4,7 +4,6 @@ namespace UdpToolkit.Network.Clients
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts.Clients;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Queues;
     using UdpToolkit.Network.Utils;
@@ -12,7 +11,6 @@ namespace UdpToolkit.Network.Clients
     /// <inheritdoc />
     public class UdpClientFactory : IUdpClientFactory
     {
-        private readonly IConnectionIdFactory _connectionIdFactory;
         private readonly UdpClientSettings _udpClientSettings;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILoggerFactory _loggerFactory;
@@ -25,18 +23,15 @@ namespace UdpToolkit.Network.Clients
         /// <param name="udpClientSettings">Instance of UDP client settings.</param>
         /// <param name="connectionPoolSettings">Instance of connection pool settings.</param>
         /// <param name="loggerFactory">Instance of logger factory.</param>
-        /// <param name="connectionIdFactory">Instance of connection id factory.</param>
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
         public UdpClientFactory(
             UdpClientSettings udpClientSettings,
             ConnectionPoolSettings connectionPoolSettings,
             ILoggerFactory loggerFactory,
-            IConnectionIdFactory connectionIdFactory,
             IDateTimeProvider dateTimeProvider = null)
         {
             _udpClientSettings = udpClientSettings;
             _loggerFactory = loggerFactory;
-            _connectionIdFactory = connectionIdFactory;
             _lazyResendQueue = new Lazy<IResendQueue>(() => new ResendQueue());
             _lazyConnectionPool = new Lazy<IConnectionPool>(() =>
             {
@@ -57,7 +52,6 @@ namespace UdpToolkit.Network.Clients
             IpV4Address ipV4Address)
         {
             return new UdpClient(
-                connectionIdFactory: _connectionIdFactory,
                 connectionPool: _lazyConnectionPool.Value,
                 logger: _loggerFactory.Create<UdpClient>(),
                 dateTimeProvider: _dateTimeProvider,

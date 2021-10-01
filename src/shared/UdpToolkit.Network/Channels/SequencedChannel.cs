@@ -1,6 +1,8 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
     /// Sequenced channel.
@@ -11,33 +13,31 @@ namespace UdpToolkit.Network.Channels
         /// Reserved chanel identifier.
         /// </summary>
         public static readonly byte Id = ReliableChannelConsts.SequencedChannel;
-        private ushort _lastReceivedNumber;
-        private ushort _sequenceNumber;
+        private readonly ushort[] _sequences;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SequencedChannel"/> class.
         /// </summary>
-        public SequencedChannel()
+        /// <param name="sequences">Buffer for counters of sequences.</param>
+        public SequencedChannel(ushort[] sequences)
         {
-            _sequenceNumber = 0;
+            _sequences = sequences;
         }
 
         /// <inheritdoc />
-        public bool IsReliable { get; } = false;
+        public bool ResendOnHeartbeat { get; } = false;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
 
         /// <inheritdoc />
         public bool HandleInputPacket(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
-            var flag = id != _lastReceivedNumber;
-            if (NetworkUtils.SequenceGreaterThan(id, _sequenceNumber) && flag)
+            var sequenceNumber = _sequences[networkHeader.DataType];
+            if (NetworkUtils.SequenceGreaterThan(networkHeader.Id, sequenceNumber))
             {
-                _lastReceivedNumber = id;
-                _sequenceNumber = _lastReceivedNumber;
+                _sequences[networkHeader.DataType] = networkHeader.Id;
                 return true;
             }
 
@@ -46,24 +46,29 @@ namespace UdpToolkit.Network.Channels
 
         /// <inheritdoc />
         public bool IsDelivered(
-            ushort id)
+            in NetworkHeader networkHeader)
         {
             return true;
         }
 
         /// <inheritdoc />
-        public void HandleOutputPacket(
-            out ushort id,
-            out uint acks)
+        public NetworkHeader HandleOutputPacket(
+            byte dataType,
+            Guid connectionId,
+            PacketType packetType)
         {
-            id = ++_sequenceNumber;
-            acks = default;
+            return new NetworkHeader(
+                channelId: Id,
+                id: ++_sequences[dataType],
+                acks: default,
+                connectionId: connectionId,
+                packetType: packetType,
+                dataType: dataType);
         }
 
         /// <inheritdoc />
         public bool HandleAck(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
             return true;
         }

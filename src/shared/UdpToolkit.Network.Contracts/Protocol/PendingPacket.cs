@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Packets
+namespace UdpToolkit.Network.Contracts.Protocol
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -11,30 +11,26 @@ namespace UdpToolkit.Network.Packets
         /// <summary>
         /// Initializes a new instance of the <see cref="PendingPacket"/> struct.
         /// </summary>
+        /// <param name="networkHeader">Network header.</param>
         /// <param name="payload">Payload.</param>
         /// <param name="to">Destination ip address.</param>
         /// <param name="createdAt">Date of adding a packet to queue.</param>
-        /// <param name="id">Packet identifier.</param>
-        /// <param name="channelId">Channel identifier.</param>
-        /// <param name="connectionId">Connection identifier.</param>
-        /// <param name="packetType">Packet type.</param>
         internal PendingPacket(
+            NetworkHeader networkHeader,
             byte[] payload,
             IpV4Address to,
-            DateTimeOffset createdAt,
-            ushort id,
-            byte channelId,
-            Guid connectionId,
-            PacketType packetType)
+            DateTimeOffset createdAt)
         {
+            NetworkHeader = networkHeader;
             Payload = payload;
             To = to;
             CreatedAt = createdAt;
-            Id = id;
-            ChannelId = channelId;
-            ConnectionId = connectionId;
-            PacketType = packetType;
         }
+
+        /// <summary>
+        /// Gets network header.
+        /// </summary>
+        public NetworkHeader NetworkHeader { get; }
 
         /// <summary>
         /// Gets payload.
@@ -47,28 +43,8 @@ namespace UdpToolkit.Network.Packets
         public IpV4Address To { get; }
 
         /// <summary>
-        /// Gets packet identifier.
-        /// </summary>
-        public ushort Id { get; }
-
-        /// <summary>
-        /// Gets channel identifier.
-        /// </summary>
-        public byte ChannelId { get; }
-
-        /// <summary>
         /// Gets date of creation pending packet.
         /// </summary>
         public DateTimeOffset CreatedAt { get; }
-
-        /// <summary>
-        /// Gets connection identifier.
-        /// </summary>
-        public Guid ConnectionId { get; }
-
-        /// <summary>
-        /// Gets packet type.
-        /// </summary>
-        public PacketType PacketType { get; }
     }
 }

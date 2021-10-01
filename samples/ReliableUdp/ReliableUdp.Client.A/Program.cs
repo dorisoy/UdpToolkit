@@ -134,7 +134,6 @@
                     settings.SocketFactory = new ManagedSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(20);
-                    settings.ConnectionIdFactory = new ConnectionIdFactory();
                 })
                 .BootstrapWorker(new HostWorkerGenerated())
                 .Build();

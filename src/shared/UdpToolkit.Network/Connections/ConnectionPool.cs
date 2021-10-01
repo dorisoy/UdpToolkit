@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Connections
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Logging;
@@ -47,6 +48,7 @@ namespace UdpToolkit.Network.Connections
         /// <summary>
         /// Finalizes an instance of the <see cref="ConnectionPool"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~ConnectionPool()
         {
             Dispose(false);

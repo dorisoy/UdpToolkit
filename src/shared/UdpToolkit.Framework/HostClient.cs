@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Net;
     using System.Runtime.CompilerServices;
     using System.Threading;
@@ -59,6 +60,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="HostClient"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~HostClient()
         {
             Dispose(false);
@@ -86,10 +88,11 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
-        public void Connect()
+        public void Connect(
+            Guid? connectionId = null)
         {
             _startConnect = _dateTimeProvider.GetUtcNow();
-            _udpClient.Connect(_hostClientSettingsInternal.ServerIpV4);
+            _udpClient.Connect(_hostClientSettingsInternal.ServerIpV4, connectionId);
 
             var token = _cancellationTokenSource.Token;
 
@@ -103,11 +106,12 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void Connect(
             string host,
-            int port)
+            int port,
+            Guid? connectionId = null)
         {
             var destination = new IpV4Address(IPAddress.Parse(host).ToInt(), (ushort)port);
 
-            _udpClient.Connect(destination);
+            _udpClient.Connect(destination, connectionId);
         }
 
         /// <inheritdoc />

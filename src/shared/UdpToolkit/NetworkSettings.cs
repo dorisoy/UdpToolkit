@@ -1,11 +1,9 @@
 namespace UdpToolkit
 {
     using System;
-    using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Channels;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
 
@@ -38,8 +36,5 @@ namespace UdpToolkit
 
         /// <inheritdoc />
         public IChannelsFactory ChannelsFactory { get; set; } = new ChannelsFactory();
-
-        /// <inheritdoc />
-        public IConnectionIdFactory ConnectionIdFactory { get; set; } = new ConnectionIdFactory();
     }
 }

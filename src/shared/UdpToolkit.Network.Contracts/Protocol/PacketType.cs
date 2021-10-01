@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Packets
+namespace UdpToolkit.Network.Contracts.Protocol
 {
     using System;
 
@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Packets
     /// Protocol packet types.
     /// </summary>
     [Flags]
-    internal enum PacketType : byte
+    public enum PacketType : byte
     {
         /// <summary>
         /// Connection packet.

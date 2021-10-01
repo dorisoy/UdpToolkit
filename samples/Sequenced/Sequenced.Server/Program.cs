@@ -69,7 +69,6 @@
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
                     settings.ChannelsFactory = new ChannelsFactory();
                     settings.SocketFactory = new NativeSocketFactory();
-                    settings.ConnectionIdFactory = new ConnectionIdFactory();
                     settings.AllowIncomingConnections = true;
                 })
                 .BootstrapWorker(new HostWorkerGenerated())

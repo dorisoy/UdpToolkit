@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
@@ -46,6 +47,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="GroupManager"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~GroupManager()
         {
             Dispose(false);

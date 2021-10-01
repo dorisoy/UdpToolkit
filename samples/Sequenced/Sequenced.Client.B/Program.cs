@@ -106,7 +106,6 @@
                     settings.SocketFactory = new NativeSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
-                    settings.ConnectionIdFactory = new ConnectionIdFactory();
                 })
                 .BootstrapWorker(new HostWorkerGenerated())
                 .Build();

@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
 
@@ -40,6 +41,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~BlockingAsyncQueue()
         {
             Dispose(false);

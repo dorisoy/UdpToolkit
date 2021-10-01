@@ -1,6 +1,8 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
     /// Raw UDP channel.
@@ -13,39 +15,43 @@ namespace UdpToolkit.Network.Channels
         public static readonly byte Id = ReliableChannelConsts.RawChannel;
 
         /// <inheritdoc />
-        public bool IsReliable { get; } = false;
+        public bool ResendOnHeartbeat { get; } = false;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
 
         /// <inheritdoc />
         public bool HandleInputPacket(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
             return true;
         }
 
         /// <inheritdoc />
         public bool IsDelivered(
-            ushort id)
+            in NetworkHeader networkHeader)
         {
             return true;
         }
 
         /// <inheritdoc />
-        public void HandleOutputPacket(
-            out ushort id,
-            out uint acks)
+        public NetworkHeader HandleOutputPacket(
+            byte dataType,
+            Guid connectionId,
+            PacketType packetType)
         {
-            id = default;
-            acks = default;
+            return new NetworkHeader(
+                channelId: Id,
+                id: default,
+                acks: default,
+                connectionId: connectionId,
+                packetType: packetType,
+                dataType: dataType);
         }
 
         /// <inheritdoc />
         public bool HandleAck(
-            ushort id,
-            uint acks)
+            in NetworkHeader networkHeader)
         {
             return true;
         }

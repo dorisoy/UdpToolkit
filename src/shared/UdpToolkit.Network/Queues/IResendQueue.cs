@@ -2,7 +2,7 @@ namespace UdpToolkit.Network.Queues
 {
     using System;
     using System.Collections.Generic;
-    using UdpToolkit.Network.Packets;
+    using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
     /// Abstraction for storing packets without acknowledges.

@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Framework.Contracts;
@@ -15,6 +16,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="TaskBasedExecutor"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~TaskBasedExecutor()
         {
             Dispose(false);

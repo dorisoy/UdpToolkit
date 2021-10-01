@@ -31,10 +31,14 @@ namespace UdpToolkit.Framework.Contracts
         /// Process output packet.
         /// </summary>
         /// <param name="outPacket">Output packet.</param>
+        /// <param name="payload">Payload in bytes representation.</param>
+        /// <param name="subscriptionId">Subscription identifier.</param>
         /// <returns>
         /// An array of bytes for sending over the network.
         /// </returns>
-        public byte[] Process(
-            OutPacket outPacket);
+        public bool Process(
+            OutPacket outPacket,
+            out byte[] payload,
+            out byte subscriptionId);
     }
 }

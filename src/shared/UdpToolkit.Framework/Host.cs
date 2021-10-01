@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
@@ -60,6 +61,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="Host"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~Host()
         {
             Dispose(false);

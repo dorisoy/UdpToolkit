@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Sockets
 {
     using System;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Net;
     using System.Net.Sockets;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -31,6 +32,7 @@ namespace UdpToolkit.Network.Sockets
         /// <summary>
         /// Finalizes an instance of the <see cref="ManagedSocket"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~ManagedSocket()
         {
             Dispose(false);

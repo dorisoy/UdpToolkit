@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Framework.Contracts;
 
     /// <inheritdoc />
@@ -27,6 +28,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Finalizes an instance of the <see cref="Broadcaster"/> class.
         /// </summary>
+        [ExcludeFromCodeCoverage]
         ~Broadcaster()
         {
             Dispose(false);

@@ -1,7 +1,5 @@
 namespace UdpToolkit.Serialization
 {
-    using System;
-
     /// <summary>
     /// Expansion point for serialization.
     /// </summary>
@@ -21,6 +19,6 @@ namespace UdpToolkit.Serialization
         /// <param name="bytes">Bytes array.</param>
         /// <typeparam name="T">Type of item.</typeparam>
         /// <returns>Instance of item.</returns>
-        T Deserialize<T>(ArraySegment<byte> bytes);
+        T Deserialize<T>(byte[] bytes);
     }
 }
