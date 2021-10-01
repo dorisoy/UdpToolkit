@@ -11,4 +11,4 @@ dotnet nuget push ./packages/UdpToolkit.Serialization.$PACKAGE_VERSION.nupkg    
 dotnet nuget push ./packages/UdpToolkit.Logging.$PACKAGE_VERSION.nupkg                               --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
 
 dotnet nuget push ./packages/UdpToolkit.CodeGenerator.$PACKAGE_VERSION.nupkg      --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
-dotnet nuget push ./packages/UdpToolkit.CodeGeneratorCli.$PACKAGE_VERSION.nupkg   --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
+dotnet nuget push ./packages/UdpToolkit.Cli.$PACKAGE_VERSION.nupkg                --api-key $NUGET_KEY --source https://api.nuget.org/v3/index.json
