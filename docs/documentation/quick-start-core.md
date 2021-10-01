@@ -37,9 +37,9 @@ SampleProject.sln
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference 
-                Include="UdpToolkit.CodeGenerator" 
-                Version="<latest_version>" 
+        <PackageReference
+                Include="UdpToolkit.CodeGenerator"
+                Version="<latest_version>"
                 PrivateAssets="all" />
     </ItemGroup>
 
@@ -66,7 +66,6 @@ namespace Contracts
 ```c#
 namespace Contracts
 {
-    using System;
     using System.Text.Json;
     using UdpToolkit.Serialization;
 
@@ -77,7 +76,7 @@ namespace Contracts
             return JsonSerializer.SerializeToUtf8Bytes(item);
         }
 
-        public T Deserialize<T>(ArraySegment<byte> bytes)
+        public T Deserialize<T>(byte[] bytes)
         {
             return JsonSerializer.Deserialize<T>(bytes);
         }
@@ -114,7 +113,6 @@ namespace Server
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Settings;
 
     public static class Program
     {
@@ -132,7 +130,7 @@ namespace Server
                         .JoinOrCreate(Guid.Empty, connectionId, ip);
                 });
 
-            // 5) Run host:
+            // 5) Run host.:
             host.Run();
 
             Console.WriteLine("Press any key..");
@@ -196,7 +194,6 @@ namespace Client
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Settings;
     using UdpToolkit.Network.Channels;
 
     public static class Program

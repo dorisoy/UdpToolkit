@@ -89,7 +89,6 @@ namespace Server
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Framework.Contracts.Settings;
 
     public static class Program
     {
@@ -107,7 +106,7 @@ namespace Server
                         .JoinOrCreate(Guid.Empty, connectionId, ip);
                 });
 
-            // 5) Run host:
+            // 5) Run host.:
             host.Run();
 
             Console.WriteLine("Press any key..");
@@ -168,12 +167,11 @@ namespace Shared
 `mpc -i ./Contracts/Contracts.csproj -o ./Client/Assets/Scripts`.
 7) Add custom implementation of `ISerializer` to `Assets/Shared/MessagePackCSharpSerializer.cs`: 
 ```c#
-using System;
-using MessagePack;
-using UdpToolkit.Serialization;
-
 namespace Shared
 {
+    using MessagePack;
+    using UdpToolkit.Serialization;
+
     public class MessagePackCSharpSerializer : ISerializer
     {
         public byte[] Serialize<T>(T item)
@@ -181,7 +179,7 @@ namespace Shared
             return MessagePackSerializer.Serialize(item);
         }
 
-        public T Deserialize<T>(ArraySegment<byte> bytes)
+        public T Deserialize<T>(byte[] bytes)
         {
             return MessagePackSerializer.Deserialize<T>(bytes);
         }
@@ -197,7 +195,6 @@ using Shared;
 using UdpToolkit;
 using UdpToolkit.Framework;
 using UdpToolkit.Framework.Contracts;
-using UdpToolkit.Framework.Contracts.Settings;
 using UdpToolkit.Logging;
 using UdpToolkit.Network.Channels;
 using UnityEngine;
@@ -267,14 +264,14 @@ public class ClientScript : MonoBehaviour
             .CreateHostBuilder()
             .ConfigureHost(hostSettings, settings =>
             {
-                // 3) Assign port:
+                // 3) Assign port
                 settings.HostPorts = new[] { 5000 };
-                // 4) Replace default logger implementation: 
+                // 4) Replace default logger implementation 
                 settings.LoggerFactory = new UnityLoggerFactory(LogLevel.Debug);
             })
             .ConfigureHostClient(settings =>
             {
-                // 5) Specify remote host port:
+                // 5) Specify remote host port
                 settings.ServerPorts = new[] { 7000 };
             })
             .BootstrapWorker(new HostWorkerGenerated())

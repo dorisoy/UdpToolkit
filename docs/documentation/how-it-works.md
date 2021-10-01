@@ -2,7 +2,7 @@
 
 UdpToolkit consists of two main parts:
 - Network for working with bytes, IP addresses, custom network headers e.t.c. 
-- Framework for working with logic of your game like `Move`, `Shot`, `Heal`, `Join` events e.t.c.   
+- Framework for handle user-defined events like `Move`, `Shot`, `Heal`, `Join` e.t.c.   
 
 ## Network
 
@@ -12,13 +12,14 @@ UdpToolkit consists of two main parts:
 
 ### Protocol header
 
-| Number  | Name         | Type        | Size in bytes | Description                                                                                            |
-| ------- | ------------ | ----------- | ------------- |------------------------------------------------------------------------------------------------------- |
-| 1.      | ChannelId    | byte        | 1             | Identifier of channel.                                                                                 |
-| 2.      | Id           | ushort      | 2             | Identifier of current packet.                                                                          |
-| 3.      | Acks         | uint        | 4             | 32 bit with info about previous packets relative current. 1bit per packet. Reserved, not implemented.  |
-| 4.      | ConnectionId | Guid        | 16            | Identifier of connection.                                                                              |
-| 5.      | PacketType   | PacketType  | 1             | Packet type.                                                                                           |
+| Number  | Name         | Type        | Size in bytes | Description                                                                                                                                     |
+| ------- | ------------ | ----------- | ------------- |------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 1.      | ChannelId    | byte        | 1             | Identifier of channel.                                                                                                                          |
+| 2.      | Id           | ushort      | 2             | Identifier of current packet.                                                                                                                   |
+| 3.      | Acks         | uint        | 4             | 32 bit with info about previous packets relative current. 1bit per packet. Reserved, not implemented.                                           |
+| 4.      | ConnectionId | Guid        | 16            | Identifier of connection.                                                                                                                       |
+| 5.      | PacketType   | PacketType  | 1             | Packet type (bit flag).                                                                                                                         |
+| 6.      | DataType     | byte        | 1             | Type of user-defined event/subscription. Used for serialization/deserialization and support counter per each event in the sequenced channels.   |
 
 ### Internal protocol
 
@@ -40,19 +41,9 @@ UdpToolkit consists of two main parts:
 
 `IChannel` - Unfortunately, no silver bullet for reliable UDP protocols if you want to implement your own mechanism for working with the `Protocol header` you could implement a custom channel. All actions in the scope of the channel are thread-safe.
 
-`IConnectionIdFactory` - By default `ConnectionId` is generated randomly if you want to change this behavior just pass the alternative implementation.
 ## Framework
 
-### Framework protocol
-
-`|framework header|payload|`
-
-### Protocol header (Explicit)
-
-Consist only of 1 byte per user-defined event. This byte is assigned automatically when code-generation for user-defined types run. You could find all generated values in the `HostWorkerGenerated.cs` file.
-Required for matching user-defined types with serialization actions.
-
-### Protocol header (Implicit)
+### Framework protocol (Implicit)
 
 The client should include `GroupId:Guid` (16 bytes) in each event. This is required to restrict broadcasting scope on the framework side.
 
