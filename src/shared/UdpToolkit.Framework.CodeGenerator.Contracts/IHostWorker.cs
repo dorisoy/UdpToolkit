@@ -24,7 +24,7 @@ namespace UdpToolkit.Framework.Contracts
         /// Process input packet.
         /// </summary>
         /// <param name="inPacket">Input packet.</param>
-        public void Process(
+        void Process(
             InPacket inPacket);
 
         /// <summary>
@@ -36,7 +36,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <returns>
         /// An array of bytes for sending over the network.
         /// </returns>
-        public bool Process(
+        bool Process(
             OutPacket outPacket,
             out byte[] payload,
             out byte subscriptionId);

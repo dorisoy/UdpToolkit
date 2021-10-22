@@ -1,7 +1,7 @@
 <Project>
     <PropertyGroup>
         <GenerateFullPaths>true</GenerateFullPaths>
-        <LangVersion>latest</LangVersion>
+        <LangVersion>7.3</LangVersion>
     </PropertyGroup>
 
     <PropertyGroup>

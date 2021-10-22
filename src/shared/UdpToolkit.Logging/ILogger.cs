@@ -2,7 +2,7 @@
 {
     public interface ILogger
     {
-        public bool IsEnabled(
+        bool IsEnabled(
             LogLevel logLevel);
 
         void Warning(

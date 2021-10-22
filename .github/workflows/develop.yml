@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     container: gableroux/unity3d:2019.3.12f1
     env:
-      PACKAGE_VERSION: 1.0.0-preview.2.${{ github.run_id }}
+      PACKAGE_VERSION: 1.0.0-alpha.1.${{ github.run_id }}
     steps:
       - name: Checkout project
         uses: actions/checkout@v2

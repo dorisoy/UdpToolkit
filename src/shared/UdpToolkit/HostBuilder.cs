@@ -147,8 +147,8 @@ namespace UdpToolkit
 
             var cancellationTokenSource = new CancellationTokenSource();
 
-            IHostClient hostClient = _clientConfigured
-                ? BuildHostClient(
+            var hostClient = _clientConfigured
+                ? (IHostClient)BuildHostClient(
                     udpClients: udpClients,
                     cancellationTokenSource: cancellationTokenSource,
                     dateTimeProvider: dateTimeProvider,

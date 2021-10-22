@@ -322,6 +322,7 @@ namespace UdpToolkit.Network.Clients
                 case PacketType.Heartbeat when connection != null:
                     HandleIncomingPacket(connection, networkHeader, PacketType.Heartbeat, remoteIp);
                     ResendPackages(connection);
+                    connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
 
                     break;
 

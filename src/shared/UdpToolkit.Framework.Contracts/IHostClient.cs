@@ -81,7 +81,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <typeparam name="TEvent">
         /// Type of user-defined event.
         /// </typeparam>
-        public void Send<TEvent>(
+        void Send<TEvent>(
             TEvent @event,
             IpV4Address destination,
             byte channelId);

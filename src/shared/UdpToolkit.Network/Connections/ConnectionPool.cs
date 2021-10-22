@@ -111,7 +111,12 @@ namespace UdpToolkit.Network.Connections
                 var inactivityDiff = now - connection.Value.LastHeartbeat;
                 if (inactivityDiff > _inactivityTimeout)
                 {
-                    _connections.TryRemove(connection.Key, out _);
+#pragma warning disable S1066
+                    if (_connections.TryRemove(connection.Key, out var removedConnection) && _logger.IsEnabled(LogLevel.Debug))
+                    {
+                        _logger.Debug($"[UdpToolkit.Network] Connection: {removedConnection.ConnectionId} removed by inactivity timeout: {_inactivityTimeout}, idle time: {inactivityDiff}");
+                    }
+#pragma warning restore S1066
                 }
             }
         }

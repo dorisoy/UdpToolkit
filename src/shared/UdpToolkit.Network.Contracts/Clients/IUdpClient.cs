@@ -43,7 +43,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// byte - channel
         /// byte - dataType
         /// </remarks>
-        public event Action<IpV4Address, byte[]> OnInvalidPacketReceived;
+        event Action<IpV4Address, byte[]> OnInvalidPacketReceived;
 
         /// <summary>
         /// Raised when user-defined packet expired.
