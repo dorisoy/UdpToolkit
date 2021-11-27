@@ -6,8 +6,13 @@
 
     [UdpEvent]
     [MessagePackObject]
-    public class Message
+    public sealed class Message : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public Message()
+        {
+        }
+
         public Message(
             string text,
             Guid groupId)
@@ -21,5 +26,10 @@
 
         [Key(1)]
         public Guid GroupId { get; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

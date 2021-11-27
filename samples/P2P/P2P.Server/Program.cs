@@ -3,6 +3,7 @@
     using System;
     using System.Linq;
     using P2P.Contracts;
+    using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
@@ -25,12 +26,7 @@
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 
-                    broadcaster.Broadcast(
-                        caller: connectionId,
-                        groupId: joinEvent.GroupId,
-                        @event: joinEvent,
-                        channelId: ReliableChannel.Id,
-                        broadcastMode: BroadcastMode.GroupExceptCaller);
+                    return joinEvent.GroupId;
                 });
 
             host
@@ -52,6 +48,8 @@
                             @event: new GroupPeers(fetchPeers.GroupId, peers),
                             channelId: ReliableChannel.Id,
                             broadcastMode: BroadcastMode.Caller);
+
+                        return fetchPeers.GroupId;
                     });
 
             host.Run();

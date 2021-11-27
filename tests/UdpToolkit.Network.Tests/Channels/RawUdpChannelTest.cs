@@ -1,7 +1,9 @@
 namespace UdpToolkit.Network.Tests.Channels
 {
+    using System;
     using FluentAssertions;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Tests.Framework;
     using Xunit;
@@ -21,7 +23,7 @@ namespace UdpToolkit.Network.Tests.Channels
         public void PacketNotResentOnHeartbeat()
         {
             var channel = new RawUdpChannel();
-            channel.ResendOnHeartbeat
+            channel.IsReliable
                 .Should()
                 .BeFalse();
         }
@@ -51,42 +53,15 @@ namespace UdpToolkit.Network.Tests.Channels
         }
 
         [Fact]
-        public void AnyPacketIsDelivered()
-        {
-            var channel = new RawUdpChannel();
-            var packet = Gen.GenerateRandomPacket();
-
-            channel
-                .IsDelivered(packet)
-                .Should()
-                .BeTrue();
-        }
-
-        [Fact]
         public void OutputPacketWellFormed()
         {
             var channel = new RawUdpChannel();
 
-            var dataType = Gen.RandomByte();
-            var connectionId = Gen.RandomGuid();
-            var packetType = Gen.RandomEnum<PacketType>();
+            var networkPacketId = channel.HandleOutputPacket(0);
 
-            var packet = channel.HandleOutputPacket(
-                dataType: dataType,
-                connectionId: connectionId,
-                packetType: packetType);
-
-            var expected = new NetworkHeader(
-                channelId: RawUdpChannel.Id,
-                id: 0,
-                acks: 0,
-                connectionId: connectionId,
-                packetType: packetType,
-                dataType: dataType);
-
-            packet
+            networkPacketId
                 .Should()
-                .BeEquivalentTo(expected);
+                .Be(0);
         }
     }
 }

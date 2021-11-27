@@ -9,6 +9,7 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -18,6 +19,7 @@ namespace UdpToolkit.Framework
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly HostClientSettingsInternal _hostClientSettingsInternal;
+        private readonly ConcurrentPool<OutPacket> _outPacketsPool;
 
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILogger _logger;
@@ -36,18 +38,21 @@ namespace UdpToolkit.Framework
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         /// <param name="udpClient">Instance of UDP client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
+        /// <param name="outPacketsPool">Instance of out packets pool.</param>
         public HostClient(
             HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
             ILogger logger,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
-            IQueueDispatcher<OutPacket> outQueueDispatcher)
+            IQueueDispatcher<OutPacket> outQueueDispatcher,
+            ConcurrentPool<OutPacket> outPacketsPool)
         {
             _hostClientSettingsInternal = hostClientSettingsInternal;
             _cancellationTokenSource = cancellationTokenSource;
             _udpClient = udpClient;
             _outQueueDispatcher = outQueueDispatcher;
+            _outPacketsPool = outPacketsPool;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
 
@@ -89,7 +94,7 @@ namespace UdpToolkit.Framework
 
         /// <inheritdoc />
         public void Connect(
-            Guid? connectionId = null)
+            Guid connectionId)
         {
             _startConnect = _dateTimeProvider.GetUtcNow();
             _udpClient.Connect(_hostClientSettingsInternal.ServerIpV4, connectionId);
@@ -107,7 +112,7 @@ namespace UdpToolkit.Framework
         public void Connect(
             string host,
             int port,
-            Guid? connectionId = null)
+            Guid connectionId)
         {
             var destination = new IpV4Address(IPAddress.Parse(host).ToInt(), (ushort)port);
 
@@ -135,6 +140,7 @@ namespace UdpToolkit.Framework
             TEvent @event,
             IpV4Address destination,
             byte channelId)
+            where TEvent : class, IDisposable
         {
             SendInternal(
                 @event: @event,
@@ -146,6 +152,7 @@ namespace UdpToolkit.Framework
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)
+            where TEvent : class, IDisposable
         {
             SendInternal(
                 @event: @event,
@@ -162,6 +169,7 @@ namespace UdpToolkit.Framework
             IpV4Address ipV4,
             Guid connectionId)
         {
+            Console.WriteLine("Connect");
             IsConnected = true;
             OnConnected?.Invoke(ipV4, connectionId);
         }
@@ -216,16 +224,20 @@ namespace UdpToolkit.Framework
             TEvent @event,
             IpV4Address destination,
             byte channelId)
+            where TEvent : class, IDisposable
         {
             if (_udpClient.IsConnected(out var connectionId))
             {
+                var outPacket = _outPacketsPool.GetOrCreate();
+                outPacket.Setup(
+                    @event: @event,
+                    ipV4Address: destination,
+                    connectionId: connectionId,
+                    channelId: channelId);
+
                 _outQueueDispatcher
                     .Dispatch(connectionId)
-                    .Produce(new OutPacket(
-                        connectionId: connectionId,
-                        channelId: channelId,
-                        @event: @event,
-                        ipV4Address: destination));
+                    .Produce(outPacket);
             }
         }
 

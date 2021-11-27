@@ -8,11 +8,9 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="MessagePack" Version="2.2.60" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\..\src\tools\UdpToolkit.CodeGenerator\UdpToolkit.CodeGenerator.csproj" ReferenceOutputAssembly="true" OutputItemType="Analyzer" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
+        <ProjectReference Include="..\..\Serialization\Serializers\Serializers.csproj" />
     </ItemGroup>
     
 </Project>

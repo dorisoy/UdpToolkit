@@ -17,6 +17,7 @@
 [Uu]nity_package/
 [Ss]rc/unity/UdpToolkit.Unity/Assets/Plugins/
 
+protoc
 #Rider
 .idea/
 *.*.iml

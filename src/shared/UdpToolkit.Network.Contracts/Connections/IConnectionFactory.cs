@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Connections
+namespace UdpToolkit.Network.Contracts.Connections
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Connections
     /// <summary>
     /// Abstraction for create connection with all needed dependencies.
     /// </summary>
-    internal interface IConnectionFactory
+    public interface IConnectionFactory
     {
         /// <summary>
         /// Create a connection.

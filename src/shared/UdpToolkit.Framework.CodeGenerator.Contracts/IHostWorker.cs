@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework.Contracts
 {
     using System;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Serialization;
 
     /// <summary>
@@ -21,11 +22,16 @@ namespace UdpToolkit.Framework.Contracts
         ISerializer Serializer { get; set; }
 
         /// <summary>
+        /// Gets or sets instance of broadcaster.
+        /// </summary>
+        IBroadcaster Broadcaster { get; set; }
+
+        /// <summary>
         /// Process input packet.
         /// </summary>
         /// <param name="inPacket">Input packet.</param>
         void Process(
-            InPacket inPacket);
+            NetworkPacket inPacket);
 
         /// <summary>
         /// Process output packet.
@@ -38,7 +44,7 @@ namespace UdpToolkit.Framework.Contracts
         /// </returns>
         bool Process(
             OutPacket outPacket,
-            out byte[] payload,
+            out ReadOnlySpan<byte> payload,
             out byte subscriptionId);
     }
 }

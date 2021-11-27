@@ -3,7 +3,8 @@
     <PropertyGroup>
         <OutputType>Exe</OutputType>
         <TargetFramework>net5.0</TargetFramework>
-        <LangVersion>7.2</LangVersion>
+        <LangVersion>7.3</LangVersion>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
         <NoWarn>SA0001, SA1600</NoWarn>
     </PropertyGroup>
 
@@ -13,7 +14,9 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\samples\Serialization\Serializers\Serializers.csproj" />
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit.Network\UdpToolkit.Network.csproj" />
     </ItemGroup>
 
 </Project>

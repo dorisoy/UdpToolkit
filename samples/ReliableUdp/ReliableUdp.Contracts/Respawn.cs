@@ -1,11 +1,19 @@
 namespace ReliableUdp.Contracts
 {
     using System;
+    using ProtoBuf;
     using UdpToolkit.Annotations;
+    using UdpToolkit.Framework;
 
     [UdpEvent]
-    public class Respawn
+    [ProtoContract]
+    public sealed class Respawn : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public Respawn()
+        {
+        }
+
         public Respawn(
             string nickname,
             Guid groupId)
@@ -14,8 +22,25 @@ namespace ReliableUdp.Contracts
             GroupId = groupId;
         }
 
-        public Guid GroupId { get; }
+        [ProtoMember(1)]
+        public Guid GroupId { get; private set; }
 
-        public string Nickname { get; }
+        [ProtoMember(2)]
+        public string Nickname { get; private set; }
+
+        public void Dispose()
+        {
+            Console.WriteLine($"{this.GetType().Name} returned to pool.");
+            ObjectsPool<Respawn>.Return(this);
+        }
+
+        public Respawn SetUp(
+            string nickname,
+            Guid groupId)
+        {
+            GroupId = groupId;
+            Nickname = nickname;
+            return this;
+        }
     }
 }

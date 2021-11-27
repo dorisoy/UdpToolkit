@@ -15,7 +15,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
         /// <returns>
         /// Int representation of ip address.
         /// </returns>
-        public static int ToInt(this string host)
+        public static int Parse(this string host)
         {
             return IPAddress.Parse(host).ToInt();
         }
@@ -42,7 +42,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
         /// <exception cref="ArgumentNullException">
         /// ipAddress is null.
         /// </exception>
-        internal static int ToInt(this IPAddress ipAddress)
+        public static int ToInt(this IPAddress ipAddress)
         {
 #pragma warning disable SA1503
             if (ipAddress == null) throw new ArgumentNullException(nameof(ipAddress));
@@ -60,7 +60,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
         /// <returns>
         /// .NET IPEndPoint.
         /// </returns>
-        internal static IPEndPoint ToIpEndPoint(this IpV4Address address)
+        public static IPEndPoint ToIpEndPoint(this IpV4Address address)
         {
             var ip = new IPAddress(address.Address);
 
@@ -77,7 +77,7 @@ namespace UdpToolkit.Network.Contracts.Sockets
         /// <exception cref="ArgumentNullException">
         /// ipEndPoint is null.
         /// </exception>
-        internal static IpV4Address ToIp(this IPEndPoint ipEndPoint)
+        public static IpV4Address ToIp(this IPEndPoint ipEndPoint)
         {
 #pragma warning disable SA1503
             if (ipEndPoint == null) throw new ArgumentNullException(nameof(ipEndPoint));

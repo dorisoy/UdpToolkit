@@ -7,8 +7,13 @@ namespace P2P.Contracts
 
     [UdpEvent]
     [MessagePackObject]
-    public class GroupPeers
+    public sealed class GroupPeers : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public GroupPeers()
+        {
+        }
+
         public GroupPeers(
             Guid groupId,
             List<Peer> peers)
@@ -22,5 +27,10 @@ namespace P2P.Contracts
 
         [Key(1)]
         public List<Peer> Peers { get; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

@@ -3,6 +3,7 @@
     using System;
     using System.Threading;
     using P2P.Contracts;
+    using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
@@ -41,16 +42,19 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Console.WriteLine($"{joinEvent.Nickname} joined to group! (event)");
+                    return joinEvent.GroupId;
                 });
 
             host.On<Message>(
                 onEvent: (connectionId, ip, message) =>
                 {
                     Console.WriteLine($"P2P message received - {message.Text}! (event)");
+
+                    return message.GroupId;
                 });
 
             host.Run();
-            client.Connect();
+            client.Connect(Guid.NewGuid());
 
             var waitTimeout = TimeSpan.FromSeconds(120);
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
@@ -59,7 +63,7 @@
                 @event: new JoinEvent(groupId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
-            client.Connect(host: Host, port: Port);
+            client.Connect(host: Host, port: Port, Guid.NewGuid());
 
             SpinWait.SpinUntil(() => _connections == 2, waitTimeout);
 
@@ -68,7 +72,7 @@
             {
                 client.Send(
                     @event: new Message(text: $"p2p message from {nickname}", groupId: Guid.Empty),
-                    destination: new IpV4Address(Host.ToInt(), (ushort)Port),
+                    destination: new IpV4Address(Host.Parse(), (ushort)Port),
                     channelId: ReliableChannel.Id);
 
                 Thread.Sleep(1000);
@@ -103,7 +107,7 @@
                 .ConfigureNetwork((settings) =>
                 {
                     settings.ChannelsFactory = new ChannelsFactory();
-                    settings.SocketFactory = new ManagedSocketFactory();
+                    settings.SocketFactory = new NativeSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
                     settings.AllowIncomingConnections = true;

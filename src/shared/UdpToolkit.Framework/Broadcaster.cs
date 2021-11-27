@@ -3,12 +3,14 @@ namespace UdpToolkit.Framework
     using System;
     using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Network.Contracts.Pooling;
 
     /// <inheritdoc />
     public sealed class Broadcaster : IBroadcaster
     {
         private readonly IGroupManager _groupManager;
         private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
+        private readonly ConcurrentPool<OutPacket> _pool;
 
         private bool _disposed = false;
 
@@ -17,12 +19,15 @@ namespace UdpToolkit.Framework
         /// </summary>
         /// <param name="groupManager">Instance of group manager.</param>
         /// <param name="outQueueDispatcher">Instance of queue dispatcher.</param>
+        /// <param name="pool">Instance pool.</param>
         public Broadcaster(
             IGroupManager groupManager,
-            IQueueDispatcher<OutPacket> outQueueDispatcher)
+            IQueueDispatcher<OutPacket> outQueueDispatcher,
+            ConcurrentPool<OutPacket> pool)
         {
             _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
+            _pool = pool;
         }
 
         /// <summary>
@@ -48,8 +53,12 @@ namespace UdpToolkit.Framework
             TEvent @event,
             byte channelId,
             BroadcastMode broadcastMode)
+        where TEvent : class, IDisposable
         {
             var group = _groupManager.GetGroup(groupId);
+            var queue = _outQueueDispatcher.Dispatch(groupId);
+            var outPacket = _pool.GetOrCreate();
+            outPacket.Setup(@event: @event, channelId: channelId);
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
@@ -62,16 +71,10 @@ namespace UdpToolkit.Framework
                             continue;
                         }
 
-                        _outQueueDispatcher
-                            .Dispatch(caller)
-                            .Produce(new OutPacket(
-                                connectionId: groupConnection.ConnectionId,
-                                channelId: channelId,
-                                @event: @event,
-                                ipV4Address: groupConnection.IpV4Address));
+                        outPacket.Connections.Add(groupConnection);
                     }
 
-                    return;
+                    break;
 
                 case BroadcastMode.GroupExceptCaller:
                     for (var i = 0; i < group.GroupConnections.Count; i++)
@@ -82,39 +85,30 @@ namespace UdpToolkit.Framework
                             continue;
                         }
 
-                        _outQueueDispatcher
-                            .Dispatch(groupConnection.ConnectionId)
-                            .Produce(new OutPacket(
-                                connectionId: groupConnection.ConnectionId,
-                                channelId: channelId,
-                                @event: @event,
-                                ipV4Address: groupConnection.IpV4Address));
+                        outPacket.Connections.Add(groupConnection);
                     }
 
-                    return;
+                    break;
+
                 case BroadcastMode.Group:
                     for (var i = 0; i < group.GroupConnections.Count; i++)
                     {
                         var groupConnection = group.GroupConnections[i];
 
-                        _outQueueDispatcher
-                            .Dispatch(groupConnection.ConnectionId)
-                            .Produce(new OutPacket(
-                                connectionId: groupConnection.ConnectionId,
-                                channelId: channelId,
-                                @event: @event,
-                                ipV4Address: groupConnection.IpV4Address));
+                        outPacket.Connections.Add(groupConnection);
                     }
 
-                    return;
+                    break;
 
                 case BroadcastMode.None:
                 case BroadcastMode.Server:
-                    return;
+                    break;
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
             }
+
+            queue.Produce(outPacket);
         }
 
         private void Dispose(bool disposing)

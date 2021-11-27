@@ -6,11 +6,12 @@ namespace UdpToolkit.Network.Connections
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Utils;
 
     /// <inheritdoc />
-    internal sealed class ConnectionPool : IConnectionPool
+    public sealed class ConnectionPool : IConnectionPool
     {
         private readonly ConcurrentDictionary<Guid, IConnection> _connections = new ConcurrentDictionary<Guid, IConnection>();
         private readonly ILogger _logger;
@@ -28,7 +29,7 @@ namespace UdpToolkit.Network.Connections
         /// <param name="logger">Instance of logger.</param>
         /// <param name="settings">Instance of settings.</param>
         /// <param name="connectionFactory">Instance of connection factory.</param>
-        internal ConnectionPool(
+        public ConnectionPool(
             IDateTimeProvider dateTimeProvider,
             ILogger logger,
             ConnectionPoolSettings settings,
@@ -83,13 +84,20 @@ namespace UdpToolkit.Network.Connections
             DateTimeOffset lastHeartbeat,
             IpV4Address ipV4Address)
         {
-            var newConnection = _connectionFactory.Create(
-                keepAlive: keepAlive,
-                lastHeartbeat: lastHeartbeat,
-                connectionId: connectionId,
-                ipAddress: ipV4Address);
+            // MEMORY OPTIMIZATION: avoid usage GetOrAdd method
+            // https://www.meziantou.net/concurrentdictionary-closure.html
+            if (_connections.TryGetValue(connectionId, out var connection))
+            {
+                return connection;
+            }
 
-            return _connections.GetOrAdd(connectionId, newConnection);
+            var newConnection = _connectionFactory.Create(connectionId, keepAlive, lastHeartbeat, ipV4Address);
+            if (_connections.TryAdd(connectionId, newConnection))
+            {
+                return newConnection;
+            }
+
+            return null;
         }
 
         private void ScanForCleaningInactiveConnections(object state)
@@ -130,7 +138,7 @@ namespace UdpToolkit.Network.Connections
 
             if (disposing)
             {
-                _housekeeper?.Dispose();
+                _housekeeper.Dispose();
             }
 
             _disposed = true;

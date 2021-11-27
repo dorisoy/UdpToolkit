@@ -3,6 +3,7 @@ namespace UdpToolkit.Network.Tests.Channels
     using System;
     using FluentAssertions;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Tests.Framework;
     using Xunit;
@@ -22,7 +23,7 @@ namespace UdpToolkit.Network.Tests.Channels
         public void PacketResentOnHeartbeat()
         {
             var channel = new ReliableOrderedChannel();
-            channel.ResendOnHeartbeat
+            channel.IsReliable
                 .Should()
                 .BeTrue();
         }
@@ -52,25 +53,10 @@ namespace UdpToolkit.Network.Tests.Channels
         }
 
         [Fact]
-        public void IsDeliveredThrownNotImplementedException()
-        {
-            var channel = new ReliableOrderedChannel();
-            Action action = () => channel.IsDelivered(default);
-
-            action
-                .Invoking(a => a())
-                .Should()
-                .Throw<NotImplementedException>();
-        }
-
-        [Fact]
         public void HandleOutputPacketThrownNotImplementedException()
         {
             var channel = new ReliableOrderedChannel();
-            Action action = () => channel.HandleOutputPacket(
-                dataType: Gen.RandomByte(),
-                connectionId: Gen.RandomGuid(),
-                packetType: Gen.RandomEnum<PacketType>());
+            Action action = () => channel.HandleOutputPacket(0);
 
             action
                 .Invoking(a => a())

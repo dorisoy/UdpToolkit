@@ -8,11 +8,13 @@ namespace UdpToolkit.Framework
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <inheritdoc />
     public sealed class GroupManager : IGroupManager
     {
+        private readonly IConnectionPool _connectionPool;
         private readonly ConcurrentDictionary<Guid, Group> _groups = new ConcurrentDictionary<Guid, Group>();
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _groupTtl;
@@ -28,15 +30,18 @@ namespace UdpToolkit.Framework
         /// <param name="groupTtl">Group ttl.</param>
         /// <param name="scanFrequency">Scan frequency for cleanup inactive groups.</param>
         /// <param name="logger">Instance of logger.</param>
+        /// <param name="connectionPool">Instance of connection pool.</param>
         public GroupManager(
             IDateTimeProvider dateTimeProvider,
             TimeSpan groupTtl,
             TimeSpan scanFrequency,
-            ILogger logger)
+            ILogger logger,
+            IConnectionPool connectionPool)
         {
             _dateTimeProvider = dateTimeProvider;
             _groupTtl = groupTtl;
             _logger = logger;
+            _connectionPool = connectionPool;
             _houseKeeper = new Timer(
                 callback: ScanForCleaningInactiveConnections,
                 state: null,
@@ -66,29 +71,27 @@ namespace UdpToolkit.Framework
             Guid connectionId,
             IpV4Address ipV4Address)
         {
-            _groups.AddOrUpdate(
-                key: groupId,
-                addValueFactory: (id) => new Group(
-                    id: id,
-                    groupConnections: new List<GroupConnection>
+            if (_connectionPool.TryGetConnection(connectionId, out var connection))
+            {
+                _groups.AddOrUpdate(
+                    key: groupId,
+                    addValueFactory: (id) => new Group(
+                        id: id,
+                        groupConnections: new List<IConnection>
+                        {
+                            connection,
+                        },
+                        createdAt: _dateTimeProvider.GetUtcNow()),
+                    updateValueFactory: (id, group) =>
                     {
-                        new GroupConnection(
-                            connectionId: connectionId,
-                            ipV4Address: ipV4Address),
-                    },
-                    createdAt: _dateTimeProvider.GetUtcNow()),
-                updateValueFactory: (id, group) =>
-                {
-                    if (group.GroupConnections.All(x => x.ConnectionId != connectionId))
-                    {
-                        group.GroupConnections.Add(
-                            item: new GroupConnection(
-                                connectionId: connectionId,
-                                ipV4Address: ipV4Address));
-                    }
+                        if (group.GroupConnections.All(x => x.ConnectionId != connectionId))
+                        {
+                            group.GroupConnections.Add(connection);
+                        }
 
-                    return group;
-                });
+                        return group;
+                    });
+            }
         }
 
         /// <inheritdoc />

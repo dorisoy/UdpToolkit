@@ -1,6 +1,7 @@
 namespace UdpToolkit.Framework.Contracts
 {
     using System;
+    using System.Buffers;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -62,5 +63,25 @@ namespace UdpToolkit.Framework.Contracts
         /// Gets or sets ChannelFactory instance, for list providing of available channels.
         /// </summary>
         IChannelsFactory ChannelsFactory { get; set; }
+
+        /// <summary>
+        /// Gets or sets the size of packets pool.
+        /// </summary>
+        int PacketsPoolSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the size of packets buffers pool.
+        /// </summary>
+        int PacketsBufferPoolSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets the size of headers buffers pool.
+        /// </summary>
+        int HeadersBuffersPoolSize { get; set; }
+
+        /// <summary>
+        /// Gets or sets array pool instance.
+        /// </summary>
+        ArrayPool<byte> ArrayPool { get; set; }
     }
 }

@@ -1,6 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Protocol;
 
@@ -14,20 +13,23 @@ namespace UdpToolkit.Network.Channels
         /// </summary>
         public static readonly byte Id = ReliableChannelConsts.ReliableChannel;
 
-        private readonly NetWindow _netWindow;
+        private readonly PacketData[] _netWindow;
+        private readonly int _windowSize;
+        private ushort _id = 0;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReliableChannel"/> class.
         /// </summary>
-        /// <param name="windowSize">Network window size.</param>
+        /// <param name="netWindowSize">Size of net window.</param>
         public ReliableChannel(
-            int windowSize)
+            int netWindowSize)
         {
-            _netWindow = new NetWindow(windowSize);
+            _windowSize = netWindowSize;
+            _netWindow = new PacketData[netWindowSize];
         }
 
         /// <inheritdoc />
-        public bool ResendOnHeartbeat { get; } = true;
+        public bool IsReliable { get; } = true;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
@@ -36,66 +38,61 @@ namespace UdpToolkit.Network.Channels
         public bool HandleInputPacket(
             in NetworkHeader networkHeader)
         {
-            if (_netWindow.GetPacketData(networkHeader.Id))
+            var id = networkHeader.Id;
+            var index = id % _windowSize;
+            ref var packetData = ref _netWindow[index];
+            if (packetData.IsDelivered)
             {
                 return false;
             }
 
-            _netWindow.InsertPacketData(
-                id: networkHeader.Id,
-                acknowledged: true);
+            packetData.Id = id;
+            packetData.IsDelivered = true;
+
+            if (NetworkUtils.SequenceGreaterThan(id, _id))
+            {
+                _id = id;
+            }
 
             return true;
         }
 
         /// <inheritdoc />
-        public bool IsDelivered(
-            in NetworkHeader networkHeader)
+        public ushort HandleOutputPacket(
+            byte dataType)
         {
-            return _netWindow.GetPacketData(networkHeader.Id);
-        }
+            var id = ++_id;
+            var index = id % _windowSize;
+            ref var packetData = ref _netWindow[index];
+            packetData.Id = id;
+            packetData.IsDelivered = false;
 
-        /// <inheritdoc />
-        public NetworkHeader HandleOutputPacket(
-            byte dataType,
-            Guid connectionId,
-            PacketType packetType)
-        {
-            var id = _netWindow.GetNextPacketId();
-            var acks = FillAcks();
-
-            _netWindow.InsertPacketData(
-                id: id,
-                acknowledged: false);
-
-            return new NetworkHeader(
-                channelId: Id,
-                id: id,
-                acks: acks,
-                connectionId: connectionId,
-                packetType: packetType,
-                dataType: dataType);
+            return _id;
         }
 
         /// <inheritdoc />
         public bool HandleAck(
             in NetworkHeader networkHeader)
         {
-            if (!_netWindow.GetPacketData(networkHeader.Id))
+            var index = networkHeader.Id % _windowSize;
+            ref var packetData = ref _netWindow[index];
+            if (packetData.Id == networkHeader.Id && packetData.IsDelivered)
             {
-                _netWindow.InsertPacketData(networkHeader.Id, true);
-                return true;
+                return false;
             }
 
-            return false;
+            packetData.Id = networkHeader.Id;
+            packetData.IsDelivered = true;
+
+            return true;
         }
 
-#pragma warning disable S3400
-        private uint FillAcks()
-#pragma warning restore S3400
+        /// <inheritdoc />
+        public bool IsDelivered(ushort id)
         {
-            // not supported
-            return 0;
+            var index = id % _windowSize;
+            ref var packetData = ref _netWindow[index];
+            return packetData.IsDelivered;
         }
     }
 }

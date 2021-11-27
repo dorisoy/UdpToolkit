@@ -1,6 +1,5 @@
 namespace UdpToolkit.Network.Contracts.Channels
 {
-    using System;
     using UdpToolkit.Network.Contracts.Protocol;
 
     /// <summary>
@@ -14,7 +13,7 @@ namespace UdpToolkit.Network.Contracts.Channels
         /// <summary>
         /// Gets a value indicating whether a resending on heartbeat requirement.
         /// </summary>
-        bool ResendOnHeartbeat { get; }
+        bool IsReliable { get; }
 
         /// <summary>
         /// Gets channel Id.
@@ -35,14 +34,10 @@ namespace UdpToolkit.Network.Contracts.Channels
         /// <summary>
         /// Handle output packets.
         /// </summary>
-        /// <param name="dataType">Type of data.</param>
-        /// <param name="connectionId">Connection identifier.</param>
-        /// <param name="packetType">Packet type.</param>
+        /// <param name="dataType">Data type.</param>
         /// <returns>Network header.</returns>
-        NetworkHeader HandleOutputPacket(
-            byte dataType,
-            Guid connectionId,
-            PacketType packetType);
+        ushort HandleOutputPacket(
+            byte dataType);
 
         /// <summary>
         /// Handle incoming acknowledge packets.
@@ -56,14 +51,14 @@ namespace UdpToolkit.Network.Contracts.Channels
             in NetworkHeader networkHeader);
 
         /// <summary>
-        /// Checking packet delivered state.
+        /// Check packet delivery status.
         /// </summary>
-        /// <param name="networkHeader">Network header.</param>
+        /// <param name="id">Packet identifier.</param>
         /// <returns>
         /// true - packet delivered
         /// false - packet not delivered.
         /// </returns>
         bool IsDelivered(
-            in NetworkHeader networkHeader);
+            ushort id);
     }
 }

@@ -4,6 +4,7 @@
     using System.Collections.Generic;
     using System.Linq;
     using ReliableUdp.Contracts;
+    using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
@@ -35,6 +36,8 @@
                 .On<JoinEvent>(
                     onEvent: (connectionId, ip, joinEvent) =>
                     {
+                        Console.WriteLine($"{joinEvent.Nickname} joined!");
+
                         groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
 
                         scheduler.ScheduleOnce<StartGame>(
@@ -42,23 +45,21 @@
                             delay: TimeSpan.FromSeconds(10),
                             action: () => SendSpawnPoints(connectionId, joinEvent.GroupId, groupManager, broadcaster));
 
+                        var gameOver = ObjectsPool<GameOver>.GetOrCreate();
+
                         scheduler.ScheduleOnce<GameOver>(
                             groupId: joinEvent.GroupId,
                             delay: TimeSpan.FromSeconds(20),
                             action: () => broadcaster.Broadcast(
                                 caller: connectionId,
                                 groupId: joinEvent.GroupId,
-                                @event: new GameOver(joinEvent.GroupId, "Game Over!"),
+                                @event: gameOver.SetUp("Game Over!", joinEvent.GroupId),
                                 channelId: ReliableChannel.Id,
                                 broadcastMode: BroadcastMode.Group));
 
-                        broadcaster.Broadcast(
-                            caller: connectionId,
-                            groupId: joinEvent.GroupId,
-                            @event: joinEvent,
-                            channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.GroupExceptCaller);
-                    });
+                        return joinEvent.GroupId;
+                    },
+                    broadcastMode: BroadcastMode.GroupExceptCaller);
 
             host
                 .On<Death>(
@@ -66,22 +67,20 @@
                     {
                         Console.WriteLine($"{death.Nickname} is dead!");
 
+                        var respawn = ObjectsPool<Respawn>.GetOrCreate();
+
                         scheduler.Schedule<Respawn>(
                             action: () => broadcaster.Broadcast(
                                 caller: connectionId,
                                 groupId: death.GroupId,
-                                @event: new Respawn(death.Nickname, death.GroupId),
+                                @event: respawn.SetUp(death.Nickname, death.GroupId),
                                 channelId: ReliableChannel.Id,
                                 broadcastMode: BroadcastMode.Group),
                             delay: TimeSpan.FromSeconds(1));
 
-                        broadcaster.Broadcast(
-                            caller: connectionId,
-                            groupId: death.GroupId,
-                            @event: death,
-                            channelId: ReliableChannel.Id,
-                            broadcastMode: BroadcastMode.GroupExceptCaller);
-                    });
+                        return death.GroupId;
+                    },
+                    broadcastMode: BroadcastMode.GroupExceptCaller);
 
             host.Run();
 
@@ -101,10 +100,12 @@
                 .Select(id => new { id, position = Positions.Dequeue() })
                 .ToDictionary(pair => pair.id, pair => pair.position);
 
+            var startGame = ObjectsPool<StartGame>.GetOrCreate();
+
             broadcaster.Broadcast(
                 caller: connectionId,
                 groupId: groupId,
-                @event: new StartGame(groupId, spawnPositions),
+                @event: startGame.SetUp(groupId, spawnPositions),
                 channelId: ReliableChannel.Id,
                 broadcastMode: BroadcastMode.Group);
         }
@@ -112,7 +113,7 @@
         private static IHost BuildHost()
         {
             var hostSettings = new HostSettings(
-                serializer: new NetJsonSerializer());
+                serializer: new NetProtobufSerializer());
 
             return UdpHost
                 .CreateHostBuilder()
@@ -122,7 +123,7 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Debug);
+                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Error);
                 })
                 .ConfigureNetwork((settings) =>
                 {

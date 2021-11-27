@@ -1,18 +1,16 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>netstandard2.0</TargetFramework>
+        <TargetFramework>net5.0</TargetFramework>
         <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
         <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
         <NoWarn>SA0001, SA1600</NoWarn>
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="MessagePack" Version="2.2.60" />
-    </ItemGroup>
-
-    <ItemGroup>
         <ProjectReference Include="..\..\..\src\tools\UdpToolkit.CodeGenerator\UdpToolkit.CodeGenerator.csproj" ReferenceOutputAssembly="true" OutputItemType="Analyzer" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
+        <ProjectReference Include="..\..\Serialization\Serializers\Serializers.csproj" />
     </ItemGroup>
 
 </Project>

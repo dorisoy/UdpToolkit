@@ -14,6 +14,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="host">Instance of host.</param>
         /// <param name="onEvent">Callback for `event`.</param>
         /// <param name="onTimeout">Timeout callback.</param>
+        /// <param name="broadcastMode">Broadcast mode.</param>
         /// <typeparam name="TEvent">
         /// Type of user-defined event.
         /// </typeparam>
@@ -22,8 +23,9 @@ namespace UdpToolkit.Framework.Contracts
         /// </exception>
         public static void On<TEvent>(
             this IHost host,
-            Action<Guid, IpV4Address, TEvent> onEvent,
-            Action<Guid> onTimeout = null)
+            Func<Guid, IpV4Address, TEvent, Guid> onEvent,
+            Action<Guid> onTimeout = null,
+            BroadcastMode broadcastMode = default)
         {
 #pragma warning disable SA1503
             if (host == null) throw new ArgumentNullException(nameof(host));

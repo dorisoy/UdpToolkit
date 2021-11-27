@@ -6,8 +6,13 @@ namespace P2P.Contracts
 
     [UdpEvent]
     [MessagePackObject]
-    public class FetchPeers
+    public sealed class FetchPeers : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public FetchPeers()
+        {
+        }
+
         public FetchPeers(
             Guid groupId,
             string nickname)
@@ -21,5 +26,10 @@ namespace P2P.Contracts
 
         [Key(1)]
         public string Nickname { get; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

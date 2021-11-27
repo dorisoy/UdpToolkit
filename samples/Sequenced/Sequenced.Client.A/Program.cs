@@ -4,6 +4,7 @@
     using System.Threading;
     using System.Threading.Tasks;
     using Sequenced.Contracts;
+    using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
@@ -36,17 +37,21 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
+
+                    return joinEvent.GroupId;
                 });
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, move) =>
                 {
                     Console.WriteLine($"Id {move.Id} - from - {move.From}");
+
+                    return move.GroupId;
                 });
 
             host.Run();
 
-            client.Connect();
+            client.Connect(Guid.NewGuid());
 
             var waitTimeout = TimeSpan.FromSeconds(120);
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
@@ -103,7 +108,7 @@
                 .ConfigureNetwork((settings) =>
                 {
                     settings.ChannelsFactory = new ChannelsFactory();
-                    settings.SocketFactory = new ManagedSocketFactory();
+                    settings.SocketFactory = new NativeSocketFactory();
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
                     settings.ResendTimeout = TimeSpan.FromSeconds(120);
                 })

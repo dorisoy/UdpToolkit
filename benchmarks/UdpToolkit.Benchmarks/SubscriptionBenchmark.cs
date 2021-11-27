@@ -22,7 +22,7 @@ namespace UdpToolkit.Benchmarks
         public SubscriptionBenchmark()
         {
             _subscription = new Subscription<Ping>(
-                onEvent: (connectionId, ip, ping) => { },
+                onEvent: (connectionId, ip, ping) => { return Guid.Empty; },
                 onTimeout: (connectionId) => { });
         }
 

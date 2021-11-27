@@ -6,5 +6,6 @@ namespace UdpToolkit.Logging
         Information = 1,
         Warning = 2,
         Error = 4,
+        DisableLogs = 5,
     }
 }

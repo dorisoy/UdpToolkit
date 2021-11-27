@@ -1,12 +1,14 @@
 namespace UdpToolkit.Network.Tests.Clients
 {
     using System;
+    using System.Buffers;
     using System.Collections.Generic;
     using System.Linq;
     using System.Net.Sockets;
     using System.Threading.Tasks;
     using FluentAssertions;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
     using UdpToolkit.Network.Tests.Framework;
@@ -17,7 +19,6 @@ namespace UdpToolkit.Network.Tests.Clients
         public static IEnumerable<object[]> SocketFactories()
         {
             yield return new object[] { new NativeSocketFactory() };
-            yield return new object[] { new ManagedSocketFactory() };
         }
 
         public static IEnumerable<object[]> PacketsWithInvalidHeader()
@@ -170,7 +171,8 @@ namespace UdpToolkit.Network.Tests.Clients
             var buffer = new List<HeartbeatInfo>();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory);
-            var serverIp = new IpV4Address(host.ToInt(), (ushort)serverPort);
+            using var server = Utils.CreateUdpClient(host, (ushort)serverPort, socketFactory);
+            var serverIp = new IpV4Address(host.Parse(), (ushort)serverPort);
 
             await client
                 .HeartbeatAsync(serverIp, buffer)
@@ -189,7 +191,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var host = "127.0.0.1";
             var clientPort = Utils.GetAvailablePort();
             var serverPort = Utils.GetAvailablePort();
-            var buffer = new List<PacketInfo>();
+            var buffer = new List<NetworkPacket>();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory);
             using var server = Utils.CreateUdpClient(host, (ushort)serverPort, socketFactory);
@@ -202,24 +204,33 @@ namespace UdpToolkit.Network.Tests.Clients
                 .ConfigureAwait(false);
 
             var packetInfoTask = server.WaitNewPacketsAsync(buffer);
-            client.Send(connectionId, ReliableChannel.Id, 1, payload, serverIp);
+            client.Send(connectionId, ReliableChannel.Id, 1, payload.AsSpan(), serverIp);
             await packetInfoTask.ConfigureAwait(false);
 
             var expected = new
             {
-                ConnectionId = connectionId,
-                Ip = new IpV4Address(host.ToInt(), (ushort)clientPort),
-                DataType = 1,
+                IpV4Address = new IpV4Address(host.Parse(), (ushort)clientPort),
+                Buffer = Utils.Extend(payload, 2048),
+                BytesReceived = payload.Length,
                 ChannelId = ReliableChannel.Id,
-                Payload = payload,
+                ConnectionId = connectionId,
+                DataType = 1,
+                Expired = false,
             };
 
-            buffer
-                .Should()
-                .ContainSingle();
+            var networkPacket = buffer.Single();
+            var actual = new
+            {
+                IpV4Address = networkPacket.IpV4Address,
+                Buffer = Utils.Extend(networkPacket.Buffer.Skip(25).ToArray(), 2048),
+                BytesReceived = networkPacket.BytesReceived,
+                ChannelId = networkPacket.ChannelId,
+                ConnectionId = networkPacket.ConnectionId,
+                DataType = networkPacket.DataType,
+                Expired = networkPacket.Expired,
+            };
 
-            buffer
-                .Single()
+            actual
                 .Should()
                 .BeEquivalentTo(expected);
         }
@@ -232,7 +243,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var host = "127.0.0.1";
             var clientPort = Utils.GetAvailablePort();
             var serverPort = Utils.GetAvailablePort();
-            var buffer = new List<PacketInfo>();
+            var buffer = new List<NetworkPacket>();
             var mtuSize = Gen.RandomInt();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory, mtuSize);
@@ -246,24 +257,36 @@ namespace UdpToolkit.Network.Tests.Clients
                 .ConfigureAwait(false);
 
             var packetInfoTask = client.WaitDroppedPacketAsync(buffer);
-            client.Send(connectionId, ReliableChannel.Id, 1, payload, serverIp);
+            client.Send(connectionId, ReliableChannel.Id, 1, payload.AsSpan(), serverIp);
             await packetInfoTask.ConfigureAwait(false);
 
+            var networkPacket = buffer.Single();
+
+            var expectedBuffer = ArrayPool<byte>.Shared.Rent(payload.Length);
+            payload.CopyTo(expectedBuffer.AsSpan());
             var expected = new
             {
                 ConnectionId = connectionId,
-                Ip = new IpV4Address(host.ToInt(), (ushort)serverPort),
+                IpV4Address = new IpV4Address(host.Parse(), (ushort)serverPort),
+                Buffer = expectedBuffer,
+                Expired = false,
                 DataType = 1,
+                BytesReceived = 0,
                 ChannelId = ReliableChannel.Id,
-                Payload = payload,
             };
 
-            buffer
-                .Should()
-                .ContainSingle();
+            var actual = new
+            {
+                networkPacket.ConnectionId,
+                networkPacket.IpV4Address,
+                networkPacket.Buffer,
+                networkPacket.Expired,
+                networkPacket.DataType,
+                networkPacket.BytesReceived,
+                networkPacket.ChannelId,
+            };
 
-            buffer
-                .Single()
+            actual
                 .Should()
                 .BeEquivalentTo(expected);
         }
@@ -279,7 +302,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var buffer = new List<ConnectionInfo>();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory);
-            var serverIp = new IpV4Address(host.ToInt(), (ushort)serverPort);
+            var serverIp = new IpV4Address(host.Parse(), (ushort)serverPort);
 
             await client
                 .DisconnectAsync(serverIp, buffer)
@@ -321,7 +344,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var brokenClient = new UdpClient(clientPort);
             using var server = Utils.CreateUdpClient(host, (ushort)serverPort, socketFactory);
 
-            var buffer = new List<InvalidPacketInfo>();
+            var buffer = new List<NetworkPacket>();
 
             var invalidPacketsTask = server.WaitInvalidPacketsAsync(buffer);
 
@@ -333,13 +356,14 @@ namespace UdpToolkit.Network.Tests.Clients
 
             var expected = new
             {
-                Ip = new IpV4Address(host.ToInt(), (ushort)clientPort),
-                Payload = Utils.Extend(payload, 2048),
+                IpV4Address = new IpV4Address(host.Parse(), (ushort)clientPort),
+                Buffer = Utils.Extend(payload, 32),
+                BytesReceived = payload.Length,
+                ChannelId = default(byte),
+                ConnectionId = default(Guid),
+                DataType = default(byte),
+                Expired = false,
             };
-
-            buffer
-                .Should()
-                .ContainSingle();
 
             buffer
                 .Single()

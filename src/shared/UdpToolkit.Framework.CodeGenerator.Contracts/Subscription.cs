@@ -17,22 +17,30 @@ namespace UdpToolkit.Framework.Contracts
         /// </summary>
         /// <param name="onEvent">Callback raised on event received.</param>
         /// <param name="onTimeout">Callback raised on event expired by timeout (ack dropped or not received a due period of time).</param>
+        /// <param name="broadcastMode">Broadcast mode.</param>
         public Subscription(
-            Action<Guid, IpV4Address, TEvent> onEvent,
-            Action<Guid> onTimeout)
+            Func<Guid, IpV4Address, TEvent, Guid> onEvent,
+            Action<Guid> onTimeout,
+            BroadcastMode broadcastMode = default)
         {
             OnEvent = onEvent;
             OnTimeout = onTimeout;
+            BroadcastMode = broadcastMode;
         }
 
         /// <summary>
         /// Gets on event callback.
         /// </summary>
-        public Action<Guid, IpV4Address, TEvent> OnEvent { get; }
+        public Func<Guid, IpV4Address, TEvent, Guid> OnEvent { get; }
 
         /// <summary>
         /// Gets on timeout callback.
         /// </summary>
         public Action<Guid> OnTimeout { get; }
+
+        /// <summary>
+        /// Gets broadcast mode.
+        /// </summary>
+        public BroadcastMode BroadcastMode { get; }
     }
 }

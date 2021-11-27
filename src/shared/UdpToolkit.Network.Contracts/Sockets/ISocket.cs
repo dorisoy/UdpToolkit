@@ -14,15 +14,6 @@ namespace UdpToolkit.Network.Contracts.Sockets
         IpV4Address GetLocalIp();
 
         /// <summary>
-        /// Async Receive data from socket.
-        /// </summary>
-        /// <param name="address">Remote ip.</param>
-        /// <param name="buffer">Buffer for udp packet.</param>
-        /// <param name="length">Buffer length.</param>
-        /// <returns>Received bytes count.</returns>
-        int ReceiveFrom(ref IpV4Address address, byte[] buffer, int length);
-
-        /// <summary>
         /// Send data to destination.
         /// </summary>
         /// <param name="address">Destination Ip address.</param>
@@ -33,6 +24,15 @@ namespace UdpToolkit.Network.Contracts.Sockets
         /// -1 - on error.
         /// </returns>
         int Send(ref IpV4Address address, byte[] buffer, int length);
+
+        /// <summary>
+        /// Async Receive data from socket.
+        /// </summary>
+        /// <param name="address">Remote ip.</param>
+        /// <param name="buffer">Buffer for udp packet.</param>
+        /// <param name="length">Buffer length.</param>
+        /// <returns>Received bytes count.</returns>
+        int ReceiveFrom(ref IpV4Address address, byte[] buffer, int length);
 
         /// <summary>
         /// Bind socket to ip address.

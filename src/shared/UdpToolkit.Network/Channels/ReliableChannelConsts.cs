@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Contracts.Channels
+namespace UdpToolkit.Network.Channels
 {
     /// <summary>
     /// Reserved identifiers for channels.

@@ -5,6 +5,7 @@ namespace UdpToolkit.Network.Tests.Channels
     using System.Linq;
     using FluentAssertions;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Tests.Framework;
     using Xunit;
@@ -89,7 +90,7 @@ namespace UdpToolkit.Network.Tests.Channels
         public void NotResendOnHeartbeat()
         {
             var channel = new SequencedChannel(sequences: new ushort[ushort.MaxValue]);
-            channel.ResendOnHeartbeat
+            channel.IsReliable
                 .Should()
                 .BeFalse();
         }
@@ -128,41 +129,21 @@ namespace UdpToolkit.Network.Tests.Channels
         }
 
         [Fact]
-        public void AnySequencedPacketDelivered()
-        {
-            var channel = new SequencedChannel(sequences: new ushort[ushort.MaxValue]);
-            var randomPackets = Gen.GenerateRandomPackets();
-
-            var handledPackets = randomPackets
-                .Where(packet => channel.IsDelivered(packet))
-                .ToList();
-
-            handledPackets
-                .Should()
-                .BeEquivalentTo(randomPackets, options => options.WithStrictOrdering());
-        }
-
-        [Fact]
         public void IdsIncreasesMonotonically()
         {
             var channel = new SequencedChannel(sequences: new ushort[ushort.MaxValue]);
             var packetsCount = Gen.RandomInt(10, 100);
-            var dataType = Gen.RandomByte();
 
-            var producedPackets = Enumerable
+            var networkPacketIds = Enumerable
                 .Range(0, packetsCount)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: dataType,
-                    connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                .Select(_ => channel.HandleOutputPacket(0))
                 .ToList();
 
             var expectedIds = Enumerable
                 .Range(1, packetsCount)
                 .ToArray();
 
-            producedPackets
-                .Select(x => x.Id)
+            networkPacketIds
                 .Should()
                 .BeEquivalentTo(expectedIds, options => options.WithStrictOrdering());
         }

@@ -14,8 +14,15 @@ namespace UdpToolkit.Network.Channels
         /// </summary>
         public static readonly byte Id = ReliableChannelConsts.ReliableOrderedChannel;
 
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReliableOrderedChannel"/> class.
+        /// </summary>
+        public ReliableOrderedChannel()
+        {
+        }
+
         /// <inheritdoc />
-        public bool ResendOnHeartbeat { get; } = true;
+        public bool IsReliable { get; } = true;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
@@ -28,17 +35,8 @@ namespace UdpToolkit.Network.Channels
         }
 
         /// <inheritdoc />
-        public bool IsDelivered(
-            in NetworkHeader networkHeader)
-        {
-            throw new NotImplementedException();
-        }
-
-        /// <inheritdoc />
-        public NetworkHeader HandleOutputPacket(
-            byte dataType,
-            Guid connectionId,
-            PacketType packetType)
+        public ushort HandleOutputPacket(
+            byte dataType)
         {
             throw new System.NotImplementedException();
         }
@@ -47,7 +45,13 @@ namespace UdpToolkit.Network.Channels
         public bool HandleAck(
             in NetworkHeader networkHeader)
         {
-            throw new System.NotImplementedException();
+            throw new NotImplementedException();
+        }
+
+        /// <inheritdoc />
+        public bool IsDelivered(ushort id)
+        {
+            throw new NotImplementedException();
         }
     }
 }

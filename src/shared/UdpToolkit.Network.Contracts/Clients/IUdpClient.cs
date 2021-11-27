@@ -12,50 +12,22 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <summary>
         /// Raised when new user-defined packet received.
         /// </summary>
-        /// <remarks>
-        /// IpV4Address - source ip
-        /// Guid - connectionId
-        /// byte[] - payload without network header
-        /// byte - channel
-        /// byte - dataType
-        /// </remarks>
-        event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketReceived;
+        event Action<NetworkPacket> OnPacketReceived;
 
         /// <summary>
         /// Raised when outgoing packet dropped.
         /// </summary>
-        /// <remarks>
-        /// IpV4Address - source ip
-        /// Guid - connectionId
-        /// byte[] - payload without network header
-        /// byte - channel
-        /// byte - dataType
-        /// </remarks>
-        event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketDropped;
+        event Action<NetworkPacket> OnPacketDropped;
 
         /// <summary>
         /// Raised when received packet with invalid network header.
         /// </summary>
-        /// <remarks>
-        /// IpV4Address - source ip
-        /// Guid - connectionId
-        /// byte[] - payload without network header
-        /// byte - channel
-        /// byte - dataType
-        /// </remarks>
-        event Action<IpV4Address, byte[]> OnInvalidPacketReceived;
+        event Action<NetworkPacket> OnInvalidPacketReceived;
 
         /// <summary>
         /// Raised when user-defined packet expired.
         /// </summary>
-        /// <remarks>
-        /// IpV4Address - source ip
-        /// Guid - connectionId
-        /// byte[] - payload without network header
-        /// byte - channel
-        /// byte - dataType
-        /// </remarks>
-        event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketExpired;
+        event Action<NetworkPacket> OnPacketExpired;
 
         /// <summary>
         /// Raised when UDP client connected to other UDP client.
@@ -99,7 +71,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <param name="connectionId">Connection identifier.</param>
         void Connect(
             IpV4Address ipV4Address,
-            Guid? connectionId);
+            Guid connectionId);
 
         /// <summary>
         /// Send heartbeat.
@@ -121,13 +93,13 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="channelId">Channel identifier.</param>
         /// <param name="dataType">Type of data.</param>
-        /// <param name="bytes">Payload.</param>
+        /// <param name="payload">Payload.</param>
         /// <param name="ipV4Address">Destination ip address.</param>
         void Send(
             Guid connectionId,
             byte channelId,
             byte dataType,
-            byte[] bytes,
+            ReadOnlySpan<byte> payload,
             IpV4Address ipV4Address);
 
         /// <summary>
@@ -136,6 +108,17 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <param name="cancellationToken">Cancellation token for cancelling receive operation.</param>
         void StartReceive(
             CancellationToken cancellationToken);
+
+        /// <summary>
+        /// Start poll packets.
+        /// </summary>
+        /// <param name="timeout">Polling timeout.</param>
+        /// <param name="remoteIp">Remote ip address.</param>
+        /// <param name="buffer">Buffer.</param>
+        void Poll(
+            int timeout,
+            ref IpV4Address remoteIp,
+            byte[] buffer);
 
         /// <summary>
         /// Get local ip address of udp client.

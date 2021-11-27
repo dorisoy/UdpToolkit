@@ -1,5 +1,6 @@
 namespace UdpToolkit.Network.Channels
 {
+    using System;
     using System.Collections.Generic;
     using UdpToolkit.Network.Contracts.Channels;
 
@@ -9,12 +10,13 @@ namespace UdpToolkit.Network.Channels
         /// <inheritdoc />
         public IReadOnlyList<IChannel> CreateChannelsList()
         {
+            var sequencesBuffer = new ushort[ushort.MaxValue];
+
             return new List<IChannel>
             {
                 new RawUdpChannel(),
-                new ReliableChannel(windowSize: 1024),
-                new ReliableOrderedChannel(),
-                new SequencedChannel(sequences: new ushort[ushort.MaxValue]),
+                new ReliableChannel(1024),
+                new SequencedChannel(sequences: sequencesBuffer),
             };
         }
     }

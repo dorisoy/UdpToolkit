@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
+    using System.Buffers;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -19,6 +20,10 @@ namespace UdpToolkit.Network.Clients
         /// <param name="resendTimeout">Timeout for packets in resend queue.</param>
         /// <param name="channelsFactory">Instance of channelsFactory.</param>
         /// <param name="socketFactory">Instance of socketFactory.</param>
+        /// <param name="packetsPoolSize">Size of packets pool.</param>
+        /// <param name="packetsBufferPoolSize">Size of packets buffers pool.</param>
+        /// <param name="headersBuffersPoolSize">Size of headers buffers pool.</param>
+        /// <param name="arrayPool">ArrayPool.</param>
         public UdpClientSettings(
             int mtuSizeLimit,
             int udpClientBufferSize,
@@ -26,7 +31,11 @@ namespace UdpToolkit.Network.Clients
             bool allowIncomingConnections,
             TimeSpan resendTimeout,
             IChannelsFactory channelsFactory,
-            ISocketFactory socketFactory)
+            ISocketFactory socketFactory,
+            int packetsPoolSize,
+            int packetsBufferPoolSize,
+            int headersBuffersPoolSize,
+            ArrayPool<byte> arrayPool)
         {
             MtuSizeLimit = mtuSizeLimit;
             UdpClientBufferSize = udpClientBufferSize;
@@ -35,6 +44,10 @@ namespace UdpToolkit.Network.Clients
             ResendTimeout = resendTimeout;
             ChannelsFactory = channelsFactory;
             SocketFactory = socketFactory;
+            PacketsPoolSize = packetsPoolSize;
+            PacketsBufferPoolSize = packetsBufferPoolSize;
+            HeadersBuffersPoolSize = headersBuffersPoolSize;
+            ArrayPool = arrayPool;
         }
 
         /// <summary>
@@ -71,5 +84,25 @@ namespace UdpToolkit.Network.Clients
         /// Gets SocketFactory instance.
         /// </summary>
         public ISocketFactory SocketFactory { get; }
+
+        /// <summary>
+        /// Gets the size of packets pool.
+        /// </summary>
+        public int PacketsPoolSize { get; }
+
+        /// <summary>
+        /// Gets the size of packets buffers pool.
+        /// </summary>
+        public int PacketsBufferPoolSize { get; }
+
+        /// <summary>
+        /// Gets the size of headers buffers pool.
+        /// </summary>
+        public int HeadersBuffersPoolSize { get; }
+
+        /// <summary>
+        /// Gets the size of headers buffers pool.
+        /// </summary>
+        public ArrayPool<byte> ArrayPool { get; }
     }
 }

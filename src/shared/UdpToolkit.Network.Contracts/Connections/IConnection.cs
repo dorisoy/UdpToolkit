@@ -1,14 +1,22 @@
-namespace UdpToolkit.Network.Connections
+namespace UdpToolkit.Network.Contracts.Connections
 {
     using System;
+    using System.Collections.Generic;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
     /// Abstraction for representing a connection.
     /// </summary>
-    internal interface IConnection
+    public interface IConnection
     {
+        /// <summary>
+        /// Gets list of pending packets.
+        /// </summary>
+        /// <returns>List of pending packets.</returns>
+        IList<PendingPacket> PendingPackets { get; }
+
         /// <summary>
         /// Gets connection identifier.
         /// </summary>
@@ -18,7 +26,7 @@ namespace UdpToolkit.Network.Connections
         /// Gets a value indicating whether needs to remove the connection from the pool.
         /// </summary>
         /// <remarks>
-        /// true - connection pool housekeeper would ignore this connection on the cleanup scan.
+        /// true - housekeeper would ignore this connection on the cleanup scan.
         /// false - housekeeper may remove this connection if the connection expired.
         /// </remarks>
         bool KeepAlive { get; }
@@ -37,17 +45,21 @@ namespace UdpToolkit.Network.Connections
         /// Get channel for incoming packet by channel id.
         /// </summary>
         /// <param name="channelId">Channel identifier.</param>
-        /// <returns>Channel.</returns>
-        IChannel GetIncomingChannel(
-            byte channelId);
+        /// <param name="channel">Channel.</param>
+        /// <returns>True if channel exists.</returns>
+        bool GetIncomingChannel(
+            byte channelId,
+            out IChannel channel);
 
         /// <summary>
         /// Get channel for outgoing packet by channel id.
         /// </summary>
         /// <param name="channelId">Channel identifier.</param>
-        /// <returns>Channel.</returns>
-        IChannel GetOutgoingChannel(
-            byte channelId);
+        /// <param name="channel">Channel.</param>
+        /// <returns>True if channel exists.</returns>
+        bool GetOutgoingChannel(
+            byte channelId,
+            out IChannel channel);
 
         /// <summary>
         /// Updates HeartbeatAck value.

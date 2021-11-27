@@ -6,8 +6,13 @@
 
     [UdpEvent]
     [MessagePackObject]
-    public class MoveEvent
+    public sealed class MoveEvent : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public MoveEvent()
+        {
+        }
+
         public MoveEvent(
             Guid groupId,
             int id,
@@ -26,5 +31,10 @@
 
         [Key(2)]
         public string From { get; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

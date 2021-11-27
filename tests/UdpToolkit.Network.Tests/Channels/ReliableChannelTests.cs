@@ -7,6 +7,7 @@ namespace UdpToolkit.Network.Tests.Channels
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Tests.Framework;
+    using UdpToolkit.Network.Utils;
     using Xunit;
 
     public class ReliableChannelTests
@@ -14,6 +15,7 @@ namespace UdpToolkit.Network.Tests.Channels
         public static IEnumerable<object[]> ReliableNetworkPackets()
         {
             var connectionId = Guid.NewGuid();
+
             yield return new object[]
             {
                 new List<NetworkHeader>
@@ -67,7 +69,8 @@ namespace UdpToolkit.Network.Tests.Channels
         [Fact]
         public void HasCorrectId()
         {
-            var channel = new ReliableChannel(1024);
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
             channel.ChannelId
                 .Should()
                 .Be(253);
@@ -76,8 +79,9 @@ namespace UdpToolkit.Network.Tests.Channels
         [Fact]
         public void PacketResentOnHeartbeat()
         {
-            var channel = new ReliableChannel(1024);
-            channel.ResendOnHeartbeat
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
+            channel.IsReliable
                 .Should()
                 .BeTrue();
         }
@@ -89,7 +93,8 @@ namespace UdpToolkit.Network.Tests.Channels
             List<NetworkHeader> expectedPackets,
             string description)
         {
-            var channel = new ReliableChannel(1024);
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
 
             var acceptedPackets = incomingPackets
                 .Where(header => channel.HandleInputPacket(header))
@@ -103,14 +108,19 @@ namespace UdpToolkit.Network.Tests.Channels
         [Fact]
         public void DuplicateAckPacketsDropped()
         {
-            var channel = new ReliableChannel(1024);
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
 
             var producedPackets = Enumerable
                 .Range(10, 100)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: Gen.RandomByte(),
+                .Select(_ => channel.HandleOutputPacket(0))
+                .Select(id => new NetworkHeader(
+                    channelId: ReliableChannel.Id,
+                    id: id,
+                    acks: default,
                     connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                    packetType: Gen.RandomEnum<PacketType>(),
+                    dataType: Gen.RandomByte()))
                 .ToList();
 
             var handledAcksFirstTime = producedPackets
@@ -133,18 +143,23 @@ namespace UdpToolkit.Network.Tests.Channels
         [Fact]
         public void PacketsWithoutAckNotDelivered()
         {
-            var channel = new ReliableChannel(1024);
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
 
             var producedPackets = Enumerable
                 .Range(10, 100)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: Gen.RandomByte(),
+                .Select(_ => channel.HandleOutputPacket(0))
+                .Select(id => new NetworkHeader(
+                    channelId: ReliableChannel.Id,
+                    id: id,
+                    acks: default,
                     connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                    packetType: Gen.RandomEnum<PacketType>(),
+                    dataType: Gen.RandomByte()))
                 .ToList();
 
             var handledAcksFirstTime = producedPackets
-                .Where(p => channel.IsDelivered(p))
+                .Where(p => !channel.HandleInputPacket(p))
                 .ToList();
 
             handledAcksFirstTime
@@ -155,14 +170,19 @@ namespace UdpToolkit.Network.Tests.Channels
         [Fact]
         public void PacketsWithAckDelivered()
         {
-            var channel = new ReliableChannel(1024);
+            var netWindowSize = 1024;
+            var channel = new ReliableChannel(netWindowSize);
 
             var producedPackets = Enumerable
                 .Range(10, 100)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: Gen.RandomByte(),
+                .Select(_ => channel.HandleOutputPacket(0))
+                .Select(id => new NetworkHeader(
+                    channelId: ReliableChannel.Id,
+                    id: id,
+                    acks: default,
                     connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                    packetType: Gen.RandomEnum<PacketType>(),
+                    dataType: Gen.RandomByte()))
                 .ToList();
 
             var handledPackets = producedPackets
@@ -170,7 +190,7 @@ namespace UdpToolkit.Network.Tests.Channels
                 .ToList();
 
             var deliveredPackets = handledPackets
-                .Where(p => channel.IsDelivered(p))
+                .Where(p => !channel.HandleInputPacket(p))
                 .ToList();
 
             deliveredPackets
@@ -186,18 +206,26 @@ namespace UdpToolkit.Network.Tests.Channels
 
             var firstBucket = Enumerable
                 .Range(0, networkWindowSize)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: Gen.RandomByte(),
+                .Select(_ => channel.HandleOutputPacket(0))
+                .Select(id => new NetworkHeader(
+                    channelId: ReliableChannel.Id,
+                    id: id,
+                    acks: default,
                     connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                    packetType: Gen.RandomEnum<PacketType>(),
+                    dataType: Gen.RandomByte()))
                 .ToList();
 
             var secondBucket = Enumerable
                 .Range(0, networkWindowSize)
-                .Select(_ => channel.HandleOutputPacket(
-                    dataType: Gen.RandomByte(),
+                .Select(_ => channel.HandleOutputPacket(0))
+                .Select(id => new NetworkHeader(
+                    channelId: ReliableChannel.Id,
+                    id: id,
+                    acks: default,
                     connectionId: Gen.RandomGuid(),
-                    packetType: Gen.RandomEnum<PacketType>()))
+                    packetType: Gen.RandomEnum<PacketType>(),
+                    dataType: Gen.RandomByte()))
                 .ToList();
 
             firstBucket

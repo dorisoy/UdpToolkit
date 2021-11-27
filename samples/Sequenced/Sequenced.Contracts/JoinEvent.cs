@@ -6,8 +6,13 @@ namespace Sequenced.Contracts
 
     [UdpEvent]
     [MessagePackObject]
-    public class JoinEvent
+    public sealed class JoinEvent : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public JoinEvent()
+        {
+        }
+
         public JoinEvent(
             Guid groupId,
             string nickname)
@@ -21,5 +26,10 @@ namespace Sequenced.Contracts
 
         [Key(1)]
         public string Nickname { get; set; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

@@ -11,6 +11,8 @@ namespace UdpToolkit
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <inheritdoc />
@@ -86,10 +88,16 @@ namespace UdpToolkit
             var dateTimeProvider = new DateTimeProvider();
             var loggerFactory = HostSettings.LoggerFactory;
 
-            var udpClientFactory = new UdpClientFactory(
-                connectionPoolSettings: new ConnectionPoolSettings(
+            var connectionPool = new ConnectionPool(
+                dateTimeProvider: new Network.Utils.DateTimeProvider(),
+                logger: loggerFactory.Create<ConnectionPool>(),
+                settings: new ConnectionPoolSettings(
                     connectionTimeout: NetworkSettings.ConnectionTimeout,
                     connectionsCleanupFrequency: NetworkSettings.ConnectionsCleanupFrequency),
+                connectionFactory: new ConnectionFactory(NetworkSettings.ChannelsFactory));
+
+            var udpClientFactory = new UdpClientFactory(
+                connectionPool: connectionPool,
                 udpClientSettings: new UdpClientSettings(
                     mtuSizeLimit: NetworkSettings.MtuSizeLimit,
                     udpClientBufferSize: NetworkSettings.UdpClientBufferSize,
@@ -97,7 +105,11 @@ namespace UdpToolkit
                     allowIncomingConnections: NetworkSettings.AllowIncomingConnections,
                     resendTimeout: NetworkSettings.ResendTimeout,
                     channelsFactory: NetworkSettings.ChannelsFactory,
-                    socketFactory: NetworkSettings.SocketFactory),
+                    socketFactory: NetworkSettings.SocketFactory,
+                    packetsPoolSize: NetworkSettings.PacketsPoolSize,
+                    packetsBufferPoolSize: NetworkSettings.PacketsBufferPoolSize,
+                    headersBuffersPoolSize: NetworkSettings.HeadersBuffersPoolSize,
+                    arrayPool: NetworkSettings.ArrayPool),
                 loggerFactory: HostSettings.LoggerFactory);
 
             var hostIps = HostSettings.HostPorts
@@ -115,14 +127,34 @@ namespace UdpToolkit
                     boundedCapacity: int.MaxValue,
                     action: (outPacket) =>
                     {
-                        if (HostWorkerInternal.Process(outPacket, out var payload, out var subscriptionId))
+                        using (outPacket)
                         {
-                            sender.Send(
-                                connectionId: outPacket.ConnectionId,
-                                channelId: outPacket.ChannelId,
-                                dataType: subscriptionId,
-                                bytes: payload,
-                                ipV4Address: outPacket.IpV4Address);
+                            if (!HostWorkerInternal.Process(outPacket, out var payload, out var dataType))
+                            {
+                                return;
+                            }
+
+                            if (outPacket.ConnectionId != default)
+                            {
+                                sender.Send(
+                                    connectionId: outPacket.ConnectionId,
+                                    channelId: outPacket.ChannelId,
+                                    dataType: dataType,
+                                    payload: payload,
+                                    ipV4Address: outPacket.IpV4Address);
+                            }
+                            else
+                            {
+                                foreach (var connection in outPacket.Connections)
+                                {
+                                    sender.Send(
+                                        connectionId: connection.ConnectionId,
+                                        channelId: outPacket.ChannelId,
+                                        dataType: dataType,
+                                        payload: payload,
+                                        ipV4Address: connection.IpV4Address);
+                                }
+                            }
                         }
                     },
                     logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
@@ -135,29 +167,42 @@ namespace UdpToolkit
             var inQueues = Enumerable.Range(0, HostSettings.Workers)
                 .Select(_ =>
                 {
-                    return new BlockingAsyncQueue<InPacket>(
+                    return new BlockingAsyncQueue<NetworkPacket>(
                         boundedCapacity: int.MaxValue,
-                        action: (inPacket) => HostWorkerInternal.Process(inPacket),
-                        logger: loggerFactory.Create<BlockingAsyncQueue<InPacket>>());
+                        action: (networkPacket) =>
+                        {
+                            using (networkPacket)
+                            {
+                                HostWorkerInternal.Process(networkPacket);
+                            }
+                        },
+                        logger: loggerFactory.Create<BlockingAsyncQueue<NetworkPacket>>());
                 })
                 .ToArray();
 
-            var inQueueDispatcher = new QueueDispatcher<InPacket>(
+            var inQueueDispatcher = new QueueDispatcher<NetworkPacket>(
                 queues: inQueues);
 
             var cancellationTokenSource = new CancellationTokenSource();
+
+            var outPacketsPool = new ConcurrentPool<OutPacket>(
+                factory: (pool) => new OutPacket(pool),
+                initSize: 1000);
 
             var hostClient = _clientConfigured
                 ? (IHostClient)BuildHostClient(
                     udpClients: udpClients,
                     cancellationTokenSource: cancellationTokenSource,
                     dateTimeProvider: dateTimeProvider,
-                    outQueueDispatcher: outQueueDispatcher)
+                    outQueueDispatcher: outQueueDispatcher,
+                    outPacketsPool: outPacketsPool)
                 : new DummyHostClient();
 
             SubscribeOnNetworkEvents(udpClients, hostClient, inQueueDispatcher);
 
             return BuildHost(
+                connectionPool: connectionPool,
+                outPacketsPool: outPacketsPool,
                 inQueues: inQueues,
                 inQueueDispatcher: inQueueDispatcher,
                 cancellationTokenSource: cancellationTokenSource,
@@ -171,38 +216,24 @@ namespace UdpToolkit
         private void SubscribeOnNetworkEvents(
             IUdpClient[] udpClients,
             IHostClient hostClient,
-            IQueueDispatcher<InPacket> inQueueDispatcher)
+            IQueueDispatcher<NetworkPacket> inQueueDispatcher)
         {
             var client = hostClient as HostClient;
 
             foreach (var udpClient in udpClients)
             {
-                udpClient.OnPacketExpired += (ipV4, connectionId, payload, channelId, subscriptionId) =>
+                udpClient.OnPacketExpired += (networkPacket) =>
                 {
                     inQueueDispatcher
-                        .Dispatch(connectionId)
-                        .Produce(
-                            item: new InPacket(
-                                channelId: channelId,
-                                payload: payload,
-                                subscriptionId: subscriptionId,
-                                connectionId: connectionId,
-                                ipV4Address: ipV4,
-                                expired: true));
+                        .Dispatch(networkPacket.ConnectionId)
+                        .Produce(networkPacket);
                 };
 
-                udpClient.OnPacketReceived += (ipV4, connectionId, payload, channelId, subscriptionId) =>
+                udpClient.OnPacketReceived += (networkPacket) =>
                 {
                     inQueueDispatcher
-                        .Dispatch(connectionId)
-                        .Produce(
-                            item: new InPacket(
-                                channelId: channelId,
-                                payload: payload,
-                                subscriptionId: subscriptionId,
-                                connectionId: connectionId,
-                                ipV4Address: ipV4,
-                                expired: false));
+                        .Dispatch(networkPacket.ConnectionId)
+                        .Produce(networkPacket);
                 };
 
                 udpClient.OnConnected += (ipV4, connectionId) =>
@@ -226,7 +257,8 @@ namespace UdpToolkit
             IUdpClient[] udpClients,
             IDateTimeProvider dateTimeProvider,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
-            CancellationTokenSource cancellationTokenSource)
+            CancellationTokenSource cancellationTokenSource,
+            ConcurrentPool<OutPacket> outPacketsPool)
         {
             var remoteHostIps = HostClientSettings.ServerPorts
                 .Select(port => new IPEndPoint(IPAddress.Parse(HostClientSettings.ServerHost), port))
@@ -244,6 +276,7 @@ namespace UdpToolkit
                 serverIpV4: randomRemoteHostIp);
 
             var hostClient = new HostClient(
+                outPacketsPool: outPacketsPool,
                 logger: HostSettings.LoggerFactory.Create<HostClient>(),
                 dateTimeProvider: dateTimeProvider,
                 hostClientSettingsInternal: hostClientSettingsInternal,
@@ -255,24 +288,28 @@ namespace UdpToolkit
         }
 
         private IHost BuildHost(
+            IConnectionPool connectionPool,
             IUdpClient[] udpClients,
             IDateTimeProvider dateTimeProvider,
             ILoggerFactory loggerFactory,
             IHostClient hostClient,
             IQueueDispatcher<OutPacket> outQueueDispatcher,
-            IQueueDispatcher<InPacket> inQueueDispatcher,
-            IAsyncQueue<InPacket>[] inQueues,
-            CancellationTokenSource cancellationTokenSource)
+            IQueueDispatcher<NetworkPacket> inQueueDispatcher,
+            IAsyncQueue<NetworkPacket>[] inQueues,
+            CancellationTokenSource cancellationTokenSource,
+            ConcurrentPool<OutPacket> outPacketsPool)
         {
             var groupManager = new GroupManager(
                 dateTimeProvider: dateTimeProvider,
                 groupTtl: HostSettings.GroupTtl,
                 scanFrequency: HostSettings.GroupsCleanupFrequency,
-                logger: loggerFactory.Create<GroupManager>());
+                logger: loggerFactory.Create<GroupManager>(),
+                connectionPool: connectionPool);
 
             var broadcaster = new Broadcaster(
                 groupManager: groupManager,
-                outQueueDispatcher: outQueueDispatcher);
+                outQueueDispatcher: outQueueDispatcher,
+                pool: outPacketsPool);
 
             var scheduler = new Scheduler(
                 groupTtl: HostSettings.GroupTtl,
@@ -282,6 +319,7 @@ namespace UdpToolkit
 
             HostWorkerInternal.Logger = loggerFactory.Create<IHostWorker>();
             HostWorkerInternal.Serializer = HostSettings.Serializer;
+            HostWorkerInternal.Broadcaster = broadcaster;
 
             var toDispose = new List<IDisposable>
             {

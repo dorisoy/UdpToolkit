@@ -1,6 +1,5 @@
 namespace UdpToolkit.Network.Channels
 {
-    using System;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Protocol;
 
@@ -25,7 +24,7 @@ namespace UdpToolkit.Network.Channels
         }
 
         /// <inheritdoc />
-        public bool ResendOnHeartbeat { get; } = false;
+        public bool IsReliable { get; } = false;
 
         /// <inheritdoc />
         public byte ChannelId { get; } = Id;
@@ -45,30 +44,21 @@ namespace UdpToolkit.Network.Channels
         }
 
         /// <inheritdoc />
-        public bool IsDelivered(
+        public ushort HandleOutputPacket(
+            byte dataType)
+        {
+            return ++_sequences[dataType];
+        }
+
+        /// <inheritdoc />
+        public bool HandleAck(
             in NetworkHeader networkHeader)
         {
             return true;
         }
 
         /// <inheritdoc />
-        public NetworkHeader HandleOutputPacket(
-            byte dataType,
-            Guid connectionId,
-            PacketType packetType)
-        {
-            return new NetworkHeader(
-                channelId: Id,
-                id: ++_sequences[dataType],
-                acks: default,
-                connectionId: connectionId,
-                packetType: packetType,
-                dataType: dataType);
-        }
-
-        /// <inheritdoc />
-        public bool HandleAck(
-            in NetworkHeader networkHeader)
+        public bool IsDelivered(ushort id)
         {
             return true;
         }

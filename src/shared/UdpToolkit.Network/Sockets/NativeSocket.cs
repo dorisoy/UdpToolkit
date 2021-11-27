@@ -51,6 +51,7 @@ namespace UdpToolkit.Network.Sockets
         /// <inheritdoc />
         public int Send(ref IpV4Address address, byte[] buffer, int length)
         {
+            // https://github.com/dotnet/runtime/issues/27091
             return SendNative(_socket, ref address, buffer, length);
         }
 

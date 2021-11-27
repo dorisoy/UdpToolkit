@@ -2,6 +2,7 @@
 {
     using System;
     using Sequenced.Contracts;
+    using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
@@ -14,7 +15,6 @@
         {
             var host = BuildHost();
             var groupManager = host.ServiceProvider.GroupManager;
-            var broadcaster = host.ServiceProvider.Broadcaster;
 
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
@@ -23,12 +23,7 @@
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 
-                    broadcaster.Broadcast(
-                        caller: connectionId,
-                        groupId: joinEvent.GroupId,
-                        @event: joinEvent,
-                        channelId: ReliableChannel.Id,
-                        broadcastMode: BroadcastMode.GroupExceptCaller);
+                    return joinEvent.GroupId;
                 });
 
             host.On<MoveEvent>(
@@ -36,12 +31,7 @@
                 {
                     Console.WriteLine($"{moveEvent.From} Moved!");
 
-                    broadcaster.Broadcast(
-                        caller: connectionId,
-                        groupId: moveEvent.GroupId,
-                        @event: moveEvent,
-                        channelId: SequencedChannel.Id,
-                        broadcastMode: BroadcastMode.GroupExceptCaller);
+                    return moveEvent.GroupId;
                 });
 
             host.Run();

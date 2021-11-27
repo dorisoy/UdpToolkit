@@ -1,6 +1,7 @@
 namespace UdpToolkit
 {
     using System;
+    using System.Buffers;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts.Channels;
@@ -36,5 +37,17 @@ namespace UdpToolkit
 
         /// <inheritdoc />
         public IChannelsFactory ChannelsFactory { get; set; } = new ChannelsFactory();
+
+        /// <inheritdoc />
+        public int PacketsPoolSize { get; set; } = 10_000;
+
+        /// <inheritdoc />
+        public int PacketsBufferPoolSize { get; set; } = 10_000;
+
+        /// <inheritdoc />
+        public int HeadersBuffersPoolSize { get; set; } = 10_000;
+
+        /// <inheritdoc />
+        public ArrayPool<byte> ArrayPool { get; set; } = ArrayPool<byte>.Shared;
     }
 }

@@ -1,12 +1,18 @@
 namespace P2P.Contracts
 {
+    using System;
     using MessagePack;
     using UdpToolkit.Annotations;
 
     [UdpEvent]
     [MessagePackObject]
-    public class Peer
+    public sealed class Peer : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public Peer()
+        {
+        }
+
         public Peer(
             string address,
             ushort port)
@@ -20,5 +26,10 @@ namespace P2P.Contracts
 
         [Key(1)]
         public ushort Port { get; }
+
+        public void Dispose()
+        {
+            // nothing to do
+        }
     }
 }

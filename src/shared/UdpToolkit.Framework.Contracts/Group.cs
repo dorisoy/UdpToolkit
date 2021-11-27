@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework.Contracts
 {
     using System;
     using System.Collections.Generic;
+    using UdpToolkit.Network.Contracts.Connections;
 
     /// <summary>
     /// Represent logical scope of connections.
@@ -16,7 +17,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="createdAt">Date of creation.</param>
         public Group(
             Guid id,
-            List<GroupConnection> groupConnections,
+            List<IConnection> groupConnections,
             DateTimeOffset createdAt)
         {
             GroupConnections = groupConnections;
@@ -32,7 +33,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Gets list of group connections.
         /// </summary>
-        public List<GroupConnection> GroupConnections { get; }
+        public List<IConnection> GroupConnections { get; }
 
         /// <summary>
         /// Gets creation date.

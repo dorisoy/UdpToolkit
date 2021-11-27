@@ -1,30 +1,37 @@
 namespace UdpToolkit.Network.Clients
 {
     using System;
+    using System.Buffers;
     using System.Diagnostics.CodeAnalysis;
+    using System.Runtime.CompilerServices;
     using System.Threading;
+    using System.Threading.Channels;
+    using System.Threading.Tasks;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
-    using UdpToolkit.Network.Connections;
+    using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Packets;
+    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Contracts.Sockets;
-    using UdpToolkit.Network.Queues;
     using UdpToolkit.Network.Serialization;
     using UdpToolkit.Network.Utils;
 
     /// <inheritdoc />
-    internal sealed unsafe class UdpClient : IUdpClient
+    internal sealed class UdpClient : IUdpClient
     {
-        private static readonly byte DummyDataType = 0;
-        private static readonly int NetworkHeaderSize = sizeof(NetworkHeader);
-        private readonly UdpClientSettings _settings;
-
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISocket _client;
         private readonly ILogger _logger;
         private readonly IConnectionPool _connectionPool;
-        private readonly IResendQueue _resendQueue;
+
+        private readonly Channel<IConnection> _resendRequests = Channel.CreateUnbounded<IConnection>();
+        private readonly ConcurrentPool<NetworkPacket> _packetsPool;
+        private readonly ArrayPool<byte> _arrayPool;
+
+        private readonly UdpClientSettings _settings;
 
         private bool _disposed = false;
 
@@ -35,22 +42,35 @@ namespace UdpToolkit.Network.Clients
         /// <param name="logger">Instance of logger.</param>
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
         /// <param name="client">Instance of socket.</param>
-        /// <param name="resendQueue">Instance of resend queue.</param>
         /// <param name="settings">Instance of settings.</param>
+        /// <param name="packetsPool">Pool of network packets.</param>
+        /// <param name="arrayPool">Array pool.</param>
         internal UdpClient(
             IConnectionPool connectionPool,
             ILogger logger,
             IDateTimeProvider dateTimeProvider,
             ISocket client,
-            IResendQueue resendQueue,
-            UdpClientSettings settings)
+            UdpClientSettings settings,
+            ConcurrentPool<NetworkPacket> packetsPool,
+            ArrayPool<byte> arrayPool)
         {
             _client = client;
             _connectionPool = connectionPool;
             _logger = logger;
             _dateTimeProvider = dateTimeProvider;
-            _resendQueue = resendQueue;
             _settings = settings;
+            _packetsPool = packetsPool;
+            _arrayPool = arrayPool;
+
+            // TODO move count of resend jobs to config
+            for (int i = 0; i < 2; i++)
+            {
+                Task.Factory.StartNew(
+                    function: ResendPendingPackets,
+                    cancellationToken: default,
+                    creationOptions: TaskCreationOptions.LongRunning,
+                    scheduler: TaskScheduler.Current);
+            }
         }
 
         /// <summary>
@@ -63,16 +83,16 @@ namespace UdpToolkit.Network.Clients
         }
 
         /// <inheritdoc />
-        public event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketReceived;
+        public event Action<NetworkPacket> OnPacketReceived;
 
         /// <inheritdoc />
-        public event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketDropped;
+        public event Action<NetworkPacket> OnPacketDropped;
 
         /// <inheritdoc />
-        public event Action<IpV4Address, byte[]> OnInvalidPacketReceived;
+        public event Action<NetworkPacket> OnInvalidPacketReceived;
 
         /// <inheritdoc />
-        public event Action<IpV4Address, Guid, byte[], byte, byte> OnPacketExpired;
+        public event Action<NetworkPacket> OnPacketExpired;
 
         /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;
@@ -83,13 +103,24 @@ namespace UdpToolkit.Network.Clients
         /// <inheritdoc />
         public event Action<Guid, TimeSpan> OnHeartbeat;
 
-        private Guid? ConnectionId { get; set; }
+        private enum PoolingStrategy : byte
+        {
+            Return = 0,
+            FireAndForget = 1,
+        }
+
+        private Guid ConnectionId { get; set; }
 
         /// <inheritdoc />
         public bool IsConnected(out Guid connectionId)
         {
-            connectionId = ConnectionId ?? default;
-            return ConnectionId.HasValue;
+            if (ConnectionId == default)
+            {
+                return false;
+            }
+
+            connectionId = ConnectionId;
+            return true;
         }
 
         /// <inheritdoc />
@@ -100,155 +131,190 @@ namespace UdpToolkit.Network.Clients
         }
 
         /// <inheritdoc />
-        public unsafe void Connect(
+        public void Connect(
             IpV4Address ipV4Address,
-            Guid? connectionId)
+            Guid connectionId)
         {
-            ConnectionId = connectionId ?? Guid.NewGuid();
-
-            var connection = _connectionPool.GetOrAdd(
-                connectionId: ConnectionId.Value,
-                keepAlive: true,
-                lastHeartbeat: _dateTimeProvider.GetUtcNow(),
-                ipV4Address: _client.GetLocalIp());
-
-            var networkHeader = connection
-                .GetOutgoingChannel(ReliableChannel.Id)
-                .HandleOutputPacket(DummyDataType, connection.ConnectionId, PacketType.Connect);
-
-            var buffer = new byte[NetworkHeaderSize];
-            UnsafeSerialization.Write(buffer: buffer, value: networkHeader);
-
-            if (_logger.IsEnabled(LogLevel.Debug))
+            ConnectionId = connectionId;
+            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize);
+            try
             {
-                _logger.Debug($"[UdpToolkit.Network] Connecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
-            }
+                var connection = _connectionPool.GetOrAdd(
+                    connectionId: ConnectionId,
+                    keepAlive: true,
+                    lastHeartbeat: _dateTimeProvider.GetUtcNow(),
+                    ipV4Address: _client.GetLocalIp());
 
-            _client.Send(ref ipV4Address, buffer, buffer.Length);
-
-            _resendQueue.Add(
-                connectionId: networkHeader.ConnectionId,
-                pendingPacket: new PendingPacket(
-                    networkHeader: networkHeader,
-                    payload: buffer,
-                    to: ipV4Address,
-                    createdAt: _dateTimeProvider.GetUtcNow()));
-        }
-
-        /// <inheritdoc />
-        public unsafe void Disconnect(
-            IpV4Address ipV4Address)
-        {
-            if (!ConnectionId.HasValue)
-            {
-                return;
-            }
-
-            if (_connectionPool.TryGetConnection(ConnectionId.Value, connection: out var connection))
-            {
-                var networkHeader = connection
-                    .GetOutgoingChannel(ReliableChannel.Id)
-                    .HandleOutputPacket(DummyDataType, connection.ConnectionId, PacketType.Disconnect);
-
-                var buffer = new byte[NetworkHeaderSize];
-                UnsafeSerialization.Write(buffer: buffer, value: networkHeader);
-
-                if (_logger.IsEnabled(LogLevel.Debug))
+                if (connection.GetOutgoingChannel(ReliableChannel.Id, out var channel))
                 {
-                    _logger.Debug($"[UdpToolkit.Network] Disconnecting to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+                    SendProtocolPacketInternal(
+                        connection,
+                        channel,
+                        ipV4Address,
+                        buffer,
+                        PacketType.Connect,
+                        byte.MaxValue);
+                }
+                else
+                {
+                    if (_logger.IsEnabled(LogLevel.Error))
+                    {
+                        _logger.Error($"[UdpToolkit.Network] Channel with id - {ReliableChannel.Id} does not exists!");
+                    }
+
+                    _arrayPool.Return(buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                _arrayPool.Return(buffer);
+                ConnectionId = default;
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.Error($"[UdpToolkit.Network] An error occurred while trying connecting {ex}!");
                 }
 
-                _client.Send(ref ipV4Address, buffer, buffer.Length);
-
-                _resendQueue.Add(
-                    connectionId: connection.ConnectionId,
-                    pendingPacket: new PendingPacket(
-                        networkHeader: networkHeader,
-                        payload: buffer,
-                        to: ipV4Address,
-                        createdAt: _dateTimeProvider.GetUtcNow()));
+                throw;
             }
         }
 
         /// <inheritdoc />
-        public unsafe void Heartbeat(
+        public void Disconnect(
             IpV4Address ipV4Address)
         {
-            if (!ConnectionId.HasValue)
+            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize);
+            try
             {
-                return;
-            }
-
-            if (_connectionPool.TryGetConnection(ConnectionId.Value, connection: out var connection))
-            {
-                if (_logger.IsEnabled(LogLevel.Debug))
+                if (ExistsBothOut(ConnectionId, ReliableChannel.Id, out var connection, out var channel))
                 {
-                    _logger.Debug($"[UdpToolkit.Network] Heartbeat from: {_client.GetLocalIp()} to: {ipV4Address}");
+                    SendProtocolPacketInternal(
+                        connection,
+                        channel,
+                        ipV4Address,
+                        buffer,
+                        PacketType.Disconnect,
+                        byte.MaxValue);
+                }
+                else
+                {
+                    _arrayPool.Return(buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                _arrayPool.Return(buffer);
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.Error($"[UdpToolkit.Network] An error occurred while trying to disconnecting {ex}!");
                 }
 
-                var networkHeader = connection
-                    .GetOutgoingChannel(ReliableChannel.Id)
-                    .HandleOutputPacket(DummyDataType, connection.ConnectionId, PacketType.Heartbeat);
-
-                connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
-
-                var buffer = new byte[NetworkHeaderSize];
-                UnsafeSerialization.Write(buffer: buffer, value: networkHeader);
-
-                ResendPackages(connection);
-                _client.Send(ref ipV4Address, buffer, buffer.Length);
+                throw;
             }
         }
 
         /// <inheritdoc />
-        public unsafe void Send(
+        public void Heartbeat(
+            IpV4Address ipV4Address)
+        {
+            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize);
+            try
+            {
+                if (ExistsBothOut(ConnectionId, SequencedChannel.Id, out var connection, out var channel))
+                {
+                    connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
+                    SendProtocolPacketInternal(
+                        connection: connection,
+                        channel: channel,
+                        ipV4Address: ipV4Address,
+                        buffer: buffer,
+                        packetType: PacketType.Heartbeat,
+                        dataType: byte.MaxValue);
+                    _resendRequests.Writer.TryWrite(connection);
+                }
+                else
+                {
+                    _arrayPool.Return(buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                _arrayPool.Return(buffer);
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.Error($"[UdpToolkit.Network] An error occurred while trying sent heartbeat {ex}!");
+                }
+
+                throw;
+            }
+        }
+
+        /// <inheritdoc />
+        public void Send(
             Guid connectionId,
             byte channelId,
             byte dataType,
-            byte[] bytes,
+            ReadOnlySpan<byte> payload,
             IpV4Address ipV4Address)
         {
-            if (NetworkHeaderSize + bytes.Length > _settings.MtuSizeLimit)
+            var packetLength = Consts.NetworkHeaderSize + payload.Length;
+            if (packetLength > _settings.MtuSizeLimit)
             {
-                _logger.Error($"[UdpToolkit.Network] Udp packet oversize mtu limit - {bytes.Length}");
+                _logger.Error($"[UdpToolkit.Network] Udp packet oversize mtu limit - {payload.Length}");
 
-                OnPacketDropped?.Invoke(ipV4Address, connectionId, bytes, channelId, dataType);
+                if (OnPacketDropped == null)
+                {
+                    return;
+                }
+
+                var droppedBytes = _arrayPool.Rent(packetLength);
+                payload.CopyTo(droppedBytes);
+                var networkPacket = _packetsPool.GetOrCreate();
+                networkPacket.Setup(
+                    buffer: droppedBytes,
+                    ipV4: ipV4Address,
+                    connectionId: connectionId,
+                    channelId: channelId,
+                    dataType: dataType,
+                    bytesReceived: default,
+                    isExpired: false);
+                OnPacketDropped.Invoke(networkPacket);
 
                 return;
             }
 
-            if (_connectionPool.TryGetConnection(connectionId, out var connection))
+            var buffer = _arrayPool.Rent(packetLength);
+            try
             {
-                var channel = connection
-                    .GetOutgoingChannel(channelId: channelId);
-
-                var networkHeader = channel
-                    .HandleOutputPacket(dataType, connection.ConnectionId, PacketType.UserDefined);
-
-                var nhBuffer = new byte[NetworkHeaderSize];
-                UnsafeSerialization.Write(buffer: nhBuffer, value: networkHeader);
-
-                var buffer = new byte[NetworkHeaderSize + bytes.Length];
-                Buffer.BlockCopy(nhBuffer, 0, buffer, 0, nhBuffer.Length);
-                Buffer.BlockCopy(bytes, 0, buffer, nhBuffer.Length, bytes.Length);
-
-                if (_logger.IsEnabled(LogLevel.Debug))
+                if (ExistsBothOut(connectionId, channelId, out var connection, out var channel))
                 {
-                    _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {buffer.Length}, type: {networkHeader.PacketType}");
+                    var strategy = SendPacketInternal(
+                        connection: connection,
+                        channel: channel,
+                        dataType: dataType,
+                        payload: payload,
+                        ipV4Address: ipV4Address,
+                        packetLength: packetLength,
+                        buffer: buffer);
+
+                    if (strategy == PoolingStrategy.Return)
+                    {
+                        _arrayPool.Return(buffer);
+                    }
+                }
+                else
+                {
+                    _arrayPool.Return(buffer);
+                }
+            }
+            catch (Exception ex)
+            {
+                _arrayPool.Return(buffer);
+                if (_logger.IsEnabled(LogLevel.Error))
+                {
+                    _logger.Error($"[UdpToolkit.Network] An error occurred while trying sent packet {ex}!");
                 }
 
-                _client.Send(ref ipV4Address, buffer, buffer.Length);
-
-                if (channel.ResendOnHeartbeat)
-                {
-                    _resendQueue.Add(
-                        connectionId: connection.ConnectionId,
-                        pendingPacket: new PendingPacket(
-                            networkHeader: networkHeader,
-                            payload: bytes,
-                            to: ipV4Address,
-                            createdAt: _dateTimeProvider.GetUtcNow()));
-                }
+                throw;
             }
         }
 
@@ -261,281 +327,443 @@ namespace UdpToolkit.Network.Clients
                 _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {_client.GetLocalIp()}");
             }
 
-            var remoteIp = new IpV4Address(0, 0);
             var buffer = new byte[_settings.UdpClientBufferSize];
-
+            var remoteIp = new IpV4Address(0, 0);
             while (!cancellationToken.IsCancellationRequested)
             {
-                var result = _client.Poll(_settings.PollFrequency);
-                if (result > 0)
+                Poll(_settings.PollFrequency, ref remoteIp, buffer);
+            }
+        }
+
+        /// <inheritdoc />
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Poll(
+            int timeout,
+            ref IpV4Address remoteIp,
+            byte[] buffer)
+        {
+            var result = _client.Poll(timeout);
+            if (result > 0)
+            {
+                var receivedBytes = 0;
+                while ((receivedBytes = _client.ReceiveFrom(ref remoteIp, buffer, buffer.Length)) > 0)
                 {
-                    var receivedBytes = 0;
-                    while ((receivedBytes = _client.ReceiveFrom(ref remoteIp, buffer, buffer.Length)) > 0)
+                    if (receivedBytes < Consts.NetworkHeaderSize)
                     {
-                        if (receivedBytes < NetworkHeaderSize)
+                        if (_logger.IsEnabled(LogLevel.Error))
                         {
                             _logger.Error($"[UdpToolkit.Network] Invalid network header received from: {remoteIp}!");
+                        }
 
-                            OnInvalidPacketReceived?.Invoke(remoteIp, buffer);
-
+                        if (OnInvalidPacketReceived == null)
+                        {
                             continue;
                         }
 
-                        ReceiveCallback(ref remoteIp, buffer, receivedBytes);
+                        var networkPacket = _packetsPool.GetOrCreate();
+
+                        var invalidPacketBuffer = _arrayPool.Rent(32);
+                        var invalidSpan = buffer.AsSpan().Slice(0, receivedBytes);
+                        invalidSpan.CopyTo(invalidPacketBuffer); // TODO - avoid copy
+
+                        networkPacket.Setup(
+                            buffer: invalidPacketBuffer,
+                            ipV4: remoteIp,
+                            connectionId: default,
+                            channelId: default,
+                            dataType: default,
+                            bytesReceived: receivedBytes,
+                            isExpired: false);
+
+                        OnInvalidPacketReceived.Invoke(networkPacket);
+
+                        continue;
+                    }
+
+                    var bufferSpan = buffer.AsSpan();
+                    var headerSpan = bufferSpan.Slice(0, Consts.NetworkHeaderSize);
+                    var networkHeader = UnsafeSerialization.Deserialize<NetworkHeader>(headerSpan);
+
+                    var payloadBuffer = _arrayPool.Rent(_settings.UdpClientBufferSize);
+                    try
+                    {
+                        bufferSpan.Slice(25, receivedBytes).CopyTo(payloadBuffer); // TODO - avoid copy
+                        var strategy = ReceiveCallback(
+                            remoteIp: remoteIp,
+                            networkHeader: networkHeader,
+                            receivedBytes: receivedBytes,
+                            buffer: payloadBuffer);
+
+                        if (strategy == PoolingStrategy.Return)
+                        {
+                            _arrayPool.Return(payloadBuffer);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _arrayPool.Return(payloadBuffer);
+                        if (_logger.IsEnabled(LogLevel.Error))
+                        {
+                            _logger.Error($"[UdpToolkit.Network] Error occured while receive data {ex}!");
+                        }
+
+                        throw;
                     }
                 }
             }
         }
 
         /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IpV4Address GetLocalIp()
         {
             return _client.GetLocalIp();
         }
 
-        private unsafe void ReceiveCallback(
-            ref IpV4Address remoteIp,
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SendProtocolPacketInternal(
+            IConnection connection,
+            IChannel channel,
+            IpV4Address ipV4Address,
             byte[] buffer,
-            int receivedBytes)
+            PacketType packetType,
+            byte dataType)
         {
-            var headerSpan = new ArraySegment<byte>(buffer, 0, NetworkHeaderSize)
-                .AsSpan();
+            var bufferSpan = buffer
+                .AsSpan()
+                .Slice(0, Consts.NetworkHeaderSize);
 
-            var payloadSpan = new ArraySegment<byte>(buffer, NetworkHeaderSize,  receivedBytes - NetworkHeaderSize)
-                .AsSpan();
+            var networkHeader = new NetworkHeader(
+                channelId: channel.ChannelId,
+                id: channel.HandleOutputPacket(dataType),
+                acks: default,
+                connectionId: connection.ConnectionId,
+                packetType: packetType,
+                dataType: dataType);
 
-            var networkHeader = UnsafeSerialization.Read<NetworkHeader>(headerSpan);
+            UnsafeSerialization.Serialize(bufferSpan, networkHeader);
+
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] Message received from: {remoteIp} bytes length: {receivedBytes}, type: {networkHeader.PacketType}");
+                _logger.Debug($"[UdpToolkit.Network] {packetType} sent to: {ipV4Address} bytes length: {bufferSpan.Length}");
             }
 
-            var connectionId = networkHeader.ConnectionId;
-
-            if (!TryGetConnection(networkHeader, connectionId, remoteIp, out var connection))
+            if (channel.IsReliable)
             {
-                return;
+                connection.PendingPackets.Add(new PendingPacket(
+                    ipV4Address: ipV4Address,
+                    buffer: buffer,
+                    payloadLength: bufferSpan.Length,
+                    createdAt: _dateTimeProvider.GetUtcNow(),
+                    channel: channel,
+                    id: networkHeader.Id));
             }
+
+            _client.Send(ref ipV4Address, buffer, bufferSpan.Length);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void SendAckPacket(
+            IChannel channel,
+            IpV4Address ipV4Address,
+            PacketType packetType,
+            in NetworkHeader inNetworkHeader)
+        {
+            var buffer = _arrayPool.Rent(_settings.UdpClientBufferSize);
+            try
+            {
+                var bufferSpan = buffer
+                    .AsSpan()
+                    .Slice(0, Consts.NetworkHeaderSize);
+
+                var ackType = packetType | PacketType.Ack;
+                var networkHeader = new NetworkHeader(
+                    channelId: channel.ChannelId,
+                    id: inNetworkHeader.Id,
+                    acks: default,
+                    connectionId: inNetworkHeader.ConnectionId,
+                    packetType: ackType,
+                    dataType: inNetworkHeader.DataType);
+
+                UnsafeSerialization.Serialize(bufferSpan, networkHeader);
+
+                if (_logger.IsEnabled(LogLevel.Debug))
+                {
+                    _logger.Debug($"[UdpToolkit.Network] {ackType} sent to: {ipV4Address} bytes length: {bufferSpan.Length}");
+                }
+
+                _client.Send(ref ipV4Address, buffer, bufferSpan.Length);
+            }
+            finally
+            {
+                _arrayPool.Return(buffer);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private PoolingStrategy SendPacketInternal(
+            IConnection connection,
+            IChannel channel,
+            byte dataType,
+            ReadOnlySpan<byte> payload,
+            IpV4Address ipV4Address,
+            int packetLength,
+            byte[] buffer)
+        {
+            var bufferSpan = buffer.AsSpan();
+            var networkHeaderSpan = bufferSpan.Slice(0, Consts.NetworkHeaderSize);
+            var packetSpan = bufferSpan.Slice(Consts.NetworkHeaderSize, payload.Length);
+            var networkPacketSpan = bufferSpan.Slice(0, packetLength);
+
+            payload.CopyTo(packetSpan);
+
+            var networkPacketId = channel
+                .HandleOutputPacket(dataType);
+
+            var networkHeader = new NetworkHeader(
+                channelId: channel.ChannelId,
+                id: networkPacketId,
+                acks: default,
+                connectionId: connection.ConnectionId,
+                packetType: PacketType.UserDefined,
+                dataType: dataType);
+
+            UnsafeSerialization.Serialize(buffer: networkHeaderSpan, value: networkHeader);
+
+            if (_logger.IsEnabled(LogLevel.Debug))
+            {
+                _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {packetLength}, type: {networkHeader.PacketType}");
+            }
+
+            _client.Send(ref ipV4Address, buffer, networkPacketSpan.Length);
+
+            if (channel.IsReliable)
+            {
+                connection.PendingPackets.Add(new PendingPacket(
+                    ipV4Address: ipV4Address,
+                    buffer: buffer,
+                    payloadLength: bufferSpan.Length,
+                    createdAt: _dateTimeProvider.GetUtcNow(),
+                    channel: channel,
+                    id: networkHeader.Id));
+            }
+
+            return channel.IsReliable
+                ? PoolingStrategy.FireAndForget
+                : PoolingStrategy.Return;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private PoolingStrategy ReceiveCallback(
+            in IpV4Address remoteIp,
+            in NetworkHeader networkHeader,
+            int receivedBytes,
+            byte[] buffer)
+        {
+            var connectionId = networkHeader.ConnectionId;
+            var channelId = networkHeader.ChannelId;
 
             switch (networkHeader.PacketType)
             {
-                case PacketType.Heartbeat when connection != null:
-                    HandleIncomingPacket(connection, networkHeader, PacketType.Heartbeat, remoteIp);
-                    ResendPackages(connection);
-                    connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
+                case PacketType.Heartbeat when ExistsBothIn(connectionId, channelId, out var connection, out var channel):
+                {
+                    if (channel.HandleInputPacket(networkHeader))
+                    {
+                        connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
+                    }
+
+                    _resendRequests.Writer.TryWrite(connection);
+
+                    // TODO Heartbeat not reliable
+                    SendAckPacket(
+                        channel: channel,
+                        ipV4Address: remoteIp,
+                        packetType: networkHeader.PacketType,
+                        inNetworkHeader: networkHeader);
 
                     break;
+                }
 
-                case PacketType.Heartbeat | PacketType.Ack when connection != null:
-                    if (TryHandleAck(connection, networkHeader))
+                case PacketType.Heartbeat | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
+                {
+                    if (channel.HandleAck(networkHeader))
                     {
                         connection.OnHeartbeatAck(_dateTimeProvider.GetUtcNow());
-                        OnHeartbeat?.Invoke(connectionId, connection.GetRtt());
+                        OnHeartbeat?.Invoke(connection.ConnectionId, connection.GetRtt());
                     }
 
                     break;
-
-                case PacketType.Disconnect when connection != null:
-                    HandleIncomingPacket(connection, networkHeader, PacketType.Disconnect, remoteIp);
-                    _connectionPool.Remove(connection);
-
-                    break;
-
-                case PacketType.Disconnect | PacketType.Ack when connection != null:
-                    if (TryHandleAck(connection, networkHeader))
-                    {
-                        ConnectionId = null;
-                        OnDisconnected?.Invoke(remoteIp, connectionId);
-                    }
-
-                    break;
-
-                case PacketType.Connect when connection != null:
-                    HandleIncomingPacket(connection, networkHeader, PacketType.Connect, remoteIp);
-
-                    break;
-
-                case PacketType.Connect | PacketType.Ack when connection != null:
-                    if (TryHandleAck(connection, networkHeader))
-                    {
-                        OnConnected?.Invoke(remoteIp, connectionId);
-                    }
-
-                    break;
-
-                case PacketType.UserDefined when connection != null:
-                    HandleIncomingPacket(connection, networkHeader, PacketType.UserDefined, remoteIp);
-                    OnPacketReceived?.Invoke(remoteIp, connectionId, payloadSpan.ToArray(), networkHeader.ChannelId, networkHeader.DataType);
-
-                    break;
-
-                case PacketType.UserDefined | PacketType.Ack when connection != null:
-                    TryHandleAck(connection, networkHeader);
-
-                    break;
-
-                default:
-                    throw new NotSupportedException(
-                        $"NetworkPacketType {networkHeader.PacketType} - not supported!");
-            }
-        }
-
-        private bool TryGetConnection(
-            NetworkHeader networkHeader,
-            Guid connectionId,
-            IpV4Address remoteIp,
-            out IConnection connection)
-        {
-            if (!_settings.AllowIncomingConnections && networkHeader.PacketType == PacketType.Connect)
-            {
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.Warning($"[UdpToolkit.Network] Attempt connect from: {remoteIp}, incoming connections not allowed");
                 }
 
-                connection = null;
-                return false;
-            }
-
-            if (networkHeader.PacketType == PacketType.Connect)
-            {
-                connection = _connectionPool.GetOrAdd(
-                    connectionId: connectionId,
-                    lastHeartbeat: _dateTimeProvider.GetUtcNow(),
-                    keepAlive: false,
-                    ipV4Address: remoteIp);
-
-                return true;
-            }
-
-            return _connectionPool.TryGetConnection(connectionId, out connection);
-        }
-
-        private bool TryHandleAck(
-            IConnection connection,
-            in NetworkHeader networkHeader)
-        {
-            return connection
-                .GetOutgoingChannel(networkHeader.ChannelId)
-                .HandleAck(networkHeader);
-        }
-
-        private unsafe void HandleIncomingPacket(
-            IConnection connection,
-            in NetworkHeader networkHeader,
-            PacketType packetType,
-            IpV4Address remoteIp)
-        {
-            var incomingChannel = connection
-                .GetIncomingChannel(channelId: networkHeader.ChannelId);
-
-            var packetHandled = incomingChannel
-                .HandleInputPacket(networkHeader);
-
-            if (!packetHandled)
-            {
-                if (incomingChannel.ResendOnHeartbeat)
+                case PacketType.Disconnect when ExistsBothIn(connectionId, channelId, out var connection, out var channel):
                 {
-                    var ackPacket = new NetworkHeader(
-                        channelId: networkHeader.ChannelId,
-                        id: networkHeader.Id,
-                        acks: networkHeader.Acks,
-                        connectionId: networkHeader.ConnectionId,
-                        packetType: packetType | PacketType.Ack,
-                        dataType: networkHeader.DataType);
-
-                    var buffer = new byte[NetworkHeaderSize];
-                    UnsafeSerialization.Write(buffer, ackPacket);
-
-                    if (_logger.IsEnabled(LogLevel.Debug) && networkHeader.PacketType != PacketType.Heartbeat)
+                    if (channel.HandleInputPacket(networkHeader))
                     {
-                        _logger.Debug(
-                            $"[UdpToolkit.Network] Resend ack from: - {_client.GetLocalIp()} to: {connection.IpV4Address} packetId: {networkHeader.Id}, packetType {PacketType.Ack}, threadId - {Thread.CurrentThread.ManagedThreadId}");
+                        _connectionPool.Remove(connection);
                     }
 
-                    var to = connection.IpV4Address;
+                    SendAckPacket(
+                        channel: channel,
+                        ipV4Address: remoteIp,
+                        packetType: networkHeader.PacketType,
+                        inNetworkHeader: networkHeader);
 
-                    _client.Send(ref to, buffer, buffer.Length);
+                    break;
                 }
 
-                return;
-            }
-
-            if (incomingChannel.ResendOnHeartbeat)
-            {
-                var ackPacket = new NetworkHeader(
-                    channelId: networkHeader.ChannelId,
-                    id: networkHeader.Id,
-                    acks: networkHeader.Acks,
-                    connectionId: networkHeader.ConnectionId,
-                    packetType: packetType | PacketType.Ack,
-                    dataType: networkHeader.DataType);
-
-                var buffer = new byte[NetworkHeaderSize];
-                UnsafeSerialization.Write(buffer, ackPacket);
-
-                if (_logger.IsEnabled(LogLevel.Debug) && networkHeader.PacketType != PacketType.Heartbeat)
+                case PacketType.Disconnect | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
                 {
-                    _logger.Debug(
-                        $"[UdpToolkit.Network] " +
-                        $"Sended from: - {_client.GetLocalIp()} " +
-                        $"to: {connection.IpV4Address} " +
-                        $"packetId: {networkHeader.Id} " +
-                        $"packetType: {ackPacket.PacketType} " +
-                        $"threadId: - {Thread.CurrentThread.ManagedThreadId}");
-                }
-
-                _client.Send(ref remoteIp, buffer, buffer.Length);
-            }
-        }
-
-        private void ResendPackages(
-            IConnection connection)
-        {
-            var resendQueue = _resendQueue.Get(connection.ConnectionId);
-            for (var i = 0; i < resendQueue.Count; i++)
-            {
-                var pendingPacket = resendQueue[i];
-
-                var isDelivered = connection
-                    .GetOutgoingChannel(pendingPacket.NetworkHeader.ChannelId)
-                    .IsDelivered(pendingPacket.NetworkHeader);
-
-                var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > _settings.ResendTimeout;
-                if (isDelivered || isExpired)
-                {
-                    if (_logger.IsEnabled(LogLevel.Debug))
+                    if (channel.HandleAck(networkHeader))
                     {
-                        if (isDelivered)
+                        ConnectionId = default;
+                        OnDisconnected?.Invoke(remoteIp, connection.ConnectionId);
+                    }
+
+                    break;
+                }
+
+                case PacketType.Connect:
+                {
+                    if (!_settings.AllowIncomingConnections && networkHeader.PacketType == PacketType.Connect)
+                    {
+                        if (_logger.IsEnabled(LogLevel.Debug))
                         {
-                            _logger.Debug($"[UdpToolkit.Network] Packet delivered {pendingPacket.NetworkHeader.Id}");
+                            _logger.Warning($"[UdpToolkit.Network] Attempt connect from: {remoteIp}, incoming connections not allowed");
                         }
 
+                        break;
+                    }
+
+                    var newConnection = _connectionPool.GetOrAdd(
+                        connectionId: networkHeader.ConnectionId,
+                        lastHeartbeat: _dateTimeProvider.GetUtcNow(),
+                        keepAlive: false,
+                        ipV4Address: remoteIp);
+
+                    if (!newConnection.GetIncomingChannel(networkHeader.ChannelId, out var inChannel))
+                    {
+                        break;
+                    }
+
+                    if (!newConnection.GetOutgoingChannel(networkHeader.ChannelId, out var outChannel))
+                    {
+                        break;
+                    }
+
+                    inChannel.HandleInputPacket(networkHeader);
+
+                    SendAckPacket(
+                        channel: inChannel,
+                        ipV4Address: remoteIp,
+                        packetType: networkHeader.PacketType,
+                        inNetworkHeader: networkHeader);
+
+                    break;
+                }
+
+                case PacketType.Connect | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
+                {
+                    if (channel.HandleAck(networkHeader))
+                    {
+                        OnConnected?.Invoke(remoteIp, connection.ConnectionId);
+                    }
+
+                    break;
+                }
+
+                case PacketType.UserDefined when ExistsBothIn(connectionId, channelId, out var connection, out var channel):
+                {
+                    channel.HandleInputPacket(networkHeader);
+                    SendAckPacket(
+                        channel: channel,
+                        ipV4Address: remoteIp,
+                        packetType: networkHeader.PacketType,
+                        inNetworkHeader: networkHeader);
+
+                    if (OnPacketReceived == null)
+                    {
+                        break;
+                    }
+
+                    var networkPacket = _packetsPool.GetOrCreate();
+                    networkPacket.Setup(
+                        buffer: buffer,
+                        ipV4: remoteIp,
+                        connectionId: connection.ConnectionId,
+                        channelId: networkHeader.ChannelId,
+                        dataType: networkHeader.DataType,
+                        bytesReceived: receivedBytes - Consts.NetworkHeaderSize,
+                        isExpired: false);
+
+                    OnPacketReceived.Invoke(networkPacket);
+
+                    return PoolingStrategy.FireAndForget;
+                }
+
+                case PacketType.UserDefined | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
+                {
+                    channel.HandleAck(networkHeader);
+
+                    break;
+                }
+            }
+
+            return PoolingStrategy.Return;
+        }
+
+        private async ValueTask ResendPendingPackets()
+        {
+            while (await _resendRequests.Reader.WaitToReadAsync().ConfigureAwait(false))
+            {
+                var connection = await _resendRequests.Reader.ReadAsync().ConfigureAwait(false);
+                var count = connection.PendingPackets.Count;
+
+                // TODO limit to resend
+                for (var i = 0; i < count; i++)
+                {
+                    var pendingPacket = connection.PendingPackets[i];
+
+                    // TODO resend packet timeout
+                    var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > TimeSpan.FromSeconds(15);
+                    var isDelivered = pendingPacket.Channel.IsDelivered(pendingPacket.Id);
+                    if (isExpired || isDelivered)
+                    {
+                        _arrayPool.Return(pendingPacket.Buffer);
+                        connection.PendingPackets.RemoveAt(i);
                         if (isExpired)
                         {
-                            _logger.Debug($"[UdpToolkit.Network] Packet expired {pendingPacket.NetworkHeader.Id}");
+                            OnPacketExpired?.Invoke(default);
                         }
                     }
-
-                    resendQueue.RemoveAt(i);
-
-                    if (pendingPacket.NetworkHeader.PacketType == PacketType.UserDefined)
+                    else
                     {
-                        OnPacketExpired?.Invoke(pendingPacket.To, pendingPacket.NetworkHeader.ConnectionId, pendingPacket.Payload, pendingPacket.NetworkHeader.ChannelId, pendingPacket.NetworkHeader.DataType);
+                        var ip = pendingPacket.IpV4Address;
+                        _client.Send(ref ip, pendingPacket.Buffer, pendingPacket.PayloadLength);
                     }
-
-                    return;
                 }
-
-                var to = pendingPacket.To;
-
-                if (_logger.IsEnabled(LogLevel.Debug))
-                {
-                    _logger.Debug($"[UdpToolkit.Network] Resend packet {pendingPacket.NetworkHeader.Id}|{pendingPacket.NetworkHeader.PacketType} to {to} ");
-                }
-
-                _client.Send(ref to, pendingPacket.Payload, pendingPacket.Payload.Length);
             }
+        }
+
+        private bool ExistsBothIn(
+            Guid connectionId,
+            byte channelId,
+            out IConnection connection,
+            out IChannel channel)
+        {
+            channel = default;
+            return _connectionPool.TryGetConnection(connectionId, out connection) &&
+                   connection.GetIncomingChannel(channelId, out channel);
+        }
+
+        private bool ExistsBothOut(
+            Guid connectionId,
+            byte channelId,
+            out IConnection connection,
+            out IChannel channel)
+        {
+            channel = default;
+            return _connectionPool.TryGetConnection(connectionId, out connection) &&
+                   connection.GetOutgoingChannel(channelId, out channel);
         }
 
         private void Dispose(bool disposing)

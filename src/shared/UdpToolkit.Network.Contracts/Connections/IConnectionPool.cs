@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network.Connections
+namespace UdpToolkit.Network.Contracts.Connections
 {
     using System;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Connections
     /// <summary>
     /// Abstraction for sharing all connections between all instances of UdpClient.
     /// </summary>
-    internal interface IConnectionPool : IDisposable
+    public interface IConnectionPool : IDisposable
     {
         /// <summary>
         /// Remove connection.

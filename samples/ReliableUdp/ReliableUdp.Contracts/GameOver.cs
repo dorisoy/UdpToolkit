@@ -1,11 +1,19 @@
 namespace ReliableUdp.Contracts
 {
     using System;
+    using ProtoBuf;
     using UdpToolkit.Annotations;
+    using UdpToolkit.Framework;
 
     [UdpEvent]
-    public class GameOver
+    [ProtoContract]
+    public sealed class GameOver : IDisposable
     {
+        [Obsolete("Serialization only")]
+        public GameOver()
+        {
+        }
+
         public GameOver(
             Guid groupId,
             string message)
@@ -14,8 +22,25 @@ namespace ReliableUdp.Contracts
             Message = message;
         }
 
-        public string Message { get; }
+        [ProtoMember(1)]
+        public string Message { get; private set;  }
 
-        public Guid GroupId { get; }
+        [ProtoMember(2)]
+        public Guid GroupId { get; private set; }
+
+        public GameOver SetUp(
+            string message,
+            Guid groupId)
+        {
+            Message = message;
+            GroupId = groupId;
+            return this;
+        }
+
+        public void Dispose()
+        {
+            Console.WriteLine($"{this.GetType().Name} returned to pool.");
+            ObjectsPool<GameOver>.Return(this);
+        }
     }
 }

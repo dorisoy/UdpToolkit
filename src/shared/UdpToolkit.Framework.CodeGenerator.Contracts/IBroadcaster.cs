@@ -1,3 +1,4 @@
+// ReSharper disable once CheckNamespace
 namespace UdpToolkit.Framework.Contracts
 {
     using System;
@@ -21,6 +22,7 @@ namespace UdpToolkit.Framework.Contracts
             Guid groupId,
             TEvent @event,
             byte channelId,
-            BroadcastMode broadcastMode);
+            BroadcastMode broadcastMode)
+                where TEvent : class, IDisposable;
     }
 }

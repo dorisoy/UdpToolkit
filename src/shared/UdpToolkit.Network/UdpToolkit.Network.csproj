@@ -14,8 +14,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="System.Memory" Version="4.5.3" />
-        <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="4.5.2" />
+        <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
         <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.1.1053747331" />
     </ItemGroup>
 </Project>

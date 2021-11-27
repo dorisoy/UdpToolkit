@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+option csharp_namespace = "UdpToolkit.Messages";
+
+message Person {
+  string id = 1;
+  string first_name = 2;
+  string last_name = 3;
+}  

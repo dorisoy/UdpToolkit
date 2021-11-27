@@ -2,14 +2,17 @@ namespace UdpToolkit.Network.Connections
 {
     using System;
     using System.Collections.Generic;
+    using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <inheritdoc />
     internal sealed class Connection : IConnection
     {
-        private readonly IReadOnlyDictionary<byte, IChannel> _inputChannels;
-        private readonly IReadOnlyDictionary<byte, IChannel> _outputChannels;
+        private readonly IReadOnlyDictionary<byte, IChannel> _inputChannelsMap;
+        private readonly IReadOnlyDictionary<byte, IChannel> _outputChannelsMap;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Connection"/> class.
@@ -18,23 +21,27 @@ namespace UdpToolkit.Network.Connections
         /// <param name="keepAlive">Flag indicating whether needs to remove the connection from the pool on cleanup scan.</param>
         /// <param name="ipAddress">Ip address of connection.</param>
         /// <param name="lastHeartbeat">Last heartbeat (init value).</param>
-        /// <param name="inputChannels">List of input channels.</param>
-        /// <param name="outputChannels">List of output channels.</param>
+        /// <param name="inputChannelsMap">Map of input channels.</param>
+        /// <param name="outputChannelsMap">Map of output channels.</param>
         internal Connection(
             Guid connectionId,
             bool keepAlive,
             IpV4Address ipAddress,
             DateTimeOffset lastHeartbeat,
-            IReadOnlyDictionary<byte, IChannel> inputChannels,
-            IReadOnlyDictionary<byte, IChannel> outputChannels)
+            IReadOnlyDictionary<byte, IChannel> inputChannelsMap,
+            IReadOnlyDictionary<byte, IChannel> outputChannelsMap)
         {
-            _inputChannels = inputChannels;
-            _outputChannels = outputChannels;
+            _inputChannelsMap = inputChannelsMap;
+            _outputChannelsMap = outputChannelsMap;
             ConnectionId = connectionId;
             IpV4Address = ipAddress;
             KeepAlive = keepAlive;
             LastHeartbeat = lastHeartbeat;
+            PendingPackets = new ThreadSafeList<PendingPacket>(new List<PendingPacket>(100)); // TODO move to config
         }
+
+        /// <inheritdoc />
+        public IList<PendingPacket> PendingPackets { get; }
 
         /// <inheritdoc />
         public Guid ConnectionId { get; }
@@ -51,10 +58,10 @@ namespace UdpToolkit.Network.Connections
         private DateTimeOffset? LastHeartbeatAck { get; set; }
 
         /// <inheritdoc />
-        public IChannel GetIncomingChannel(byte channelId) => _inputChannels[channelId];
+        public bool GetIncomingChannel(byte channelId, out IChannel channel) => _inputChannelsMap.TryGetValue(channelId, out channel);
 
         /// <inheritdoc />
-        public IChannel GetOutgoingChannel(byte channelId) => _outputChannels[channelId];
+        public bool GetOutgoingChannel(byte channelId, out IChannel channel) => _outputChannelsMap.TryGetValue(channelId, out channel);
 
         /// <inheritdoc />
         public void OnHeartbeatAck(
