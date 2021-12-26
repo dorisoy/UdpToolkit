@@ -3,13 +3,13 @@ namespace UdpToolkit
     using System;
     using System.Collections.Generic;
     using System.Linq;
-    using System.Net;
     using System.Threading;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Connections;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Pooling;
@@ -113,8 +113,7 @@ namespace UdpToolkit
                 loggerFactory: HostSettings.LoggerFactory);
 
             var hostIps = HostSettings.HostPorts
-                .Select(port => new IPEndPoint(IPAddress.Parse(HostSettings.Host), port))
-                .Select(x => x.ToIp())
+                .Select(port => new IpV4Address(IpUtils.ToInt(HostSettings.Host), (ushort)port))
                 .ToArray();
 
             var udpClients = hostIps
@@ -261,8 +260,7 @@ namespace UdpToolkit
             ConcurrentPool<OutPacket> outPacketsPool)
         {
             var remoteHostIps = HostClientSettings.ServerPorts
-                .Select(port => new IPEndPoint(IPAddress.Parse(HostClientSettings.ServerHost), port))
-                .Select(ipEndPoint => ipEndPoint.ToIp())
+                .Select(port => new IpV4Address(IpUtils.ToInt(HostClientSettings.ServerHost), (ushort)port))
                 .ToArray();
 
             var seed = Guid.NewGuid();

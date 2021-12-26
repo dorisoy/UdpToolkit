@@ -1,4 +1,4 @@
-namespace UdpToolkit.Network
+namespace UdpToolkit.Network.Utils
 {
     /// <summary>
     /// Network utils.

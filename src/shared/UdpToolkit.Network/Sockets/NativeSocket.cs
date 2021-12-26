@@ -20,8 +20,9 @@ namespace UdpToolkit.Network.Sockets
         /// </summary>
         public NativeSocket()
         {
-            _socket = CreateNative();
+            // NOTE: Startup must be called first (required for win platforms)!
             StartupNative();
+            _socket = CreateNative();
         }
 
         /// <summary>

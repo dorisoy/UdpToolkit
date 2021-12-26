@@ -8,6 +8,7 @@
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
 
@@ -72,7 +73,7 @@
             {
                 client.Send(
                     @event: new Message(text: $"p2p message from {nickname}", groupId: Guid.Empty),
-                    destination: new IpV4Address(Host.Parse(), (ushort)Port),
+                    destination: new IpV4Address(IpUtils.ToInt(Host), (ushort)Port),
                     channelId: ReliableChannel.Id);
 
                 Thread.Sleep(1000);

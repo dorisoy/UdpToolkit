@@ -11,6 +11,7 @@ namespace UdpToolkit.Network.Tests
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Connections;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -51,7 +52,7 @@ namespace UdpToolkit.Network.Tests
                 loggerFactory: new SimpleConsoleLoggerFactory(LogLevel.Debug),
                 dateTimeProvider: new DateTimeProvider());
 
-            var client = factory.Create(new IpV4Address(address: host.Parse(), port: port));
+            var client = factory.Create(new IpV4Address(address: IpUtils.ToInt(host), port: port));
 
             Task.Run(() => client.StartReceive(default));
 

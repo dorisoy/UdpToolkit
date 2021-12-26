@@ -2,12 +2,12 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
-    using System.Net;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
@@ -114,7 +114,7 @@ namespace UdpToolkit.Framework
             int port,
             Guid connectionId)
         {
-            var destination = new IpV4Address(IPAddress.Parse(host).ToInt(), (ushort)port);
+            var destination = new IpV4Address(IpUtils.ToInt(host), (ushort)port);
 
             _udpClient.Connect(destination, connectionId);
         }
@@ -130,7 +130,7 @@ namespace UdpToolkit.Framework
             string host,
             int port)
         {
-            var from = new IpV4Address(IPAddress.Parse(host).ToInt(), (ushort)port);
+            var from = new IpV4Address(IpUtils.ToInt(host), (ushort)port);
 
             _udpClient.Disconnect(from);
         }

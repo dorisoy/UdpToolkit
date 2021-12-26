@@ -15,6 +15,6 @@
     
     <ItemGroup>
         <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
-        <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.1.1053747331" />
+        <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.2.1621945883" />
     </ItemGroup>
 </Project>

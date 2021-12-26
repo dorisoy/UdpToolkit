@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Channels
 {
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Protocol;
+    using UdpToolkit.Network.Utils;
 
     /// <summary>
     /// Sequenced channel.

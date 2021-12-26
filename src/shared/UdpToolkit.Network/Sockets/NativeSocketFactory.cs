@@ -1,5 +1,6 @@
 namespace UdpToolkit.Network.Sockets
 {
+    using System.Net.Sockets;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -15,8 +16,12 @@ namespace UdpToolkit.Network.Sockets
             IpV4Address ipV4Address)
         {
             ISocket nativeSocket = new NativeSocket();
+            var result = nativeSocket.Bind(ref ipV4Address);
+            if (result < 0)
+            {
+                throw new SocketException(result);
+            }
 
-            nativeSocket.Bind(ref ipV4Address);
             nativeSocket.SetNonBlocking();
             return nativeSocket;
         }

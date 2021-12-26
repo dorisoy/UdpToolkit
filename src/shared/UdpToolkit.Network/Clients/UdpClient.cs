@@ -9,6 +9,7 @@ namespace UdpToolkit.Network.Clients
     using System.Threading.Tasks;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Connections;
@@ -324,7 +325,8 @@ namespace UdpToolkit.Network.Clients
         {
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {_client.GetLocalIp()}");
+                var ipV4Address = _client.GetLocalIp();
+                _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {IpUtils.ToString(ipV4Address)}");
             }
 
             var buffer = new byte[_settings.UdpClientBufferSize];
@@ -445,7 +447,7 @@ namespace UdpToolkit.Network.Clients
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] {packetType} sent to: {ipV4Address} bytes length: {bufferSpan.Length}");
+                _logger.Debug($"[UdpToolkit.Network] {packetType} sent to: {IpUtils.ToString(ipV4Address)} bytes length: {bufferSpan.Length}");
             }
 
             if (channel.IsReliable)
@@ -489,7 +491,7 @@ namespace UdpToolkit.Network.Clients
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.Debug($"[UdpToolkit.Network] {ackType} sent to: {ipV4Address} bytes length: {bufferSpan.Length}");
+                    _logger.Debug($"[UdpToolkit.Network] {ackType} sent to: {IpUtils.ToString(ipV4Address)} bytes length: {bufferSpan.Length}");
                 }
 
                 _client.Send(ref ipV4Address, buffer, bufferSpan.Length);
@@ -532,7 +534,7 @@ namespace UdpToolkit.Network.Clients
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] Sending message to: {ipV4Address} bytes length: {packetLength}, type: {networkHeader.PacketType}");
+                _logger.Debug($"[UdpToolkit.Network] Sending message to: {IpUtils.ToString(ipV4Address)} bytes length: {packetLength}, type: {networkHeader.PacketType}");
             }
 
             _client.Send(ref ipV4Address, buffer, networkPacketSpan.Length);
