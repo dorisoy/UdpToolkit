@@ -2,7 +2,6 @@ namespace UdpToolkit.Network.Connections
 {
     using System;
     using System.Collections.Generic;
-    using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Packets;
@@ -37,7 +36,7 @@ namespace UdpToolkit.Network.Connections
             IpV4Address = ipAddress;
             KeepAlive = keepAlive;
             LastHeartbeat = lastHeartbeat;
-            PendingPackets = new ThreadSafeList<PendingPacket>(new List<PendingPacket>(100)); // TODO move to config
+            PendingPackets = new List<PendingPacket>(100); // TODO move to config
         }
 
         /// <inheritdoc />

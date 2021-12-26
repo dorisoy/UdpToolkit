@@ -2,10 +2,10 @@ namespace UdpToolkit.Network.Clients
 {
     using System;
     using System.Buffers;
+    using System.Collections.Concurrent;
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using System.Threading.Channels;
     using System.Threading.Tasks;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
@@ -28,7 +28,7 @@ namespace UdpToolkit.Network.Clients
         private readonly ILogger _logger;
         private readonly IConnectionPool _connectionPool;
 
-        private readonly Channel<IConnection> _resendRequests = Channel.CreateUnbounded<IConnection>();
+        private readonly BlockingCollection<IConnection> _resendRequests = new BlockingCollection<IConnection>(new ConcurrentQueue<IConnection>());
         private readonly ConcurrentPool<NetworkPacket> _packetsPool;
         private readonly ArrayPool<byte> _arrayPool;
 
@@ -67,7 +67,7 @@ namespace UdpToolkit.Network.Clients
             for (int i = 0; i < 2; i++)
             {
                 Task.Factory.StartNew(
-                    function: ResendPendingPackets,
+                    action: ResendPendingPackets,
                     cancellationToken: default,
                     creationOptions: TaskCreationOptions.LongRunning,
                     scheduler: TaskScheduler.Current);
@@ -230,7 +230,7 @@ namespace UdpToolkit.Network.Clients
                         buffer: buffer,
                         packetType: PacketType.Heartbeat,
                         dataType: byte.MaxValue);
-                    _resendRequests.Writer.TryWrite(connection);
+                    _resendRequests.Add(connection);
                 }
                 else
                 {
@@ -574,7 +574,7 @@ namespace UdpToolkit.Network.Clients
                         connection.OnHeartbeat(_dateTimeProvider.GetUtcNow());
                     }
 
-                    _resendRequests.Writer.TryWrite(connection);
+                    _resendRequests.Add(connection);
 
                     // TODO Heartbeat not reliable
                     SendAckPacket(
@@ -713,15 +713,12 @@ namespace UdpToolkit.Network.Clients
             return PoolingStrategy.Return;
         }
 
-        private async ValueTask ResendPendingPackets()
+        private void ResendPendingPackets()
         {
-            while (await _resendRequests.Reader.WaitToReadAsync().ConfigureAwait(false))
+            foreach (var connection in _resendRequests.GetConsumingEnumerable())
             {
-                var connection = await _resendRequests.Reader.ReadAsync().ConfigureAwait(false);
-                var count = connection.PendingPackets.Count;
-
                 // TODO limit to resend
-                for (var i = 0; i < count; i++)
+                for (var i = 0; i < connection.PendingPackets.Count; i++)
                 {
                     var pendingPacket = connection.PendingPackets[i];
 
