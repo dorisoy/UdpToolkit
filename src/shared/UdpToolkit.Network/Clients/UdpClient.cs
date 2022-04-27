@@ -326,7 +326,7 @@ namespace UdpToolkit.Network.Clients
             if (_logger.IsEnabled(LogLevel.Debug))
             {
                 var ipV4Address = _client.GetLocalIp();
-                _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {IpUtils.ToString(ipV4Address)}");
+                _logger.Debug($"[UdpToolkit.Network] Start receive on ip: {IpUtils.ToString(ipV4Address.Address)}:{ipV4Address.Port}");
             }
 
             var buffer = new byte[_settings.UdpClientBufferSize];
@@ -447,7 +447,7 @@ namespace UdpToolkit.Network.Clients
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] {packetType} sent to: {IpUtils.ToString(ipV4Address)} bytes length: {bufferSpan.Length}");
+                _logger.Debug($"[UdpToolkit.Network] {packetType} sent to: {IpUtils.ToString(ipV4Address.Address)}:{ipV4Address.Port} bytes length: {bufferSpan.Length}");
             }
 
             if (channel.IsReliable)
@@ -491,7 +491,7 @@ namespace UdpToolkit.Network.Clients
 
                 if (_logger.IsEnabled(LogLevel.Debug))
                 {
-                    _logger.Debug($"[UdpToolkit.Network] {ackType} sent to: {IpUtils.ToString(ipV4Address)} bytes length: {bufferSpan.Length}");
+                    _logger.Debug($"[UdpToolkit.Network] {ackType} sent to: {IpUtils.ToString(ipV4Address.Address)}:{ipV4Address.Port} bytes length: {bufferSpan.Length}");
                 }
 
                 _client.Send(ref ipV4Address, buffer, bufferSpan.Length);
@@ -534,7 +534,7 @@ namespace UdpToolkit.Network.Clients
 
             if (_logger.IsEnabled(LogLevel.Debug))
             {
-                _logger.Debug($"[UdpToolkit.Network] Sending message to: {IpUtils.ToString(ipV4Address)} bytes length: {packetLength}, type: {networkHeader.PacketType}");
+                _logger.Debug($"[UdpToolkit.Network] Sending message to: {IpUtils.ToString(ipV4Address.Address)}:{ipV4Address.Port} bytes length: {packetLength}, type: {networkHeader.PacketType}");
             }
 
             _client.Send(ref ipV4Address, buffer, networkPacketSpan.Length);
