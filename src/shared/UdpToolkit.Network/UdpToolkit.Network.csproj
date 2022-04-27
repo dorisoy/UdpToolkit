@@ -14,6 +14,6 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.2.1624012455" />
+        <PackageReference Include="UdpToolkit.Network.Native" Version="1.0.0-preview.2.2235464498" />
     </ItemGroup>
 </Project>
