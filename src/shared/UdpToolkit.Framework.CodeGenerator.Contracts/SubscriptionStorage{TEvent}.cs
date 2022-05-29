@@ -27,9 +27,12 @@ namespace UdpToolkit.Framework
         }
 
         /// <summary>
-        /// Gets subscription by event type.
+        /// Gets subscription for event.
         /// </summary>
-        /// <returns>User-defined subscription.</returns>
-        public static Subscription<TEvent> GetSubscription() => _subscription;
+        /// <returns>Subscription.</returns>
+        public static Subscription<TEvent> GetSubscription()
+        {
+            return _subscription;
+        }
     }
 }

@@ -129,7 +129,7 @@
                     settings.HostPorts = new[] { 3000, 3001 };
                     settings.Workers = 8;
                     settings.Executor = new TaskBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Debug);
+                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Information);
                 })
                 .ConfigureHostClient((settings) =>
                 {

@@ -31,20 +31,23 @@ namespace UdpToolkit.Framework.Contracts
         /// </summary>
         /// <param name="inPacket">Input packet.</param>
         void Process(
-            NetworkPacket inPacket);
+            InNetworkPacket inPacket);
 
         /// <summary>
         /// Process output packet.
         /// </summary>
         /// <param name="outPacket">Output packet.</param>
-        /// <param name="payload">Payload in bytes representation.</param>
+        void Process(
+            OutNetworkPacket outPacket);
+
+        /// <summary>
+        /// Process output packet.
+        /// </summary>
+        /// <param name="type">Type of event.</param>
         /// <param name="subscriptionId">Subscription identifier.</param>
-        /// <returns>
-        /// An array of bytes for sending over the network.
-        /// </returns>
-        bool Process(
-            OutPacket outPacket,
-            out ReadOnlySpan<byte> payload,
+        /// <returns>True if subscription exists.</returns>
+        bool TryGetSubscriptionId(
+            Type type,
             out byte subscriptionId);
     }
 }

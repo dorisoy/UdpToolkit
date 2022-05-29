@@ -8,19 +8,19 @@ namespace UdpToolkit.Network.Contracts.Clients
     /// <summary>
     /// Represent a network packet.
     /// </summary>
-    public sealed class NetworkPacket : IDisposable
+    public sealed class InNetworkPacket : IDisposable
     {
         private readonly ArrayPool<byte> _arrayPool;
-        private readonly ConcurrentPool<NetworkPacket> _networkPacketsPool;
+        private readonly ConcurrentPool<InNetworkPacket> _networkPacketsPool;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="NetworkPacket"/> class.
+        /// Initializes a new instance of the <see cref="InNetworkPacket"/> class.
         /// </summary>
         /// <param name="networkPacketsPool">Instance of network packets pool.</param>
         /// <param name="arrayPool">Array pool.</param>
-        public NetworkPacket(
+        public InNetworkPacket(
             ArrayPool<byte> arrayPool,
-            ConcurrentPool<NetworkPacket> networkPacketsPool)
+            ConcurrentPool<InNetworkPacket> networkPacketsPool)
         {
             _arrayPool = arrayPool;
             _networkPacketsPool = networkPacketsPool;

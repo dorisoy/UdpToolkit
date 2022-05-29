@@ -11,7 +11,7 @@
       <ProjectReference Include="..\..\..\src\tools\UdpToolkit.CodeGenerator\UdpToolkit.CodeGenerator.csproj" ReferenceOutputAssembly="true" OutputItemType="Analyzer" />
       <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
       <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework.CodeGenerator.Contracts\UdpToolkit.Framework.CodeGenerator.Contracts.csproj" />
-        <ProjectReference Include="..\..\Serialization\Serializers\Serializers.csproj" />
+      <ProjectReference Include="..\..\Serialization\Serializers\Serializers.csproj" />
     </ItemGroup>
     
 </Project>

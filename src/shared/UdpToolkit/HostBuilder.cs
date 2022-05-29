@@ -122,13 +122,14 @@ namespace UdpToolkit
 
             // out packets processing
             var outQueues = udpClients
-                .Select(sender => new BlockingAsyncQueue<OutPacket>(
+                .Select(sender => new BlockingAsyncQueue<OutNetworkPacket>(
                     boundedCapacity: int.MaxValue,
                     action: (outPacket) =>
                     {
                         using (outPacket)
                         {
-                            if (!HostWorkerInternal.Process(outPacket, out var payload, out var dataType))
+                            HostWorkerInternal.Process(outPacket);
+                            if (outPacket.BufferWriter.WrittenSpan.Length == 0)
                             {
                                 return;
                             }
@@ -138,8 +139,8 @@ namespace UdpToolkit
                                 sender.Send(
                                     connectionId: outPacket.ConnectionId,
                                     channelId: outPacket.ChannelId,
-                                    dataType: dataType,
-                                    payload: payload,
+                                    dataType: outPacket.DataType,
+                                    payload: outPacket.BufferWriter.WrittenSpan,
                                     ipV4Address: outPacket.IpV4Address);
                             }
                             else
@@ -149,24 +150,24 @@ namespace UdpToolkit
                                     sender.Send(
                                         connectionId: connection.ConnectionId,
                                         channelId: outPacket.ChannelId,
-                                        dataType: dataType,
-                                        payload: payload,
+                                        dataType: outPacket.DataType,
+                                        payload: outPacket.BufferWriter.WrittenSpan,
                                         ipV4Address: connection.IpV4Address);
                                 }
                             }
                         }
                     },
-                    logger: loggerFactory.Create<BlockingAsyncQueue<OutPacket>>()))
+                    logger: loggerFactory.Create<BlockingAsyncQueue<OutNetworkPacket>>()))
                 .ToArray();
 
-            var outQueueDispatcher = new QueueDispatcher<OutPacket>(
+            var outQueueDispatcher = new QueueDispatcher<OutNetworkPacket>(
                 queues: outQueues);
 
             // in packets processing
             var inQueues = Enumerable.Range(0, HostSettings.Workers)
                 .Select(_ =>
                 {
-                    return new BlockingAsyncQueue<NetworkPacket>(
+                    return new BlockingAsyncQueue<InNetworkPacket>(
                         boundedCapacity: int.MaxValue,
                         action: (networkPacket) =>
                         {
@@ -175,17 +176,17 @@ namespace UdpToolkit
                                 HostWorkerInternal.Process(networkPacket);
                             }
                         },
-                        logger: loggerFactory.Create<BlockingAsyncQueue<NetworkPacket>>());
+                        logger: loggerFactory.Create<BlockingAsyncQueue<InNetworkPacket>>());
                 })
                 .ToArray();
 
-            var inQueueDispatcher = new QueueDispatcher<NetworkPacket>(
+            var inQueueDispatcher = new QueueDispatcher<InNetworkPacket>(
                 queues: inQueues);
 
             var cancellationTokenSource = new CancellationTokenSource();
 
-            var outPacketsPool = new ConcurrentPool<OutPacket>(
-                factory: (pool) => new OutPacket(pool),
+            var outPacketsPool = new ConcurrentPool<OutNetworkPacket>(
+                factory: (pool) => new OutNetworkPacket(pool),
                 initSize: 1000);
 
             var hostClient = _clientConfigured
@@ -215,7 +216,7 @@ namespace UdpToolkit
         private void SubscribeOnNetworkEvents(
             IUdpClient[] udpClients,
             IHostClient hostClient,
-            IQueueDispatcher<NetworkPacket> inQueueDispatcher)
+            IQueueDispatcher<InNetworkPacket> inQueueDispatcher)
         {
             var client = hostClient as HostClient;
 
@@ -255,9 +256,9 @@ namespace UdpToolkit
         private HostClient BuildHostClient(
             IUdpClient[] udpClients,
             IDateTimeProvider dateTimeProvider,
-            IQueueDispatcher<OutPacket> outQueueDispatcher,
+            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             CancellationTokenSource cancellationTokenSource,
-            ConcurrentPool<OutPacket> outPacketsPool)
+            ConcurrentPool<OutNetworkPacket> outPacketsPool)
         {
             var remoteHostIps = HostClientSettings.ServerPorts
                 .Select(port => new IpV4Address(IpUtils.ToInt(HostClientSettings.ServerHost), (ushort)port))
@@ -274,6 +275,7 @@ namespace UdpToolkit
                 serverIpV4: randomRemoteHostIp);
 
             var hostClient = new HostClient(
+                hostWorker: HostWorkerInternal,
                 outPacketsPool: outPacketsPool,
                 logger: HostSettings.LoggerFactory.Create<HostClient>(),
                 dateTimeProvider: dateTimeProvider,
@@ -291,11 +293,11 @@ namespace UdpToolkit
             IDateTimeProvider dateTimeProvider,
             ILoggerFactory loggerFactory,
             IHostClient hostClient,
-            IQueueDispatcher<OutPacket> outQueueDispatcher,
-            IQueueDispatcher<NetworkPacket> inQueueDispatcher,
-            IAsyncQueue<NetworkPacket>[] inQueues,
+            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
+            IQueueDispatcher<InNetworkPacket> inQueueDispatcher,
+            IAsyncQueue<InNetworkPacket>[] inQueues,
             CancellationTokenSource cancellationTokenSource,
-            ConcurrentPool<OutPacket> outPacketsPool)
+            ConcurrentPool<OutNetworkPacket> outPacketsPool)
         {
             var groupManager = new GroupManager(
                 dateTimeProvider: dateTimeProvider,
@@ -305,6 +307,8 @@ namespace UdpToolkit
                 connectionPool: connectionPool);
 
             var broadcaster = new Broadcaster(
+                hostWorker: HostWorkerInternal,
+                connectionPool: connectionPool,
                 groupManager: groupManager,
                 outQueueDispatcher: outQueueDispatcher,
                 pool: outPacketsPool);

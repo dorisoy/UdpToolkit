@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Contracts.Connections
 {
     using System;
+    using System.Collections.Generic;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -41,5 +42,11 @@ namespace UdpToolkit.Network.Contracts.Connections
             bool keepAlive,
             DateTimeOffset lastHeartbeat,
             IpV4Address ipV4Address);
+
+        /// <summary>
+        /// Gets list of connections.
+        /// </summary>
+        /// <returns>List of connections.</returns>
+        IReadOnlyList<IConnection> GetAll();
     }
 }

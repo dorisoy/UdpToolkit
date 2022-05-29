@@ -19,12 +19,13 @@ namespace UdpToolkit.Framework
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly HostClientSettingsInternal _hostClientSettingsInternal;
-        private readonly ConcurrentPool<OutPacket> _outPacketsPool;
+        private readonly ConcurrentPool<OutNetworkPacket> _outPacketsPool;
 
+        private readonly IHostWorker _hostWorker;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ILogger _logger;
         private readonly IUdpClient _udpClient;
-        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
+        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
 
         private DateTimeOffset _startConnect;
         private bool _disposed = false;
@@ -39,20 +40,23 @@ namespace UdpToolkit.Framework
         /// <param name="udpClient">Instance of UDP client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
         /// <param name="outPacketsPool">Instance of out packets pool.</param>
+        /// <param name="hostWorker">Instance of host worker.</param>
         public HostClient(
             HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
             ILogger logger,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
-            IQueueDispatcher<OutPacket> outQueueDispatcher,
-            ConcurrentPool<OutPacket> outPacketsPool)
+            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
+            ConcurrentPool<OutNetworkPacket> outPacketsPool,
+            IHostWorker hostWorker)
         {
             _hostClientSettingsInternal = hostClientSettingsInternal;
             _cancellationTokenSource = cancellationTokenSource;
             _udpClient = udpClient;
             _outQueueDispatcher = outQueueDispatcher;
             _outPacketsPool = outPacketsPool;
+            _hostWorker = hostWorker;
             _dateTimeProvider = dateTimeProvider;
             _logger = logger;
 
@@ -228,9 +232,15 @@ namespace UdpToolkit.Framework
         {
             if (_udpClient.IsConnected(out var connectionId))
             {
+                if (!_hostWorker.TryGetSubscriptionId(typeof(TEvent), out var subscriptionId))
+                {
+                    return;
+                }
+
                 var outPacket = _outPacketsPool.GetOrCreate();
                 outPacket.Setup(
                     @event: @event,
+                    dataType: subscriptionId,
                     ipV4Address: destination,
                     connectionId: connectionId,
                     channelId: channelId);

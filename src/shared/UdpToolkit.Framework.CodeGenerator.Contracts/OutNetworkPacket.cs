@@ -11,16 +11,16 @@ namespace UdpToolkit.Framework.Contracts
     /// <summary>
     /// Outgoing host packet.
     /// </summary>
-    public sealed class OutPacket : IDisposable
+    public sealed class OutNetworkPacket : IDisposable
     {
-        private readonly ConcurrentPool<OutPacket> _pool;
+        private readonly ConcurrentPool<OutNetworkPacket> _pool;
         private int _referencesCounter;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="OutPacket"/> class.
+        /// Initializes a new instance of the <see cref="OutNetworkPacket"/> class.
         /// </summary>
         /// <param name="pool">Instance of out packets pool.</param>
-        public OutPacket(ConcurrentPool<OutPacket> pool)
+        public OutNetworkPacket(ConcurrentPool<OutNetworkPacket> pool)
         {
             _pool = pool;
             Connections = new List<IConnection>();
@@ -43,6 +43,11 @@ namespace UdpToolkit.Framework.Contracts
         public byte ChannelId { get; private set; }
 
         /// <summary>
+        /// Gets type of data.
+        /// </summary>
+        public byte DataType { get; private set; }
+
+        /// <summary>
         /// Gets connection identifier.
         /// </summary>
         public Guid ConnectionId { get; private set; }
@@ -61,29 +66,15 @@ namespace UdpToolkit.Framework.Contracts
         /// Setup.
         /// </summary>
         /// <param name="channelId">Channel identifier.</param>
-        /// <param name="event">Instance of user-defined event.</param>
-        public void Setup(
-            byte channelId,
-            IDisposable @event)
-        {
-            _referencesCounter++;
-            ConnectionId = default;
-            IpV4Address = default;
-            ChannelId = channelId;
-            Event = @event;
-        }
-
-        /// <summary>
-        /// Setup.
-        /// </summary>
-        /// <param name="channelId">Channel identifier.</param>
         /// <param name="ipV4Address">Destination ip address.</param>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="dataType">Type of data.</param>
         /// <param name="event">Instance of user-defined event.</param>
         public void Setup(
             byte channelId,
             IpV4Address ipV4Address,
             Guid connectionId,
+            byte dataType,
             IDisposable @event)
         {
             _referencesCounter++;
@@ -91,6 +82,7 @@ namespace UdpToolkit.Framework.Contracts
             IpV4Address = ipV4Address;
             ChannelId = channelId;
             Event = @event;
+            DataType = dataType;
         }
 
         /// <inheritdoc />
@@ -102,6 +94,7 @@ namespace UdpToolkit.Framework.Contracts
                 _referencesCounter = 0;
                 ConnectionId = default;
                 IpV4Address = default;
+                DataType = default;
                 Event?.Dispose();
                 Connections.Clear();
                 BufferWriter.Clear();

@@ -39,8 +39,8 @@ namespace UdpToolkit.Network.Clients
         public unsafe IUdpClient Create(
             IpV4Address ipV4Address)
         {
-            var packetsPool = new ConcurrentPool<NetworkPacket>(
-                factory: (pool) => new NetworkPacket(
+            var packetsPool = new ConcurrentPool<InNetworkPacket>(
+                factory: (pool) => new InNetworkPacket(
                     arrayPool: ArrayPool<byte>.Shared,
                     networkPacketsPool: pool),
                 initSize: _udpClientSettings.PacketsPoolSize);

@@ -59,6 +59,7 @@
             GenerateCtorMethod(sb);
             GenerateFinalizerMethod(sb);
             GeneratePublicDisposeMethod(sb);
+            GenerateTryGetSubscriptionId(sb);
             GenerateProcessInPacketMethod(sb, allClasses);
             GenerateProcessOutPacketMethod(sb, allClasses);
             GeneratePrivateHandleMethod(sb);
@@ -68,10 +69,22 @@
             return sb.ToString();
         }
 
+        private static void GenerateTryGetSubscriptionId(StringBuilder sb)
+        {
+            sb.Append(@"
+        public bool TryGetSubscriptionId(
+            Type type,
+            out byte subscriptionId)
+        {
+            return Lookup.TryGetValue(type, out subscriptionId);
+        }
+");
+        }
+
         private static void GeneratePrivateHandleMethod(StringBuilder sb)
         {
             sb.Append(@"
-        private void Handle<T>(NetworkPacket networkPacket, T item)
+        private void Handle<T>(InNetworkPacket networkPacket, T item)
             where T : class, IDisposable 
         {
             var subscription = SubscriptionStorage<T>.GetSubscription();
@@ -253,7 +266,7 @@
         {
             sb.Append(@"
         public void Process(
-            global::UdpToolkit.Network.Contracts.Clients.NetworkPacket networkPacket)
+            global::UdpToolkit.Network.Contracts.Clients.InNetworkPacket networkPacket)
         {
             switch (networkPacket.DataType)
             {");
@@ -269,7 +282,7 @@
                     {
                         Handle<TYPE>(networkPacket, pooledObject);
                     }
-                    catch (Exception e)
+                    catch (Exception ex)
                     {
                         pooledObject.Dispose();
                     }
@@ -299,18 +312,10 @@
         private static void GenerateProcessOutPacketMethod(StringBuilder sb, List<ClassDeclarationSyntax> allClasses)
         {
             sb.Append(@"
-        public bool Process(
-            global::UdpToolkit.Framework.Contracts.OutPacket outPacket,
-            out ReadOnlySpan<byte> payload,
-            out byte subscriptionId)
+        public void Process(
+            global::UdpToolkit.Framework.Contracts.OutNetworkPacket outPacket)
         {
-            if (!Lookup.TryGetValue(outPacket.Event.GetType(), out subscriptionId))
-            {
-                payload = Array.Empty<byte>();
-                return false;
-            }
-
-            switch (subscriptionId)
+            switch (outPacket.DataType)
             {");
 
             for (int i = 0; i < allClasses.Count; i++)
@@ -318,9 +323,10 @@
                 var @class = allClasses[i];
                 var caseTemplate = @"
                 case VALUE:
+                {
                     Serializer.Serialize<TYPE>(outPacket.BufferWriter, (TYPE)outPacket.Event);
-                    payload = outPacket.BufferWriter.WrittenSpan;
-                    return true;
+                    return;
+                }
                  ";
 
                 var ns = GetNamespace(@class);
@@ -333,9 +339,10 @@
 
             sb.Append(@"                 
                 default:
-                    Logger.Error($""[UdpToolkit.Framework] Unsupported subscriptionId(OUT): {subscriptionId}"");
-                    payload = Array.Empty<byte>(); 
-                    return false;
+                {
+                    Logger.Error($""[UdpToolkit.Framework] Unsupported subscriptionId(OUT): {outPacket.DataType}"");
+                    return;
+                }
             }
         }");
         }

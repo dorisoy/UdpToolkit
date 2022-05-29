@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Connections
 {
     using System;
     using System.Collections.Concurrent;
+    using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Threading;
@@ -98,6 +99,12 @@ namespace UdpToolkit.Network.Connections
             }
 
             return null;
+        }
+
+        /// <inheritdoc />
+        public IReadOnlyList<IConnection> GetAll()
+        {
+            return _connections.Values.ToList();
         }
 
         private void ScanForCleaningInactiveConnections(object state)

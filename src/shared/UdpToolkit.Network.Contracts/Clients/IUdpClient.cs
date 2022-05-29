@@ -12,22 +12,22 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <summary>
         /// Raised when new user-defined packet received.
         /// </summary>
-        event Action<NetworkPacket> OnPacketReceived;
+        event Action<InNetworkPacket> OnPacketReceived;
 
         /// <summary>
         /// Raised when outgoing packet dropped.
         /// </summary>
-        event Action<NetworkPacket> OnPacketDropped;
+        event Action<InNetworkPacket> OnPacketDropped;
 
         /// <summary>
         /// Raised when received packet with invalid network header.
         /// </summary>
-        event Action<NetworkPacket> OnInvalidPacketReceived;
+        event Action<InNetworkPacket> OnInvalidPacketReceived;
 
         /// <summary>
         /// Raised when user-defined packet expired.
         /// </summary>
-        event Action<NetworkPacket> OnPacketExpired;
+        event Action<InNetworkPacket> OnPacketExpired;
 
         /// <summary>
         /// Raised when UDP client connected to other UDP client.

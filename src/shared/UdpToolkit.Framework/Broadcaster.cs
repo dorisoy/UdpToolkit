@@ -3,14 +3,17 @@ namespace UdpToolkit.Framework
     using System;
     using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Pooling;
 
     /// <inheritdoc />
     public sealed class Broadcaster : IBroadcaster
     {
+        private readonly IHostWorker _hostWorker;
+        private readonly IConnectionPool _connectionPool;
         private readonly IGroupManager _groupManager;
-        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
-        private readonly ConcurrentPool<OutPacket> _pool;
+        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
+        private readonly ConcurrentPool<OutNetworkPacket> _pool;
 
         private bool _disposed = false;
 
@@ -20,14 +23,20 @@ namespace UdpToolkit.Framework
         /// <param name="groupManager">Instance of group manager.</param>
         /// <param name="outQueueDispatcher">Instance of queue dispatcher.</param>
         /// <param name="pool">Instance pool.</param>
+        /// <param name="connectionPool">Instance of connection pool.</param>
+        /// <param name="hostWorker">Instance of host worker.</param>
         public Broadcaster(
             IGroupManager groupManager,
-            IQueueDispatcher<OutPacket> outQueueDispatcher,
-            ConcurrentPool<OutPacket> pool)
+            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
+            ConcurrentPool<OutNetworkPacket> pool,
+            IConnectionPool connectionPool,
+            IHostWorker hostWorker)
         {
             _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
             _pool = pool;
+            _connectionPool = connectionPool;
+            _hostWorker = hostWorker;
         }
 
         /// <summary>
@@ -55,10 +64,22 @@ namespace UdpToolkit.Framework
             BroadcastMode broadcastMode)
         where TEvent : class, IDisposable
         {
+            if (!_hostWorker.TryGetSubscriptionId(typeof(TEvent), out var subscriptionId))
+            {
+                return;
+            }
+
             var group = _groupManager.GetGroup(groupId);
             var queue = _outQueueDispatcher.Dispatch(groupId);
             var outPacket = _pool.GetOrCreate();
-            outPacket.Setup(@event: @event, channelId: channelId);
+
+            outPacket.Setup(
+                @event: @event,
+                channelId: channelId,
+                dataType: subscriptionId,
+                connectionId: default,
+                ipV4Address: default);
+
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
@@ -100,8 +121,20 @@ namespace UdpToolkit.Framework
 
                     break;
 
-                case BroadcastMode.None:
                 case BroadcastMode.Server:
+
+                    var connections = _connectionPool.GetAll();
+                    for (int i = 0; i < connections.Count; i++)
+                    {
+                        var connection = connections[i];
+
+                        outPacket.Connections.Add(connection);
+                    }
+
+                    break;
+
+                case BroadcastMode.None:
+
                     break;
 
                 default:

@@ -193,7 +193,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var host = "127.0.0.1";
             var clientPort = Utils.GetAvailablePort();
             var serverPort = Utils.GetAvailablePort();
-            var buffer = new List<NetworkPacket>();
+            var buffer = new List<InNetworkPacket>();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory);
             using var server = Utils.CreateUdpClient(host, (ushort)serverPort, socketFactory);
@@ -245,7 +245,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var host = "127.0.0.1";
             var clientPort = Utils.GetAvailablePort();
             var serverPort = Utils.GetAvailablePort();
-            var buffer = new List<NetworkPacket>();
+            var buffer = new List<InNetworkPacket>();
             var mtuSize = Gen.RandomInt();
 
             using var client = Utils.CreateUdpClient(host, (ushort)clientPort, socketFactory, mtuSize);
@@ -346,7 +346,7 @@ namespace UdpToolkit.Network.Tests.Clients
             var brokenClient = new UdpClient(clientPort);
             using var server = Utils.CreateUdpClient(host, (ushort)serverPort, socketFactory);
 
-            var buffer = new List<NetworkPacket>();
+            var buffer = new List<InNetworkPacket>();
 
             var invalidPacketsTask = server.WaitInvalidPacketsAsync(buffer);
 

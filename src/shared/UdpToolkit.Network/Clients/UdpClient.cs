@@ -29,7 +29,7 @@ namespace UdpToolkit.Network.Clients
         private readonly IConnectionPool _connectionPool;
 
         private readonly BlockingCollection<IConnection> _resendRequests = new BlockingCollection<IConnection>(new ConcurrentQueue<IConnection>());
-        private readonly ConcurrentPool<NetworkPacket> _packetsPool;
+        private readonly ConcurrentPool<InNetworkPacket> _packetsPool;
         private readonly ArrayPool<byte> _arrayPool;
 
         private readonly UdpClientSettings _settings;
@@ -52,7 +52,7 @@ namespace UdpToolkit.Network.Clients
             IDateTimeProvider dateTimeProvider,
             ISocket client,
             UdpClientSettings settings,
-            ConcurrentPool<NetworkPacket> packetsPool,
+            ConcurrentPool<InNetworkPacket> packetsPool,
             ArrayPool<byte> arrayPool)
         {
             _client = client;
@@ -84,16 +84,16 @@ namespace UdpToolkit.Network.Clients
         }
 
         /// <inheritdoc />
-        public event Action<NetworkPacket> OnPacketReceived;
+        public event Action<InNetworkPacket> OnPacketReceived;
 
         /// <inheritdoc />
-        public event Action<NetworkPacket> OnPacketDropped;
+        public event Action<InNetworkPacket> OnPacketDropped;
 
         /// <inheritdoc />
-        public event Action<NetworkPacket> OnInvalidPacketReceived;
+        public event Action<InNetworkPacket> OnInvalidPacketReceived;
 
         /// <inheritdoc />
-        public event Action<NetworkPacket> OnPacketExpired;
+        public event Action<InNetworkPacket> OnPacketExpired;
 
         /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;

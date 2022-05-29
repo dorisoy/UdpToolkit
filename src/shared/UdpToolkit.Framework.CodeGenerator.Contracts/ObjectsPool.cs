@@ -13,13 +13,13 @@ namespace UdpToolkit.Framework
     {
         private static readonly ConcurrentBag<T> Pool = new ConcurrentBag<T>();
 
-        static ObjectsPool()
+        /// <summary>
+        /// Create new instance.
+        /// </summary>
+        /// <returns>Instance of object.</returns>
+        public static T Create()
         {
-            // TODO remove it
-            for (int i = 0; i < 10; i++)
-            {
-                Pool.Add(new T());
-            }
+            return new T();
         }
 
         /// <summary>

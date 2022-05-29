@@ -123,7 +123,7 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Debug);
+                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Information);
                 })
                 .ConfigureNetwork((settings) =>
                 {

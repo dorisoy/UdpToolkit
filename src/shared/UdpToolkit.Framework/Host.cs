@@ -17,8 +17,8 @@ namespace UdpToolkit.Framework
         private readonly IExecutor _executor;
         private readonly ILogger _logger;
         private readonly IHostClient _hostClient;
-        private readonly IQueueDispatcher<OutPacket> _outQueueDispatcher;
-        private readonly IQueueDispatcher<NetworkPacket> _inQueueDispatcher;
+        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
+        private readonly IQueueDispatcher<InNetworkPacket> _inQueueDispatcher;
         private readonly IUdpClient[] _udpClients;
         private readonly IList<IDisposable> _toDispose;
 
@@ -39,8 +39,8 @@ namespace UdpToolkit.Framework
         public Host(
             ILogger logger,
             IHostClient hostClient,
-            IQueueDispatcher<OutPacket> outQueueDispatcher,
-            IQueueDispatcher<NetworkPacket> inQueueDispatcher,
+            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
+            IQueueDispatcher<InNetworkPacket> inQueueDispatcher,
             IUdpClient[] udpClients,
             IExecutor executor,
             IList<IDisposable> toDispose,

@@ -131,7 +131,7 @@ namespace UdpToolkit.Network.Tests
 
         internal static Task WaitNewPacketsAsync(
             this IUdpClient udpClient,
-            List<NetworkPacket> buffer)
+            List<InNetworkPacket> buffer)
         {
             var signal = new SemaphoreSlim(0, 1);
             udpClient.OnPacketReceived += (networkPacket) =>
@@ -145,7 +145,7 @@ namespace UdpToolkit.Network.Tests
 
         internal static Task WaitDroppedPacketAsync(
             this IUdpClient udpClient,
-            List<NetworkPacket> buffer)
+            List<InNetworkPacket> buffer)
         {
             var signal = new SemaphoreSlim(0, 1);
             udpClient.OnPacketDropped += (networkPacket) =>
@@ -159,7 +159,7 @@ namespace UdpToolkit.Network.Tests
 
         internal static Task WaitInvalidPacketsAsync(
             this IUdpClient udpClient,
-            List<NetworkPacket> buffer)
+            List<InNetworkPacket> buffer)
         {
             var signal = new SemaphoreSlim(0, 1);
             udpClient.OnInvalidPacketReceived += (networkPacket) =>
