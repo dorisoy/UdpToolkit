@@ -9,7 +9,6 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Connections;
-    using UdpToolkit.Network.Contracts.Sockets;
 
     /// <inheritdoc />
     public sealed class GroupManager : IGroupManager
@@ -68,8 +67,7 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void JoinOrCreate(
             Guid groupId,
-            Guid connectionId,
-            IpV4Address ipV4Address)
+            Guid connectionId)
         {
             if (_connectionPool.TryGetConnection(connectionId, out var connection))
             {
@@ -91,6 +89,15 @@ namespace UdpToolkit.Framework
 
                         return group;
                     });
+            }
+        }
+
+        /// <inheritdoc />
+        public void Leave(Guid groupId, Guid connectionId)
+        {
+            if (_groups.TryGetValue(groupId, out var group) && _connectionPool.TryGetConnection(connectionId, out var connection))
+            {
+                group.GroupConnections.Remove(connection);
             }
         }
 
