@@ -39,13 +39,13 @@ namespace UdpToolkit
         public IChannelsFactory ChannelsFactory { get; set; } = new ChannelsFactory();
 
         /// <inheritdoc />
-        public int PacketsPoolSize { get; set; } = 10_000;
+        public int PacketsPoolSize { get; set; } = 100;
 
         /// <inheritdoc />
-        public int PacketsBufferPoolSize { get; set; } = 10_000;
+        public int PacketsBufferPoolSize { get; set; } = 100;
 
         /// <inheritdoc />
-        public int HeadersBuffersPoolSize { get; set; } = 10_000;
+        public int HeadersBuffersPoolSize { get; set; } = 100;
 
         /// <inheritdoc />
         public ArrayPool<byte> ArrayPool { get; set; } = ArrayPool<byte>.Shared;

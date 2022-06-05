@@ -19,7 +19,7 @@
             host.On<JoinEvent>(
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
-                    groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
+                    groupManager.JoinOrCreate(joinEvent.GroupId, connectionId);
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 

@@ -50,7 +50,7 @@
                 {
                     _isStarted = true;
 
-                    groupManager.JoinOrCreate(startGame.GroupId, connectionId, ip);
+                    groupManager.JoinOrCreate(startGame.GroupId, connectionId);
 
                     var positions = startGame.Positions
                         .Select(pair => $"{pair.Key}|X - {pair.Value.X}|Y - {pair.Value.Y}|Z - {pair.Value.Z}");

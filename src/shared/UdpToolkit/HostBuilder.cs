@@ -187,7 +187,7 @@ namespace UdpToolkit
 
             var outPacketsPool = new ConcurrentPool<OutNetworkPacket>(
                 factory: (pool) => new OutNetworkPacket(pool),
-                initSize: 1000);
+                initSize: NetworkSettings.PacketsPoolSize);
 
             var hostClient = _clientConfigured
                 ? (IHostClient)BuildHostClient(

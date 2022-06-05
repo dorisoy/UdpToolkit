@@ -38,7 +38,7 @@
                     {
                         Console.WriteLine($"{joinEvent.Nickname} joined!");
 
-                        groupManager.JoinOrCreate(joinEvent.GroupId, connectionId, ip);
+                        groupManager.JoinOrCreate(joinEvent.GroupId, connectionId);
 
                         scheduler.ScheduleOnce<StartGame>(
                             groupId: joinEvent.GroupId,

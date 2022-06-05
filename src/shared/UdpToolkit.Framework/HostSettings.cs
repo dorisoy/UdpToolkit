@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Collections.Generic;
+    using System.Linq;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Logging;
     using UdpToolkit.Serialization;
@@ -47,7 +48,11 @@ namespace UdpToolkit.Framework
         /// <remarks>
         /// 1 Thread per worker.
         /// </remarks>
-        public int Workers { get; set; } = 8;
+        public int Workers
+        {
+            get => Environment.ProcessorCount - (HostPorts.Count() * 2);
+            set => Workers = value;
+        }
 
         /// <summary>
         /// Gets instance of serializer.
