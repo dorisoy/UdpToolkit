@@ -1,0 +1,8 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Sequenced" type="CompoundRunConfigurationType">
+    <toRun name="Sequenced.Client1" type="DotNetProject" />
+    <toRun name="Sequenced.Client2" type="DotNetProject" />
+    <toRun name="Sequenced.Server" type="DotNetProject" />
+    <method v="2" />
+  </configuration>
+</component>

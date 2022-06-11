@@ -1,0 +1,8 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="RUDP" type="CompoundRunConfigurationType">
+    <toRun name="ReliableUdp.Client1" type="DotNetProject" />
+    <toRun name="ReliableUdp.Client2" type="DotNetProject" />
+    <toRun name="ReliableUdp.Server" type="DotNetProject" />
+    <method v="2" />
+  </configuration>
+</component>
