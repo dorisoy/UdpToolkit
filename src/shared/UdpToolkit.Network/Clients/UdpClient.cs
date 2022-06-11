@@ -428,6 +428,12 @@ namespace UdpToolkit.Network.Clients
             return _client.GetLocalIp();
         }
 
+        /// <inheritdoc/>
+        public IConnectionPool GetConnectionPool()
+        {
+            return _connectionPool;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void SendProtocolPacketInternal(
             IConnection connection,

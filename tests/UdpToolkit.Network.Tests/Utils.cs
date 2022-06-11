@@ -1,21 +1,17 @@
 namespace UdpToolkit.Network.Tests
 {
     using System;
-    using System.Buffers;
     using System.Collections.Generic;
     using System.Net;
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Protocol;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Tests.Framework;
-    using UdpToolkit.Network.Utils;
 
     internal static class Utils
     {
@@ -30,16 +26,7 @@ namespace UdpToolkit.Network.Tests
             var settings = new NetworkSettings();
 
             var factory = new UdpClientFactory(
-                networkSettings: settings,
-                connectionPool: new ConnectionPool(
-                    dateTimeProvider: new DateTimeProvider(),
-                    networkEventReporter: settings.NetworkEventReporter,
-                    settings: new ConnectionPoolSettings(
-                        connectionTimeout: TimeSpan.FromMinutes(5),
-                        connectionsCleanupFrequency: TimeSpan.FromMinutes(5)),
-                    connectionFactory: new ConnectionFactory(
-                        channelsFactory: new ChannelsFactory())),
-                dateTimeProvider: new DateTimeProvider());
+                networkSettings: settings);
 
             var client = factory.Create(new IpV4Address(address: IpUtils.ToInt(host), port: port));
 

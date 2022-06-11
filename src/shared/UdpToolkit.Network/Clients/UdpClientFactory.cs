@@ -1,6 +1,7 @@
 namespace UdpToolkit.Network.Clients
 {
     using System.Buffers;
+    using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Connections;
@@ -13,21 +14,26 @@ namespace UdpToolkit.Network.Clients
     {
         private readonly INetworkSettings _networkSettings;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly IConnectionPool _lazyConnectionPool;
+        private readonly IConnectionPool _connectionPool;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="UdpClientFactory"/> class.
         /// </summary>
         /// <param name="networkSettings">Instance of UDP client settings.</param>
-        /// <param name="connectionPool">Instance of connection pool.</param>
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
         public UdpClientFactory(
             INetworkSettings networkSettings,
-            IConnectionPool connectionPool,
             IDateTimeProvider dateTimeProvider = null)
         {
+            _connectionPool = new ConnectionPool(
+                dateTimeProvider: new Network.Utils.DateTimeProvider(),
+                networkEventReporter: networkSettings.NetworkEventReporter,
+                settings: new ConnectionPoolSettings(
+                    connectionTimeout: networkSettings.ConnectionTimeout,
+                    connectionsCleanupFrequency: networkSettings.ConnectionsCleanupFrequency),
+                connectionFactory: new ConnectionFactory(networkSettings.ChannelsFactory));
+
             _networkSettings = networkSettings;
-            _lazyConnectionPool = connectionPool;
             _dateTimeProvider = dateTimeProvider ?? new DateTimeProvider();
         }
 
@@ -42,7 +48,7 @@ namespace UdpToolkit.Network.Clients
                 initSize: _networkSettings.PacketsPoolSize);
 
             return new UdpClient(
-                connectionPool: _lazyConnectionPool,
+                connectionPool: _connectionPool,
                 networkEventReporter: this._networkSettings.NetworkEventReporter,
                 dateTimeProvider: _dateTimeProvider,
                 client: _networkSettings.SocketFactory.Create(ipV4Address),

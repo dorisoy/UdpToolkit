@@ -2,6 +2,7 @@ namespace UdpToolkit.Network.Contracts.Clients
 {
     using System;
     using System.Threading;
+    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -130,5 +131,11 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// </summary>
         /// <returns>Local ip address of udp client.</returns>
         IpV4Address GetLocalIp();
+
+        /// <summary>
+        /// Get instance of connection pool.
+        /// </summary>
+        /// <returns>Shared connection pool.</returns>
+        IConnectionPool GetConnectionPool();
     }
 }

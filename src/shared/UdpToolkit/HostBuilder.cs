@@ -8,10 +8,8 @@ namespace UdpToolkit
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Events;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -87,18 +85,8 @@ namespace UdpToolkit
 
             var dateTimeProvider = new DateTimeProvider();
             var hostEventReporter = HostSettings.HostEventReporter;
-            var networkEventReporter = NetworkSettings.NetworkEventReporter;
-
-            var connectionPool = new ConnectionPool(
-                dateTimeProvider: new Network.Utils.DateTimeProvider(),
-                networkEventReporter: networkEventReporter,
-                settings: new ConnectionPoolSettings(
-                    connectionTimeout: NetworkSettings.ConnectionTimeout,
-                    connectionsCleanupFrequency: NetworkSettings.ConnectionsCleanupFrequency),
-                connectionFactory: new ConnectionFactory(NetworkSettings.ChannelsFactory));
 
             var udpClientFactory = new UdpClientFactory(
-                connectionPool: connectionPool,
                 networkSettings: NetworkSettings);
 
             var hostIps = HostSettings.HostPorts
@@ -190,7 +178,6 @@ namespace UdpToolkit
             SubscribeOnNetworkEvents(udpClients, hostClient, inQueueDispatcher);
 
             return BuildHost(
-                connectionPool: connectionPool,
                 outPacketsPool: outPacketsPool,
                 inQueues: inQueues,
                 inQueueDispatcher: inQueueDispatcher,
@@ -280,7 +267,6 @@ namespace UdpToolkit
         }
 
         private IHost BuildHost(
-            IConnectionPool connectionPool,
             IUdpClient[] udpClients,
             IDateTimeProvider dateTimeProvider,
             IHostEventReporter hostEventReporter,
@@ -291,16 +277,20 @@ namespace UdpToolkit
             CancellationTokenSource cancellationTokenSource,
             ConcurrentPool<OutNetworkPacket> outPacketsPool)
         {
+            var sharedConnectionsPool = udpClients
+                .First()
+                .GetConnectionPool();
+
             var groupManager = new GroupManager(
                 dateTimeProvider: dateTimeProvider,
                 groupTtl: HostSettings.GroupTtl,
                 scanFrequency: HostSettings.GroupsCleanupFrequency,
                 hostEventReporter: hostEventReporter,
-                connectionPool: connectionPool);
+                connectionPool: sharedConnectionsPool);
 
             var broadcaster = new Broadcaster(
                 hostWorker: HostWorkerInternal,
-                connectionPool: connectionPool,
+                connectionPool: sharedConnectionsPool,
                 groupManager: groupManager,
                 outQueueDispatcher: outQueueDispatcher,
                 pool: outPacketsPool);
