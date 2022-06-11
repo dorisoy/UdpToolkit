@@ -2,6 +2,7 @@ namespace UdpToolkit.Framework
 {
     using System;
     using UdpToolkit.Framework.Contracts;
+    using UdpToolkit.Network.Contracts;
 
     /// <summary>
     /// Abstraction for host configuration in a fluent style.

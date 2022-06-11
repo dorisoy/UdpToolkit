@@ -6,7 +6,7 @@ namespace UdpToolkit.Framework.Contracts
     /// <summary>
     /// Abstraction for a run any actions in Threads, Tasks, Unity Jobs System e.t.c.
     /// </summary>
-    public interface IExecutor : IDisposable
+    public interface IExecutor : IReadOnlyExecutor, IDisposable
     {
         /// <summary>
         /// Raised when an exception is thrown while action executing.

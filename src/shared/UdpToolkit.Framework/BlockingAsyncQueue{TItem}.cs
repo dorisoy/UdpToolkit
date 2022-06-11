@@ -4,7 +4,7 @@ namespace UdpToolkit.Framework
     using System.Collections.Concurrent;
     using System.Diagnostics.CodeAnalysis;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Framework.Contracts.Events;
 
     /// <summary>
     /// Async queue based on .NET BlockingCollection.
@@ -16,7 +16,7 @@ namespace UdpToolkit.Framework
     {
         private readonly Action<TItem> _action;
         private readonly BlockingCollection<TItem> _input;
-        private readonly ILogger _logger;
+        private readonly IHostEventReporter _hostEventReporter;
 
         private bool _disposed = false;
 
@@ -25,14 +25,14 @@ namespace UdpToolkit.Framework
         /// </summary>
         /// <param name="boundedCapacity">Size of capacity for the async queue.</param>
         /// <param name="action">Action for process consumed items.</param>
-        /// <param name="logger">Logger instance.</param>
+        /// <param name="hostEventReporter">Host event reporter.</param>
         public BlockingAsyncQueue(
             int boundedCapacity,
             Action<TItem> action,
-            ILogger logger)
+            IHostEventReporter hostEventReporter)
         {
             _action = action;
-            _logger = logger;
+            _hostEventReporter = hostEventReporter;
             _input = new BlockingCollection<TItem>(
                 boundedCapacity: boundedCapacity,
                 collection: new ConcurrentQueue<TItem>());
@@ -86,8 +86,8 @@ namespace UdpToolkit.Framework
                     }
                     catch (Exception ex)
                     {
-                        _logger.Error($"[UdpToolkit.Framework] Exception on receive task: {ex}");
-                        _logger.Warning("[UdpToolkit.Framework] Restart consume...");
+                        var exceptionThrown = new ExceptionThrown(ex);
+                        _hostEventReporter.Handle(in exceptionThrown);
                     }
                 }
             }

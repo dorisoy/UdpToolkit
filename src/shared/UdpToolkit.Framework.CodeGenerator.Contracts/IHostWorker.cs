@@ -2,7 +2,6 @@
 namespace UdpToolkit.Framework.Contracts
 {
     using System;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Serialization;
 
@@ -11,11 +10,6 @@ namespace UdpToolkit.Framework.Contracts
     /// </summary>
     public interface IHostWorker : IDisposable
     {
-        /// <summary>
-        /// Gets or sets instance of logger.
-        /// </summary>
-        ILogger Logger { get; set; }
-
         /// <summary>
         /// Gets or sets instance of serializer.
         /// </summary>

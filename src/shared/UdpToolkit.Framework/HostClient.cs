@@ -6,7 +6,6 @@ namespace UdpToolkit.Framework
     using System.Threading;
     using System.Threading.Tasks;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Pooling;
@@ -23,7 +22,6 @@ namespace UdpToolkit.Framework
 
         private readonly IHostWorker _hostWorker;
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly ILogger _logger;
         private readonly IUdpClient _udpClient;
         private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
 
@@ -35,7 +33,6 @@ namespace UdpToolkit.Framework
         /// </summary>
         /// <param name="hostClientSettingsInternal">Instance of internal host client settings.</param>
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
-        /// <param name="logger">Instance of logger.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         /// <param name="udpClient">Instance of UDP client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
@@ -44,7 +41,6 @@ namespace UdpToolkit.Framework
         public HostClient(
             HostClientSettingsInternal hostClientSettingsInternal,
             IDateTimeProvider dateTimeProvider,
-            ILogger logger,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
@@ -58,7 +54,6 @@ namespace UdpToolkit.Framework
             _outPacketsPool = outPacketsPool;
             _hostWorker = hostWorker;
             _dateTimeProvider = dateTimeProvider;
-            _logger = logger;
 
             OnConnectionTimeout += () =>
             {
@@ -106,7 +101,7 @@ namespace UdpToolkit.Framework
             var token = _cancellationTokenSource.Token;
 
             Task.Factory.StartNew(
-                function: () => StartHeartbeat(token),
+                function: () => StartResendPackets(token),
                 cancellationToken: token,
                 creationOptions: TaskCreationOptions.LongRunning,
                 scheduler: TaskScheduler.Current);
@@ -137,6 +132,12 @@ namespace UdpToolkit.Framework
             var from = new IpV4Address(IpUtils.ToInt(host), (ushort)port);
 
             _udpClient.Disconnect(from);
+        }
+
+        /// <inheritdoc />
+        public void Ping()
+        {
+            _udpClient.Ping(_hostClientSettingsInternal.ServerIpV4);
         }
 
         /// <inheritdoc />
@@ -195,16 +196,16 @@ namespace UdpToolkit.Framework
         /// Update RTT time for host client (Internal use only).
         /// </summary>
         /// <param name="rtt">Round-trip time in ms.</param>
-        internal void HeartbeatReceived(
+        internal void RttReceived(
             double rtt)
         {
             OnRttReceived?.Invoke(rtt);
         }
 
-        private async Task StartHeartbeat(
+        private async Task StartResendPackets(
             CancellationToken cancellationToken)
         {
-            if (!_hostClientSettingsInternal.HeartbeatDelayMs.HasValue)
+            if (!_hostClientSettingsInternal.ResendDelayMs.HasValue)
             {
                 return;
             }
@@ -217,9 +218,9 @@ namespace UdpToolkit.Framework
                     return;
                 }
 
-                _udpClient.Heartbeat(_hostClientSettingsInternal.ServerIpV4);
+                _udpClient.ResendPackets();
 
-                await Task.Delay(_hostClientSettingsInternal.HeartbeatDelayMs.Value, cancellationToken).ConfigureAwait(false);
+                await Task.Delay(_hostClientSettingsInternal.ResendDelayMs.Value, cancellationToken).ConfigureAwait(false);
             }
         }
 

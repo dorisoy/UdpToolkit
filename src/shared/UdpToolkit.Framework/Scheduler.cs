@@ -6,14 +6,14 @@ namespace UdpToolkit.Framework
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Framework.Contracts.Events;
 
     /// <inheritdoc />
     public sealed class Scheduler : IScheduler
     {
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _groupTtl;
-        private readonly ILogger _logger;
+        private readonly IHostEventReporter _hostEventReporter;
         private readonly ConcurrentDictionary<TimerKey, Lazy<SmartTimer>> _timers = new ConcurrentDictionary<TimerKey, Lazy<SmartTimer>>();
         private readonly Timer _housekeeper;
 
@@ -22,17 +22,17 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Initializes a new instance of the <see cref="Scheduler"/> class.
         /// </summary>
-        /// <param name="logger">Instance of logger.</param>
+        /// <param name="hostEventReporter">Instance of host event reporter.</param>
         /// <param name="dateTimeProvider">Instance of dateTimeProvider.</param>
         /// <param name="cleanupFrequency">Cleanup frequency for housekeeper.</param>
         /// <param name="groupTtl">Group ttl.</param>
         public Scheduler(
-            ILogger logger,
+            IHostEventReporter hostEventReporter,
             IDateTimeProvider dateTimeProvider,
             TimeSpan cleanupFrequency,
             TimeSpan groupTtl)
         {
-            _logger = logger;
+            _hostEventReporter = hostEventReporter;
             _dateTimeProvider = dateTimeProvider;
             _groupTtl = groupTtl;
 
@@ -82,10 +82,7 @@ namespace UdpToolkit.Framework
         private void CleanupExpiredTimers(
             object state)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.Debug($"[UdpToolkit.Framework] Cleanup expired timers");
-            }
+            _hostEventReporter.Handle(new ScanExpiredTimersStarted(123));
 
             for (int i = 0; i < _timers.Count; i++)
             {
@@ -95,9 +92,10 @@ namespace UdpToolkit.Framework
                 {
                     timer.Dispose();
 
-                    if (_timers.TryRemove(pair.Key, out _) && _logger.IsEnabled(LogLevel.Debug))
+                    if (_timers.TryRemove(pair.Key, out _))
                     {
-                        _logger.Debug($"[UdpToolkit.Framework] Timer removed {pair.Key}");
+                        var expiredTimerRemoved = new ExpiredTimerRemoved(pair.Key);
+                        _hostEventReporter.Handle(in expiredTimerRemoved);
                     }
                 }
             }

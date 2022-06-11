@@ -5,7 +5,7 @@ namespace UdpToolkit.Framework
     using System.Diagnostics.CodeAnalysis;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Framework.Contracts.Events;
     using UdpToolkit.Network.Contracts.Clients;
 
     /// <summary>
@@ -15,7 +15,7 @@ namespace UdpToolkit.Framework
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IExecutor _executor;
-        private readonly ILogger _logger;
+        private readonly IHostEventReporter _hostEventReporter;
         private readonly IHostClient _hostClient;
         private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
         private readonly IQueueDispatcher<InNetworkPacket> _inQueueDispatcher;
@@ -27,7 +27,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Initializes a new instance of the <see cref="Host"/> class.
         /// </summary>
-        /// <param name="logger">Instance of logger.</param>
+        /// <param name="hostEventReporter">Instance of host event reporter.</param>
         /// <param name="hostClient">Instance of host client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
         /// <param name="inQueueDispatcher">Instance of inQueueDispatcher.</param>
@@ -37,7 +37,7 @@ namespace UdpToolkit.Framework
         /// <param name="serviceProvider">Providing internal services.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         public Host(
-            ILogger logger,
+            IHostEventReporter hostEventReporter,
             IHostClient hostClient,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             IQueueDispatcher<InNetworkPacket> inQueueDispatcher,
@@ -47,7 +47,7 @@ namespace UdpToolkit.Framework
             Contracts.IServiceProvider serviceProvider,
             CancellationTokenSource cancellationTokenSource)
         {
-            _logger = logger;
+            _hostEventReporter = hostEventReporter;
             _hostClient = hostClient;
             _outQueueDispatcher = outQueueDispatcher;
             _inQueueDispatcher = inQueueDispatcher;
@@ -114,7 +114,13 @@ namespace UdpToolkit.Framework
                     cancellationToken: token);
             }
 
-            _logger.Information($"[UdpToolkit.Framework] {nameof(Host)} running...");
+            var hostStarted = new HostStarted(
+                receiversCount: _udpClients.Length,
+                sendersCount: _outQueueDispatcher.Count,
+                workersCount: _inQueueDispatcher.Count,
+                executor: this._executor);
+
+            _hostEventReporter.Handle(in hostStarted);
         }
 
         /// <inheritdoc />

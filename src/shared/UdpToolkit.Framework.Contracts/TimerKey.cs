@@ -54,11 +54,5 @@ namespace UdpToolkit.Framework.Contracts
                 return (TimerId.GetHashCode() * 397) ^ (EventType != null ? EventType.GetHashCode() : 0);
             }
         }
-
-        /// <inheritdoc />
-        public override string ToString()
-        {
-            return $"{TimerId}|{EventType.Name}";
-        }
     }
 }

@@ -1,8 +1,9 @@
-namespace UdpToolkit.Framework.Contracts
+namespace UdpToolkit.Network.Contracts
 {
     using System;
     using System.Buffers;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Events;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -83,5 +84,10 @@ namespace UdpToolkit.Framework.Contracts
         /// Gets or sets array pool instance.
         /// </summary>
         ArrayPool<byte> ArrayPool { get; set; }
+
+        /// <summary>
+        /// Gets or sets event reporter instance.
+        /// </summary>
+        INetworkEventReporter NetworkEventReporter { get; set; }
     }
 }

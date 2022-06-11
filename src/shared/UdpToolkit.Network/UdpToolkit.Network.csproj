@@ -9,7 +9,6 @@
     </PropertyGroup>
     
     <ItemGroup>
-      <ProjectReference Include="..\UdpToolkit.Logging\UdpToolkit.Logging.csproj" />
       <ProjectReference Include="..\UdpToolkit.Network.Contracts\UdpToolkit.Network.Contracts.csproj" />
     </ItemGroup>
     

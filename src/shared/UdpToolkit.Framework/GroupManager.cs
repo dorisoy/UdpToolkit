@@ -7,7 +7,7 @@ namespace UdpToolkit.Framework
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
+    using UdpToolkit.Framework.Contracts.Events;
     using UdpToolkit.Network.Contracts.Connections;
 
     /// <inheritdoc />
@@ -18,7 +18,7 @@ namespace UdpToolkit.Framework
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly TimeSpan _groupTtl;
         private readonly Timer _houseKeeper;
-        private readonly ILogger _logger;
+        private readonly IHostEventReporter _hostEventReporter;
 
         private bool _disposed = false;
 
@@ -28,21 +28,21 @@ namespace UdpToolkit.Framework
         /// <param name="dateTimeProvider">Instance of date time provider.</param>
         /// <param name="groupTtl">Group ttl.</param>
         /// <param name="scanFrequency">Scan frequency for cleanup inactive groups.</param>
-        /// <param name="logger">Instance of logger.</param>
+        /// <param name="hostEventReporter">Instance of host event reporter.</param>
         /// <param name="connectionPool">Instance of connection pool.</param>
         public GroupManager(
             IDateTimeProvider dateTimeProvider,
             TimeSpan groupTtl,
             TimeSpan scanFrequency,
-            ILogger logger,
+            IHostEventReporter hostEventReporter,
             IConnectionPool connectionPool)
         {
             _dateTimeProvider = dateTimeProvider;
             _groupTtl = groupTtl;
-            _logger = logger;
+            _hostEventReporter = hostEventReporter;
             _connectionPool = connectionPool;
             _houseKeeper = new Timer(
-                callback: ScanForCleaningInactiveConnections,
+                callback: ScanForCleaningInactiveGroups,
                 state: null,
                 dueTime: TimeSpan.FromSeconds(10),
                 period: scanFrequency);
@@ -123,15 +123,14 @@ namespace UdpToolkit.Framework
             _disposed = true;
         }
 
-        private void ScanForCleaningInactiveConnections(object state)
+        private void ScanForCleaningInactiveGroups(object state)
         {
-            if (_logger.IsEnabled(LogLevel.Debug))
-            {
-                _logger.Debug($"[UdpToolkit.Framework] Cleanup inactive groups");
-            }
+            var groupsCount = _groups.Count;
+            var scanExpiredGroupsStarted = new ScanExpiredGroupsStarted(groupsCount);
 
+            _hostEventReporter.Handle(in scanExpiredGroupsStarted);
             var now = _dateTimeProvider.GetUtcNow();
-            for (var i = 0; i < _groups.Count; i++)
+            for (var i = 0; i < groupsCount; i++)
             {
                 var group = _groups.ElementAt(i);
 
