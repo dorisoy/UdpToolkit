@@ -5,15 +5,12 @@ namespace UdpToolkit.Benchmarks
     using System.Linq;
     using BenchmarkDotNet.Attributes;
     using UdpToolkit.Benchmarks.Fakes;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
-    using UdpToolkit.Network.Connections;
     using UdpToolkit.Network.Contracts.Channels;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
-    using UdpToolkit.Network.Utils;
 
     [HtmlExporter]
     [MemoryDiagnoser]
@@ -86,7 +83,7 @@ namespace UdpToolkit.Benchmarks
         {
             for (int i = 0; i < Repeats; i++)
             {
-                _udpClient.Heartbeat(_destination);
+                _udpClient.Ping(_destination);
             }
         }
 
@@ -131,28 +128,24 @@ namespace UdpToolkit.Benchmarks
             ISocketFactory socketFactory,
             IChannelsFactory channelsFactory)
         {
-            return new UdpClientFactory(
-                udpClientSettings: new UdpClientSettings(
-                    mtuSizeLimit: 1500,
-                    udpClientBufferSize: 2048,
-                    pollFrequency: 15,
-                    allowIncomingConnections: true,
-                    resendTimeout: TimeSpan.FromSeconds(3),
-                    channelsFactory: channelsFactory,
-                    socketFactory: socketFactory,
-                    packetsPoolSize: repeats + 1,
-                    packetsBufferPoolSize: repeats + 1,
-                    headersBuffersPoolSize: repeats + 1,
-                    arrayPool: ArrayPool<byte>.Create(maxArrayLength: 2048, maxArraysPerBucket: repeats)),
-                connectionPool: new ConnectionPool(
-                    dateTimeProvider: new DateTimeProvider(),
-                    logger: new SimpleConsoleLogger(LogLevel.DisableLogs),
-                    settings: new ConnectionPoolSettings(
-                        connectionTimeout: TimeSpan.FromMinutes(15),
-                        connectionsCleanupFrequency: TimeSpan.FromMinutes(15)),
-                    connectionFactory: new ConnectionFactory(new ChannelsFactory())),
-                loggerFactory: new SimpleConsoleLoggerFactory(LogLevel.Error),
-                dateTimeProvider: new DateTimeProvider());
+            var settings = new NetworkSettings
+            {
+                SocketFactory = socketFactory,
+                ChannelsFactory = channelsFactory,
+                MtuSizeLimit = 1500,
+                PollFrequency = 15,
+                UdpClientBufferSize = 2048,
+                AllowIncomingConnections = true,
+                ResendTimeout = TimeSpan.FromSeconds(3),
+                PacketsPoolSize = repeats + 1,
+                ArrayPool = ArrayPool<byte>.Create(maxArrayLength: 2048, maxArraysPerBucket: repeats),
+                PacketsBufferPoolSize = repeats + 1,
+                HeadersBuffersPoolSize = repeats + 1,
+                ConnectionTimeout = TimeSpan.FromMinutes(15),
+                ConnectionsCleanupFrequency = TimeSpan.FromMinutes(15),
+            };
+
+            return new UdpClientFactory(settings);
         }
     }
 }

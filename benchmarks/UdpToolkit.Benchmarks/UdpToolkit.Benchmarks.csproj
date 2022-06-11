@@ -17,6 +17,7 @@
       <ProjectReference Include="..\..\samples\Serialization\Serializers\Serializers.csproj" />
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Framework\UdpToolkit.Framework.csproj" />
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Network\UdpToolkit.Network.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
     </ItemGroup>
 
 </Project>
