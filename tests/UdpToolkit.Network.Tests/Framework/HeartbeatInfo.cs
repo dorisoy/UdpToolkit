@@ -6,7 +6,7 @@ namespace UdpToolkit.Network.Tests.Framework
     {
         internal HeartbeatInfo(
             Guid connectionId,
-            TimeSpan rtt)
+            double rtt)
         {
             ConnectionId = connectionId;
             Rtt = rtt;
@@ -14,6 +14,6 @@ namespace UdpToolkit.Network.Tests.Framework
 
         public Guid ConnectionId { get; }
 
-        public TimeSpan Rtt { get; }
+        public double Rtt { get; }
     }
 }

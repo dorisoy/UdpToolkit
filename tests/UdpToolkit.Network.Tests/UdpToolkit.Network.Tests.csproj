@@ -24,6 +24,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\shared\UdpToolkit.Network\UdpToolkit.Network.csproj" />
+      <ProjectReference Include="..\..\src\shared\UdpToolkit\UdpToolkit.csproj" />
     </ItemGroup>
 
 </Project>

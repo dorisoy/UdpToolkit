@@ -36,7 +36,7 @@
                         var group = groupManager.GetGroup(fetchPeers.GroupId);
 
                         var peers = group.GroupConnections
-                            .Where(x => x.ConnectionId != connectionId)
+                            .Where(x => x.ConnectionId != connectionId) // exclude caller peer
                             .Select(x => new Peer(IpUtils.ToString(x.IpV4Address.Address), x.IpV4Address.Port))
                             .ToList();
 

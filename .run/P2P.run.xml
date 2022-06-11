@@ -1,0 +1,8 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="P2P" type="CompoundRunConfigurationType">
+    <toRun name="P2P.Client1" type="DotNetProject" />
+    <toRun name="P2P.Client2" type="DotNetProject" />
+    <toRun name="P2P.Server" type="DotNetProject" />
+    <method v="2" />
+  </configuration>
+</component>

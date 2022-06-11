@@ -7,7 +7,6 @@ namespace UdpToolkit.Network.Tests
     using System.Net.Sockets;
     using System.Threading;
     using System.Threading.Tasks;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Clients;
     using UdpToolkit.Network.Connections;
@@ -28,28 +27,18 @@ namespace UdpToolkit.Network.Tests
             ISocketFactory socketFactory,
             int mtuSize = int.MaxValue)
         {
+            var settings = new NetworkSettings();
+
             var factory = new UdpClientFactory(
-                udpClientSettings: new UdpClientSettings(
-                    mtuSizeLimit: mtuSize,
-                    udpClientBufferSize: 2048,
-                    pollFrequency: 15,
-                    allowIncomingConnections: true,
-                    resendTimeout: TimeSpan.FromSeconds(10),
-                    channelsFactory: new ChannelsFactory(),
-                    socketFactory: socketFactory,
-                    packetsPoolSize: 1,
-                    packetsBufferPoolSize: 1,
-                    headersBuffersPoolSize: 1,
-                    arrayPool: ArrayPool<byte>.Shared),
+                networkSettings: settings,
                 connectionPool: new ConnectionPool(
                     dateTimeProvider: new DateTimeProvider(),
-                    logger: new SimpleConsoleLogger(LogLevel.DisableLogs),
+                    networkEventReporter: settings.NetworkEventReporter,
                     settings: new ConnectionPoolSettings(
                         connectionTimeout: TimeSpan.FromMinutes(5),
                         connectionsCleanupFrequency: TimeSpan.FromMinutes(5)),
                     connectionFactory: new ConnectionFactory(
                         channelsFactory: new ChannelsFactory())),
-                loggerFactory: new SimpleConsoleLoggerFactory(LogLevel.Debug),
                 dateTimeProvider: new DateTimeProvider());
 
             var client = factory.Create(new IpV4Address(address: IpUtils.ToInt(host), port: port));
@@ -113,13 +102,13 @@ namespace UdpToolkit.Network.Tests
             List<HeartbeatInfo> buffer)
         {
             var heartbeatTask = SubscribeOnHeartbeat();
-            client.Heartbeat(serverIp);
+            client.Ping(serverIp);
             return heartbeatTask;
 
             Task SubscribeOnHeartbeat()
             {
                 var signal = new SemaphoreSlim(0, 1);
-                client.OnHeartbeat += (connectionId, rtt) =>
+                client.OnPing += (connectionId, rtt) =>
                 {
                     buffer.Add(new HeartbeatInfo(connectionId, rtt));
                     signal.Release();

@@ -1,7 +1,9 @@
 ﻿namespace P2P.Client.A
 {
     using System;
+    using System.Collections.Generic;
     using System.Threading;
+    using System.Threading.Tasks;
     using P2P.Contracts;
     using Serializers;
     using UdpToolkit;
@@ -14,25 +16,25 @@
 
     public static class Program
     {
-        private static readonly string Host = "127.0.0.1";
-        private static readonly int Port = 5000;
+        private static readonly List<P2P.Contracts.Peer> Peers = new List<P2P.Contracts.Peer>();
         private static int _connections = 0;
 
-        public static void Main()
+        public static async Task Main(string[] args)
         {
-            var nickname = "ClientA";
+            var nickname = args[0];
+            var isConnected = false;
+            var waitTimeout = TimeSpan.FromSeconds(120);
+
             var host = BuildHost();
             var client = host.HostClient;
 
-            var isConnected = false;
-
-            host.HostClient.OnRttReceived += rtt => Console.WriteLine($"{nickname} rtt - {rtt}");
             host.HostClient.OnConnected += (ipV4, connectionId) =>
             {
                 _connections++;
                 isConnected = true;
                 Console.WriteLine($"{nickname} connected with id - {connectionId}");
             };
+
             host.HostClient.OnDisconnected += (ipV4, connectionId) =>
             {
                 isConnected = false;
@@ -46,6 +48,19 @@
                     return joinEvent.GroupId;
                 });
 
+            host.On<GroupPeers>(
+                onEvent: (connectionId, ip, fetchResult) =>
+                {
+                    Peers.AddRange(fetchResult.Peers);
+
+                    foreach (var peer in Peers)
+                    {
+                        Console.WriteLine($"Peer fetched, {peer.Address}:{peer.Port}! (event)");
+                    }
+
+                    return fetchResult.GroupId;
+                });
+
             host.On<Message>(
                 onEvent: (connectionId, ip, message) =>
                 {
@@ -57,27 +72,41 @@
             host.Run();
             client.Connect(Guid.NewGuid());
 
-            var waitTimeout = TimeSpan.FromSeconds(120);
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
 
             client.Send(
                 @event: new JoinEvent(groupId: Guid.Empty, nickname: nickname),
                 channelId: ReliableChannel.Id);
 
-            client.Connect(host: Host, port: Port, Guid.NewGuid());
-
-            SpinWait.SpinUntil(() => _connections == 2, waitTimeout);
-
-            int counter = 0;
-            while (counter < 1000)
+            while (Peers.Count == 0)
             {
                 client.Send(
-                    @event: new Message(text: $"p2p message from {nickname}", groupId: Guid.Empty),
-                    destination: new IpV4Address(IpUtils.ToInt(Host), (ushort)Port),
+                    @event: new FetchPeers(groupId: Guid.Empty, nickname: nickname),
                     channelId: ReliableChannel.Id);
 
-                Thread.Sleep(1000);
-                counter++;
+                await Task.Delay(1000).ConfigureAwait(false);
+            }
+
+            foreach (var peer in Peers)
+            {
+                client.Connect(host: peer.Address, port: peer.Port, Guid.NewGuid());
+            }
+
+            SpinWait.SpinUntil(() => _connections == Peers.Count, waitTimeout);
+
+            foreach (var peer in Peers)
+            {
+                int counter = 0;
+                while (counter < 1000)
+                {
+                    client.Send(
+                        @event: new Message(text: $"p2p message from {nickname}", groupId: Guid.Empty),
+                        destination: new IpV4Address(IpUtils.ToInt(peer.Address), peer.Port),
+                        channelId: ReliableChannel.Id);
+
+                    Thread.Sleep(1000);
+                    counter++;
+                }
             }
 
             Console.WriteLine("Press any key...");
@@ -94,7 +123,7 @@
                 .ConfigureHost(hostSettings, (settings) =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.HostPorts = new[] { 3000, 3001 };
+                    settings.HostPorts = new[] { 0 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
                 })
@@ -103,7 +132,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerPorts = new[] { 7000, 7001 };
-                    settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
+                    settings.ResendPacketsDelay = 1000; // pass null for disable packets resending
                 })
                 .ConfigureNetwork((settings) =>
                 {
