@@ -8,7 +8,6 @@
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
@@ -123,14 +122,13 @@
                     settings.HostPorts = new[] { 7000, 7001 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Information);
                 })
                 .ConfigureNetwork((settings) =>
                 {
                     settings.ChannelsFactory = new ChannelsFactory();
                     settings.SocketFactory = new NativeSocketFactory();
-                    settings.ConnectionTimeout = TimeSpan.FromSeconds(120);
-                    settings.ResendTimeout = TimeSpan.FromSeconds(120);
+                    settings.ConnectionTimeout = TimeSpan.FromSeconds(15);
+                    settings.ResendTimeout = TimeSpan.FromSeconds(10);
                     settings.AllowIncomingConnections = true;
                 })
                 .BootstrapWorker(new HostWorkerGenerated())

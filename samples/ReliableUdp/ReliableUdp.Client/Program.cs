@@ -3,12 +3,12 @@
     using System;
     using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using ReliableUdp.Contracts;
     using Serializers;
     using UdpToolkit;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Sockets;
 
@@ -18,12 +18,12 @@
         private static bool _isStarted = false;
         private static bool _isOver = false;
 
-        public static void Main()
+        public static void Main(string[] args)
         {
+            var nickname = args[0];
+
             var host = BuildHost();
             var client = host.HostClient;
-
-            var nickname = "Client A";
 
             var isConnected = false;
             var groupManager = host.ServiceProvider.GroupManager;
@@ -88,6 +88,15 @@
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
             Console.WriteLine($"IsConnected - {isConnected}");
 
+            Task.Run(async () =>
+            {
+                while (true)
+                {
+                    await Task.Delay(3000).ConfigureAwait(false);
+                    client.Ping();
+                }
+            });
+
             var joinEvent = ObjectsPool<JoinEvent>.GetOrCreate();
             client.Send(
                 @event: joinEvent.Set(Guid.Empty, nickname),
@@ -126,17 +135,16 @@
                 .ConfigureHost(hostSettings, (settings) =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.HostPorts = new[] { 3000, 3001 };
+                    settings.HostPorts = new[] { 0 };
                     settings.Workers = 8;
                     settings.Executor = new TaskBasedExecutor();
-                    settings.LoggerFactory = new SimpleConsoleLoggerFactory(LogLevel.Information);
                 })
                 .ConfigureHostClient((settings) =>
                 {
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(150);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerPorts = new[] { 7000, 7001 };
-                    settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
+                    settings.ResendPacketsDelay = 1000; // pass null for disable resending
                 })
                 .ConfigureNetwork((settings) =>
                 {

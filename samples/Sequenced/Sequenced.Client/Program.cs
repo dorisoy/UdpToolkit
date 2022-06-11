@@ -15,9 +15,10 @@
     {
         public static async Task Main(string[] args)
         {
+            var nickname = args[0];
+
             var host = BuildHost();
             var client = host.HostClient;
-            var nickname = "Client A";
 
             var isConnected = false;
 
@@ -94,7 +95,7 @@
                 .ConfigureHost(hostSettings, (settings) =>
                 {
                     settings.Host = "127.0.0.1";
-                    settings.HostPorts = new[] { 3000, 3001 };
+                    settings.HostPorts = new[] { 0 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
                 })
@@ -103,7 +104,7 @@
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerPorts = new[] { 7000, 7001 };
-                    settings.HeartbeatDelayInMs = 1000; // pass null for disable heartbeat
+                    settings.ResendPacketsDelay = 1000; // pass null for disable packets resending
                 })
                 .ConfigureNetwork((settings) =>
                 {
