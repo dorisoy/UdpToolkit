@@ -68,6 +68,12 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
+        public void Ping()
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)

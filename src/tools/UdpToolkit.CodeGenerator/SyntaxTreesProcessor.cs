@@ -176,7 +176,6 @@
     using System.Collections.Generic;
     using UdpToolkit.Framework;
     using UdpToolkit.Framework.Contracts;
-    using UdpToolkit.Logging;
     using UdpToolkit.Serialization;
     using UdpToolkit.Network.Contracts.Clients;
 ");
@@ -193,7 +192,6 @@
         private static void GenerateProperties(StringBuilder sb)
         {
             sb.Append(@"
-        public global::UdpToolkit.Logging.ILogger Logger { get; set; }
         public global::UdpToolkit.Serialization.ISerializer Serializer { get; set; }
         public global::UdpToolkit.Framework.Contracts.IBroadcaster Broadcaster { get; set; }
 ");
@@ -302,7 +300,6 @@
             sb.Append(@"                 
                 default:
                 {
-                    Logger.Error($""[UdpToolkit.Framework] Unsupported SubscriptionId(IN): {networkPacket.DataType}"");
                     break;
                 }
             }
@@ -340,7 +337,6 @@
             sb.Append(@"                 
                 default:
                 {
-                    Logger.Error($""[UdpToolkit.Framework] Unsupported subscriptionId(OUT): {outPacket.DataType}"");
                     return;
                 }
             }

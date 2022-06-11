@@ -61,6 +61,11 @@ namespace UdpToolkit.Framework.Contracts
             int port);
 
         /// <summary>
+        /// Ping remote host.
+        /// </summary>
+        void Ping();
+
+        /// <summary>
         /// Send event to the remote host.
         /// </summary>
         /// <param name="event">user-defined event instance.</param>

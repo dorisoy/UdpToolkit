@@ -13,13 +13,13 @@ namespace UdpToolkit.Network.Contracts.Connections
         /// </summary>
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="keepAlive">Flag indicating whether needs to remove the connection from the pool on cleanup scan.</param>
-        /// <param name="lastHeartbeat">Last heartbeat (init value).</param>
+        /// <param name="createdAt">Creation date time.</param>
         /// <param name="ipAddress">Ip address of connection.</param>
         /// <returns>Connection instance.</returns>
         IConnection Create(
             Guid connectionId,
             bool keepAlive,
-            DateTimeOffset lastHeartbeat,
+            DateTimeOffset createdAt,
             IpV4Address ipAddress);
     }
 }

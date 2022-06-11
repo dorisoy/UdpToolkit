@@ -21,7 +21,7 @@ namespace UdpToolkit.Network.Contracts.Protocol
         /// <summary>
         /// Heartbeat packet.
         /// </summary>
-        Heartbeat = 4,
+        Ping = 4,
 
         /// <summary>
         /// User-defined packet.

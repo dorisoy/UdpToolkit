@@ -37,9 +37,9 @@ namespace UdpToolkit.Network.Contracts.Connections
         IpV4Address IpV4Address { get; }
 
         /// <summary>
-        /// Gets a date time of the last heartbeat.
+        /// Gets a date time of the last connection activity.
         /// </summary>
-        DateTimeOffset LastHeartbeat { get; }
+        DateTimeOffset LastActivityAt { get; }
 
         /// <summary>
         /// Get channel for incoming packet by channel id.
@@ -62,23 +62,30 @@ namespace UdpToolkit.Network.Contracts.Connections
             out IChannel channel);
 
         /// <summary>
-        /// Updates HeartbeatAck value.
+        /// Updates last ping acknowledge date.
         /// </summary>
         /// <param name="utcNow">DateTime utc now.</param>
-        void OnHeartbeatAck(
+        void OnPingAck(
             DateTimeOffset utcNow);
 
         /// <summary>
-        /// Updates LastHeartbeat value.
+        /// Updates last ping date.
         /// </summary>
         /// <param name="utcNow">DateTime utc now.</param>
-        void OnHeartbeat(
+        void OnPing(
+            DateTimeOffset utcNow);
+
+        /// <summary>
+        /// Updates last connection activity date.
+        /// </summary>
+        /// <param name="utcNow">DateTime utc now.</param>
+        void OnConnectionActivity(
             DateTimeOffset utcNow);
 
         /// <summary>
         /// Gets current RTT for connection.
         /// </summary>
         /// <returns>RTT in ms.</returns>
-        TimeSpan GetRtt();
+        double GetRtt();
     }
 }

@@ -48,13 +48,13 @@ namespace UdpToolkit.Network.Contracts.Clients
         event Action<IpV4Address, Guid> OnDisconnected;
 
         /// <summary>
-        /// Raised when heartbeat received.
+        /// Raised when ping acknowledge received.
         /// </summary>
         /// <remarks>
         /// Guid - connectionId
-        /// TimeSpan - rtt for specific connection
+        /// double - rtt for specific connection
         /// </remarks>
-        event Action<Guid, TimeSpan> OnHeartbeat;
+        event Action<Guid, double> OnPing;
 
         /// <summary>
         /// Check state of connection to another UDP client.
@@ -74,10 +74,15 @@ namespace UdpToolkit.Network.Contracts.Clients
             Guid connectionId);
 
         /// <summary>
-        /// Send heartbeat.
+        /// Resend packets.
         /// </summary>
-        /// <param name="ipV4Address">Destination ip address.</param>
-        void Heartbeat(
+        void ResendPackets();
+
+        /// <summary>
+        /// Resend packets.
+        /// </summary>
+        /// <param name="ipV4Address">Another UDP client address.</param>
+        void Ping(
             IpV4Address ipV4Address);
 
         /// <summary>

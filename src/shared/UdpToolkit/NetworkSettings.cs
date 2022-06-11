@@ -2,9 +2,10 @@ namespace UdpToolkit
 {
     using System;
     using System.Buffers;
-    using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Channels;
+    using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Channels;
+    using UdpToolkit.Network.Contracts.Events;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Network.Sockets;
 
@@ -49,5 +50,8 @@ namespace UdpToolkit
 
         /// <inheritdoc />
         public ArrayPool<byte> ArrayPool { get; set; } = ArrayPool<byte>.Shared;
+
+        /// <inheritdoc />
+        public INetworkEventReporter NetworkEventReporter { get; set; } = new DefaultNetworkEventReporter();
     }
 }

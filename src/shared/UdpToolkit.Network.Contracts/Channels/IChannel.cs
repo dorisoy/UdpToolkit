@@ -11,7 +11,7 @@ namespace UdpToolkit.Network.Contracts.Channels
     public interface IChannel
     {
         /// <summary>
-        /// Gets a value indicating whether a resending on heartbeat requirement.
+        /// Gets a value indicating whether a resending packets requirement.
         /// </summary>
         bool IsReliable { get; }
 

@@ -19,14 +19,14 @@ namespace UdpToolkit.Network.Connections
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="keepAlive">Flag indicating whether needs to remove the connection from the pool on cleanup scan.</param>
         /// <param name="ipAddress">Ip address of connection.</param>
-        /// <param name="lastHeartbeat">Last heartbeat (init value).</param>
+        /// <param name="createdAt">Connection creation date.</param>
         /// <param name="inputChannelsMap">Map of input channels.</param>
         /// <param name="outputChannelsMap">Map of output channels.</param>
         internal Connection(
             Guid connectionId,
             bool keepAlive,
             IpV4Address ipAddress,
-            DateTimeOffset lastHeartbeat,
+            DateTimeOffset createdAt,
             IReadOnlyDictionary<byte, IChannel> inputChannelsMap,
             IReadOnlyDictionary<byte, IChannel> outputChannelsMap)
         {
@@ -35,7 +35,7 @@ namespace UdpToolkit.Network.Connections
             ConnectionId = connectionId;
             IpV4Address = ipAddress;
             KeepAlive = keepAlive;
-            LastHeartbeat = lastHeartbeat;
+            LastActivityAt = createdAt;
             PendingPackets = new List<PendingPacket>(100); // TODO move to config
         }
 
@@ -52,9 +52,11 @@ namespace UdpToolkit.Network.Connections
         public IpV4Address IpV4Address { get; }
 
         /// <inheritdoc />
-        public DateTimeOffset LastHeartbeat { get; private set; }
+        public DateTimeOffset LastActivityAt { get; private set; }
 
-        private DateTimeOffset? LastHeartbeatAck { get; set; }
+        private DateTimeOffset LastPing { get; set; }
+
+        private DateTimeOffset? LastPingAck { get; set; }
 
         /// <inheritdoc />
         public bool GetIncomingChannel(byte channelId, out IChannel channel) => _inputChannelsMap.TryGetValue(channelId, out channel);
@@ -63,22 +65,34 @@ namespace UdpToolkit.Network.Connections
         public bool GetOutgoingChannel(byte channelId, out IChannel channel) => _outputChannelsMap.TryGetValue(channelId, out channel);
 
         /// <inheritdoc />
-        public void OnHeartbeatAck(
+        public void OnPingAck(
             DateTimeOffset utcNow)
         {
-            LastHeartbeatAck = utcNow;
+            LastPingAck = utcNow;
         }
 
         /// <inheritdoc />
-        public void OnHeartbeat(
+        public void OnPing(
             DateTimeOffset utcNow)
         {
-            LastHeartbeat = utcNow;
+            LastPing = utcNow;
         }
 
         /// <inheritdoc />
-        public TimeSpan GetRtt() => LastHeartbeatAck.HasValue
-            ? LastHeartbeatAck.Value - LastHeartbeat
-            : TimeSpan.Zero;
+        public void OnConnectionActivity(
+            DateTimeOffset utcNow)
+        {
+            LastActivityAt = utcNow;
+        }
+
+        /// <inheritdoc />
+        public double GetRtt()
+        {
+            var diff = LastPingAck.HasValue
+                ? LastPingAck.Value - LastPing
+                : default;
+
+            return diff.TotalMilliseconds;
+        }
     }
 }

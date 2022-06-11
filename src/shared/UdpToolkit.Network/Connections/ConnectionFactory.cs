@@ -25,7 +25,7 @@ namespace UdpToolkit.Network.Connections
         public IConnection Create(
             Guid connectionId,
             bool keepAlive,
-            DateTimeOffset lastHeartbeat,
+            DateTimeOffset createdAt,
             IpV4Address ipAddress)
         {
             var outputChannelsMap = _channelsFactory
@@ -39,8 +39,8 @@ namespace UdpToolkit.Network.Connections
             return new Connection(
                 connectionId: connectionId,
                 keepAlive: keepAlive,
-                lastHeartbeat: lastHeartbeat,
                 ipAddress: ipAddress,
+                createdAt: createdAt,
                 outputChannelsMap: outputChannelsMap,
                 inputChannelsMap: inputChannelsMap);
         }
