@@ -5,7 +5,7 @@ namespace UdpToolkit.Network.Contracts.Events.UdpClient
     /// <summary>
     /// Raised when received acknowledge for connect packet.
     /// </summary>
-    public struct ConnectAckReceived
+    public readonly struct ConnectAckReceived
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ConnectAckReceived"/> struct.

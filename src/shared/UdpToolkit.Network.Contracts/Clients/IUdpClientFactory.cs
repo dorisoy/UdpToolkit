@@ -10,6 +10,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <summary>
         /// Create UdpClient.
         /// </summary>
+        /// <param name="id">Client identifier.</param>
         /// <param name="ipV4Address">Ip address for UdpClient.</param>
         /// <returns>
         /// Instance of UdpClient.
@@ -18,6 +19,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// All UdpClient instances share common connection pool.
         /// </remarks>
         IUdpClient Create(
+            string id,
             IpV4Address ipV4Address);
     }
 }

@@ -5,7 +5,7 @@ namespace UdpToolkit.Network.Contracts.Events.UdpClient
     /// <summary>
     /// Raised when connect packet received.
     /// </summary>
-    public struct ConnectReceived
+    public readonly struct ConnectReceived
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="ConnectReceived"/> struct.

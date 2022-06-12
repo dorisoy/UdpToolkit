@@ -1,5 +1,7 @@
 namespace UdpToolkit.Network.Contracts.Events
 {
+    using System;
+
     /// <summary>
     /// Raised when inactive connection scan started.
     /// </summary>
@@ -8,16 +10,16 @@ namespace UdpToolkit.Network.Contracts.Events
         /// <summary>
         /// Initializes a new instance of the <see cref="ScanInactiveConnectionsStarted"/> struct.
         /// </summary>
-        /// <param name="connectionsCount">Connections count.</param>
+        /// <param name="startedAt">Connections count.</param>
         public ScanInactiveConnectionsStarted(
-            int connectionsCount)
+            DateTimeOffset startedAt)
         {
-            ConnectionsCount = connectionsCount;
+            StartedAt = startedAt;
         }
 
         /// <summary>
         /// Gets started at date time.
         /// </summary>
-        public int ConnectionsCount { get; }
+        public DateTimeOffset StartedAt { get; }
     }
 }

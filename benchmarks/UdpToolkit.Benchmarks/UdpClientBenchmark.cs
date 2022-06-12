@@ -40,7 +40,7 @@ namespace UdpToolkit.Benchmarks
                     repeats: Repeats,
                     socketFactory: new NativeSocketFactory(),
                     channelsFactory: new FakeChannelsFactory())
-                .Create(ipV4Address: new IpV4Address(0, 0));
+                .Create(Guid.NewGuid().ToString(), ipV4Address: new IpV4Address(0, 0));
             _destination = new IpV4Address(0, 0);
 
             // add connection to pool
@@ -56,7 +56,7 @@ namespace UdpToolkit.Benchmarks
                     repeats: Repeats,
                     socketFactory: new FakeSocketFactory(),
                     channelsFactory: new FakeChannelsFactory())
-                .Create(ipV4Address: new IpV4Address(0, 0));
+                .Create(Guid.NewGuid().ToString(), ipV4Address: new IpV4Address(0, 0));
             _destination = new IpV4Address(0, 0);
         }
 

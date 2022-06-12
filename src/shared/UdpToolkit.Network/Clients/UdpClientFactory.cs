@@ -39,6 +39,7 @@ namespace UdpToolkit.Network.Clients
 
         /// <inheritdoc />
         public unsafe IUdpClient Create(
+            string id,
             IpV4Address ipV4Address)
         {
             var packetsPool = new ConcurrentPool<InNetworkPacket>(
@@ -48,6 +49,7 @@ namespace UdpToolkit.Network.Clients
                 initSize: _networkSettings.PacketsPoolSize);
 
             return new UdpClient(
+                id: id,
                 connectionPool: _connectionPool,
                 networkEventReporter: this._networkSettings.NetworkEventReporter,
                 dateTimeProvider: _dateTimeProvider,

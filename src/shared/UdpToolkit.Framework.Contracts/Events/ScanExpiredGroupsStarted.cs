@@ -1,5 +1,7 @@
 namespace UdpToolkit.Framework.Contracts.Events
 {
+    using System;
+
     /// <summary>
     /// Raised when expired groups started.
     /// </summary>
@@ -8,16 +10,16 @@ namespace UdpToolkit.Framework.Contracts.Events
         /// <summary>
         /// Initializes a new instance of the <see cref="ScanExpiredGroupsStarted"/> struct.
         /// </summary>
-        /// <param name="groupsCount">Groups count.</param>
+        /// <param name="startedAt">Start date time.</param>
         public ScanExpiredGroupsStarted(
-            int groupsCount)
+            DateTimeOffset startedAt)
         {
-            GroupsCount = groupsCount;
+            StartedAt = startedAt;
         }
 
         /// <summary>
         /// Gets groups count.
         /// </summary>
-        public int GroupsCount { get; }
+        public DateTimeOffset StartedAt { get; }
     }
 }

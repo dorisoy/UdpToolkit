@@ -82,7 +82,7 @@ namespace UdpToolkit.Framework
         private void CleanupExpiredTimers(
             object state)
         {
-            _hostEventReporter.Handle(new ScanExpiredTimersStarted(123));
+            _hostEventReporter.Handle(new ScanExpiredTimersStarted(_dateTimeProvider.GetUtcNow()));
 
             for (int i = 0; i < _timers.Count; i++)
             {
@@ -94,8 +94,7 @@ namespace UdpToolkit.Framework
 
                     if (_timers.TryRemove(pair.Key, out _))
                     {
-                        var expiredTimerRemoved = new ExpiredTimerRemoved(pair.Key);
-                        _hostEventReporter.Handle(in expiredTimerRemoved);
+                        _hostEventReporter.Handle(new ExpiredTimerRemoved(pair.Key));
                     }
                 }
             }

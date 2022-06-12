@@ -1,17 +1,17 @@
-namespace UdpToolkit.Network.Contracts.Events.UdpClient
+﻿namespace UdpToolkit.Network.Contracts.Events.UdpClient
 {
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
-    /// Raised when received disconnect ack packet.
+    /// Raised whe expired packet removed from resend queue.
     /// </summary>
-    public readonly struct DisconnectAckReceived
+    public readonly struct PendingPacketResent
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="DisconnectAckReceived"/> struct.
+        /// Initializes a new instance of the <see cref="PendingPacketResent"/> struct.
         /// </summary>
         /// <param name="remoteIp">Remote ip address.</param>
-        public DisconnectAckReceived(IpV4Address remoteIp)
+        public PendingPacketResent(IpV4Address remoteIp)
         {
             RemoteIp = remoteIp;
         }

@@ -28,7 +28,7 @@ namespace UdpToolkit.Network.Tests
             var factory = new UdpClientFactory(
                 networkSettings: settings);
 
-            var client = factory.Create(new IpV4Address(address: IpUtils.ToInt(host), port: port));
+            var client = factory.Create(Guid.NewGuid().ToString(), new IpV4Address(address: IpUtils.ToInt(host), port: port));
 
             Task.Run(() => client.StartReceive(default));
 

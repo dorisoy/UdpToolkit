@@ -39,5 +39,12 @@ namespace UdpToolkit.Framework.Contracts.Events
         /// <param name="event">ScanExpiredGroupsStarted event.</param>
         void Handle(
             in ScanExpiredGroupsStarted @event);
+
+        /// <summary>
+        /// QueueItemConsumed handler.
+        /// </summary>
+        /// <param name="event">QueueItemConsumed event.</param>
+        void Handle(
+            in QueueItemConsumed @event);
     }
 }

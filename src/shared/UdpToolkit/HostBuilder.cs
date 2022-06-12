@@ -94,12 +94,13 @@ namespace UdpToolkit
                 .ToArray();
 
             var udpClients = hostIps
-                .Select(hostIp => udpClientFactory.Create(hostIp))
+                .Select((hostIp, id) => udpClientFactory.Create(id: $"UdpClient_{id}", hostIp))
                 .ToArray();
 
             // out packets processing
             var outQueues = udpClients
-                .Select(sender => new BlockingAsyncQueue<OutNetworkPacket>(
+                .Select((sender, id) => new BlockingAsyncQueue<OutNetworkPacket>(
+                    id: $"Sender_{id}",
                     boundedCapacity: int.MaxValue,
                     action: (outPacket) =>
                     {
@@ -142,9 +143,10 @@ namespace UdpToolkit
 
             // in packets processing
             var inQueues = Enumerable.Range(0, HostSettings.Workers)
-                .Select(_ =>
+                .Select(id =>
                 {
                     return new BlockingAsyncQueue<InNetworkPacket>(
+                        id: $"Worker_{id}",
                         boundedCapacity: int.MaxValue,
                         action: (networkPacket) =>
                         {

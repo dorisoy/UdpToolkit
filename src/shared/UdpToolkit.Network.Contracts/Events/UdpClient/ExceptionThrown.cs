@@ -5,13 +5,13 @@ namespace UdpToolkit.Network.Contracts.Events.UdpClient
     /// <summary>
     /// Raised when network exception thrown.
     /// </summary>
-    public readonly struct NetworkExceptionThrown
+    public readonly struct ExceptionThrown
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="NetworkExceptionThrown"/> struct.
+        /// Initializes a new instance of the <see cref="ExceptionThrown"/> struct.
         /// </summary>
         /// <param name="exception">Exception instance.</param>
-        public NetworkExceptionThrown(
+        public ExceptionThrown(
             Exception exception)
         {
             Exception = exception;

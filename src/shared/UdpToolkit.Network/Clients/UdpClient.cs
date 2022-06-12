@@ -24,6 +24,7 @@ namespace UdpToolkit.Network.Clients
     /// <inheritdoc />
     internal sealed class UdpClient : IUdpClient
     {
+        private readonly string _id;
         private readonly IDateTimeProvider _dateTimeProvider;
         private readonly ISocket _client;
         private readonly INetworkEventReporter _networkEventReporter;
@@ -47,6 +48,7 @@ namespace UdpToolkit.Network.Clients
         /// <param name="settings">Instance of settings.</param>
         /// <param name="packetsPool">Pool of network packets.</param>
         /// <param name="arrayPool">Array pool.</param>
+        /// <param name="id">UdpClient identifier.</param>
         internal UdpClient(
             IConnectionPool connectionPool,
             INetworkEventReporter networkEventReporter,
@@ -54,7 +56,8 @@ namespace UdpToolkit.Network.Clients
             ISocket client,
             INetworkSettings settings,
             ConcurrentPool<InNetworkPacket> packetsPool,
-            ArrayPool<byte> arrayPool)
+            ArrayPool<byte> arrayPool,
+            string id)
         {
             _client = client;
             _connectionPool = connectionPool;
@@ -63,6 +66,7 @@ namespace UdpToolkit.Network.Clients
             _settings = settings;
             _packetsPool = packetsPool;
             _arrayPool = arrayPool;
+            _id = id;
 
             // TODO move count of resend jobs to config
             for (int i = 0; i < 2; i++)
@@ -153,8 +157,7 @@ namespace UdpToolkit.Network.Clients
                 }
                 else
                 {
-                    var channelNotFound = new ChannelNotFound(ReliableChannel.Id);
-                    _networkEventReporter.Handle(in channelNotFound);
+                    _networkEventReporter.Handle(new ChannelNotFound(ReliableChannel.Id));
 
                     _arrayPool.Return(buffer);
                 }
@@ -164,8 +167,7 @@ namespace UdpToolkit.Network.Clients
                 _arrayPool.Return(buffer);
                 ConnectionId = default;
 
-                var exceptionThrown = new NetworkExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                 throw;
             }
@@ -198,8 +200,7 @@ namespace UdpToolkit.Network.Clients
             catch (Exception ex)
             {
                 _arrayPool.Return(buffer);
-                var exceptionThrown = new NetworkExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                 throw;
             }
@@ -230,8 +231,7 @@ namespace UdpToolkit.Network.Clients
             catch (Exception ex)
             {
                 _arrayPool.Return(buffer);
-                var exceptionThrown = new NetworkExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                 throw;
             }
@@ -255,8 +255,7 @@ namespace UdpToolkit.Network.Clients
             catch (Exception ex)
             {
                 _arrayPool.Return(buffer);
-                var exceptionThrown = new NetworkExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                 throw;
             }
@@ -324,8 +323,7 @@ namespace UdpToolkit.Network.Clients
             catch (Exception ex)
             {
                 _arrayPool.Return(buffer);
-                var exceptionThrown = new NetworkExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                 throw;
             }
@@ -336,8 +334,7 @@ namespace UdpToolkit.Network.Clients
             CancellationToken cancellationToken)
         {
             var ipV4Address = _client.GetLocalIp();
-            var udpClientStarted = new UdpClientStarted(ipV4Address);
-            _networkEventReporter.Handle(in udpClientStarted);
+            _networkEventReporter.Handle(new ReceivingStarted(_id, ipV4Address));
 
             var buffer = new byte[_settings.UdpClientBufferSize];
             var remoteIp = new IpV4Address(0, 0);
@@ -362,8 +359,7 @@ namespace UdpToolkit.Network.Clients
                 {
                     if (receivedBytes < Consts.NetworkHeaderSize)
                     {
-                        var @event = new InvalidHeaderReceived(remoteIp, buffer);
-                        _networkEventReporter.Handle(in @event);
+                        _networkEventReporter.Handle(new InvalidHeaderReceived(remoteIp, buffer));
 
                         if (OnInvalidPacketReceived == null)
                         {
@@ -412,8 +408,7 @@ namespace UdpToolkit.Network.Clients
                     catch (Exception ex)
                     {
                         _arrayPool.Return(payloadBuffer);
-                        var exceptionThrown = new NetworkExceptionThrown(ex);
-                        _networkEventReporter.Handle(in exceptionThrown);
+                        _networkEventReporter.Handle(new ExceptionThrown(ex));
 
                         throw;
                     }
@@ -567,6 +562,8 @@ namespace UdpToolkit.Network.Clients
             {
                 case PacketType.Ping when ExistsBothIn(connectionId, channelId, out _, out var channel):
                 {
+                    _networkEventReporter.Handle(new PingReceived(remoteIp));
+
                     SendAckPacket(
                         channel: channel,
                         ipV4Address: remoteIp,
@@ -577,6 +574,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Ping | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new PingAckReceived(remoteIp));
+
                     if (channel.HandleAck(networkHeader))
                     {
                         connection.OnPingAck(_dateTimeProvider.GetUtcNow());
@@ -588,6 +587,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Disconnect when ExistsBothIn(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new DisconnectReceived(remoteIp));
+
                     if (channel.HandleInputPacket(networkHeader))
                     {
                         _connectionPool.Remove(connection);
@@ -603,6 +604,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Disconnect | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new DisconnectAckReceived(remoteIp));
+
                     if (channel.HandleAck(networkHeader))
                     {
                         ConnectionId = default;
@@ -614,10 +617,11 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Connect:
                 {
+                    _networkEventReporter.Handle(new ConnectReceived(remoteIp));
+
                     if (!_settings.AllowIncomingConnections && networkHeader.PacketType == PacketType.Connect)
                     {
-                        var connectionRejected = new ConnectionRejected(remoteIp);
-                        _networkEventReporter.Handle(in connectionRejected);
+                        _networkEventReporter.Handle(new ConnectionRejected(remoteIp));
 
                         break;
                     }
@@ -630,8 +634,7 @@ namespace UdpToolkit.Network.Clients
 
                     if (!newConnection.GetIncomingChannel(networkHeader.ChannelId, out var inChannel) || !newConnection.GetOutgoingChannel(networkHeader.ChannelId, out _))
                     {
-                        var channelNotFound = new ChannelNotFound(networkHeader.ChannelId);
-                        _networkEventReporter.Handle(in channelNotFound);
+                        _networkEventReporter.Handle(new ChannelNotFound(networkHeader.ChannelId));
                         break;
                     }
 
@@ -647,6 +650,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.Connect | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new ConnectAckReceived(remoteIp));
+
                     if (channel.HandleAck(networkHeader))
                     {
                         OnConnected?.Invoke(remoteIp, connection.ConnectionId);
@@ -657,6 +662,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.UserDefined when ExistsBothIn(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new UserDefinedReceived(_id, networkHeader.DataType, remoteIp));
+
                     channel.HandleInputPacket(networkHeader);
                     SendAckPacket(
                         channel: channel,
@@ -685,6 +692,8 @@ namespace UdpToolkit.Network.Clients
 
                 case PacketType.UserDefined | PacketType.Ack when ExistsBothOut(connectionId, channelId, out var connection, out var channel):
                 {
+                    _networkEventReporter.Handle(new UserDefinedAckReceived(networkHeader.DataType, remoteIp));
+
                     channel.HandleAck(networkHeader);
 
                     break;
@@ -709,11 +718,13 @@ namespace UdpToolkit.Network.Clients
                         connection.PendingPackets.RemoveAt(i);
                         if (isExpired)
                         {
+                            _networkEventReporter.Handle(new ExpiredPacketRemoved(connection.IpV4Address));
                             OnPacketExpired?.Invoke(default);
                         }
                     }
                     else
                     {
+                        _networkEventReporter.Handle(new PendingPacketResent(connection.IpV4Address));
                         var ip = pendingPacket.IpV4Address;
                         _client.Send(ref ip, pendingPacket.Buffer, pendingPacket.PayloadLength);
                     }
@@ -731,8 +742,7 @@ namespace UdpToolkit.Network.Clients
 
             if (!_connectionPool.TryGetConnection(connectionId, out connection))
             {
-                var connectionNotFound = new ConnectionNotFound(connectionId);
-                _networkEventReporter.Handle(in connectionNotFound);
+                _networkEventReporter.Handle(new ConnectionNotFound(connectionId));
 
                 return false;
             }
@@ -744,8 +754,7 @@ namespace UdpToolkit.Network.Clients
                 return true;
             }
 
-            var channelNotFound = new ChannelNotFound(channelId);
-            _networkEventReporter.Handle(in channelNotFound);
+            _networkEventReporter.Handle(new ChannelNotFound(channelId));
             return false;
         }
 
@@ -759,8 +768,7 @@ namespace UdpToolkit.Network.Clients
 
             if (!_connectionPool.TryGetConnection(connectionId, out connection))
             {
-                var connectionNotFound = new ConnectionNotFound(connectionId);
-                _networkEventReporter.Handle(in connectionNotFound);
+                _networkEventReporter.Handle(new ConnectionNotFound(connectionId));
 
                 return false;
             }
@@ -772,8 +780,7 @@ namespace UdpToolkit.Network.Clients
                 return true;
             }
 
-            var channelNotFound = new ChannelNotFound(channelId);
-            _networkEventReporter.Handle(in channelNotFound);
+            _networkEventReporter.Handle(new ChannelNotFound(channelId));
             return false;
         }
 

@@ -14,6 +14,7 @@ namespace UdpToolkit.Framework
     /// </typeparam>
     public sealed class BlockingAsyncQueue<TItem> : IAsyncQueue<TItem>
     {
+        private readonly string _id;
         private readonly Action<TItem> _action;
         private readonly BlockingCollection<TItem> _input;
         private readonly IHostEventReporter _hostEventReporter;
@@ -26,13 +27,16 @@ namespace UdpToolkit.Framework
         /// <param name="boundedCapacity">Size of capacity for the async queue.</param>
         /// <param name="action">Action for process consumed items.</param>
         /// <param name="hostEventReporter">Host event reporter.</param>
+        /// <param name="id">Queue identifier.</param>
         public BlockingAsyncQueue(
             int boundedCapacity,
             Action<TItem> action,
-            IHostEventReporter hostEventReporter)
+            IHostEventReporter hostEventReporter,
+            string id)
         {
             _action = action;
             _hostEventReporter = hostEventReporter;
+            _id = id;
             _input = new BlockingCollection<TItem>(
                 boundedCapacity: boundedCapacity,
                 collection: new ConcurrentQueue<TItem>());
@@ -78,16 +82,16 @@ namespace UdpToolkit.Framework
         {
             try
             {
-                foreach (var @event in _input.GetConsumingEnumerable())
+                foreach (var item in _input.GetConsumingEnumerable())
                 {
                     try
                     {
-                        _action(@event);
+                        _hostEventReporter.Handle(new QueueItemConsumed(_id));
+                        _action(item);
                     }
                     catch (Exception ex)
                     {
-                        var exceptionThrown = new ExceptionThrown(ex);
-                        _hostEventReporter.Handle(in exceptionThrown);
+                        _hostEventReporter.Handle(new ExceptionThrown(ex));
                     }
                 }
             }

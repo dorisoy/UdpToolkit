@@ -1,5 +1,7 @@
 namespace UdpToolkit.Framework.Contracts.Events
 {
+    using System;
+
     /// <summary>
     /// Raised when scan expired timers started.
     /// </summary>
@@ -8,16 +10,16 @@ namespace UdpToolkit.Framework.Contracts.Events
         /// <summary>
         /// Initializes a new instance of the <see cref="ScanExpiredTimersStarted"/> struct.
         /// </summary>
-        /// <param name="timersCount">Times count.</param>
+        /// <param name="startedAt">Start date time.</param>
         public ScanExpiredTimersStarted(
-            int timersCount)
+            DateTimeOffset startedAt)
         {
-            TimersCount = timersCount;
+            StartedAt = startedAt;
         }
 
         /// <summary>
         /// Gets timers count.
         /// </summary>
-        public int TimersCount { get; }
+        public DateTimeOffset StartedAt { get; }
     }
 }
