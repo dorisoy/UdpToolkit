@@ -86,12 +86,14 @@ namespace UdpToolkit.Framework
                 {
                     try
                     {
-                        _hostEventReporter.Handle(new QueueItemConsumed(_id));
+                        var queueItemConsumed = new QueueItemConsumed(_id);
+                        _hostEventReporter.Handle(in queueItemConsumed);
                         _action(item);
                     }
                     catch (Exception ex)
                     {
-                        _hostEventReporter.Handle(new ExceptionThrown(ex));
+                        var exceptionThrown = new ExceptionThrown(ex);
+                        _hostEventReporter.Handle(in exceptionThrown);
                     }
                 }
             }

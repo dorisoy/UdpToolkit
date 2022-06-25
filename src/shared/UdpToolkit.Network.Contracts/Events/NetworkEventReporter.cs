@@ -139,7 +139,7 @@ namespace UdpToolkit.Network.Contracts.Events
 
         /// <inheritdoc />
         public virtual void Handle(
-            ExpiredPacketRemoved @event)
+            in ExpiredPacketRemoved @event)
         {
             // nothing todd by default
         }

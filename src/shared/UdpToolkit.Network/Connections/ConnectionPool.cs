@@ -95,7 +95,8 @@ namespace UdpToolkit.Network.Connections
             var newConnection = _connectionFactory.Create(connectionId, keepAlive, timestamp, ipV4Address);
             if (_connections.TryAdd(connectionId, newConnection))
             {
-                _networkEventReporter.Handle(new ConnectionAccepted(ipV4Address));
+                var connectionAccepted = new ConnectionAccepted(ipV4Address);
+                _networkEventReporter.Handle(in connectionAccepted);
 
                 return newConnection;
             }
@@ -112,7 +113,9 @@ namespace UdpToolkit.Network.Connections
         private void ScanForCleaningInactiveConnections(object state)
         {
             var now = _dateTimeProvider.GetUtcNow();
-            _networkEventReporter.Handle(new ScanInactiveConnectionsStarted(now));
+
+            var scanStarted = new ScanInactiveConnectionsStarted(now);
+            _networkEventReporter.Handle(in scanStarted);
 
             for (var i = 0; i < _connections.Count; i++)
             {
@@ -125,7 +128,8 @@ namespace UdpToolkit.Network.Connections
                 var inactivityDiff = now - connection.Value.LastActivityAt;
                 if (inactivityDiff > _inactivityTimeout && _connections.TryRemove(connection.Key, out _))
                 {
-                    _networkEventReporter.Handle(new ConnectionRemovedByTimeout(connection.Key, inactivityDiff));
+                    var connectionRemoved = new ConnectionRemovedByTimeout(connection.Key, inactivityDiff);
+                    _networkEventReporter.Handle(in connectionRemoved);
                 }
             }
         }

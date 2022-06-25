@@ -114,11 +114,13 @@ namespace UdpToolkit.Framework
                     cancellationToken: token);
             }
 
-            _hostEventReporter.Handle(new HostStarted(
+            var hostStarted = new HostStarted(
                 receiversCount: _udpClients.Length,
                 sendersCount: _outQueueDispatcher.Count,
                 workersCount: _inQueueDispatcher.Count,
-                executor: this._executor));
+                executor: this._executor);
+
+            _hostEventReporter.Handle(in hostStarted);
         }
 
         /// <inheritdoc />

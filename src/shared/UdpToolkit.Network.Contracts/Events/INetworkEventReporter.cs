@@ -145,6 +145,6 @@ namespace UdpToolkit.Network.Contracts.Events
         /// </summary>
         /// <param name="event">ExpiredPacketRemoved event.</param>
         void Handle(
-            ExpiredPacketRemoved @event);
+            in ExpiredPacketRemoved @event);
     }
 }

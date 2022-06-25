@@ -126,7 +126,8 @@ namespace UdpToolkit.Framework
         private void ScanForCleaningInactiveGroups(object state)
         {
             var now = _dateTimeProvider.GetUtcNow();
-            _hostEventReporter.Handle(new ScanExpiredGroupsStarted(now));
+            var scanStarted = new ScanExpiredGroupsStarted(now);
+            _hostEventReporter.Handle(in scanStarted);
             for (var i = 0; i < _groups.Count; i++)
             {
                 var group = _groups.ElementAt(i);
