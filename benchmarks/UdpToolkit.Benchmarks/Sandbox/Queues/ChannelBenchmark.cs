@@ -35,7 +35,7 @@ namespace UdpToolkit.Benchmarks.Sandbox.Queues
         {
             for (int i = 0; i < Repeats; i++)
             {
-                _pendingPackets.Writer.TryWrite(new PendingPacket(default, default, default, default, default, default));
+                _pendingPackets.Writer.TryWrite(new PendingPacket(default, default, default, default, default, default, default));
             }
         }
 
@@ -44,7 +44,7 @@ namespace UdpToolkit.Benchmarks.Sandbox.Queues
         {
             for (int i = 0; i < Repeats; i++)
             {
-                await _pendingPackets.Writer.WriteAsync(new PendingPacket(default, default, default, default, default, default)).ConfigureAwait(false);
+                await _pendingPackets.Writer.WriteAsync(new PendingPacket(default, default, default, default, default, default, default)).ConfigureAwait(false);
             }
         }
 

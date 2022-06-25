@@ -3,6 +3,7 @@ namespace UdpToolkit.Framework.Contracts
 {
     using System;
     using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Serialization;
 
     /// <summary>
@@ -33,6 +34,13 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="outPacket">Output packet.</param>
         void Process(
             OutNetworkPacket outPacket);
+
+        /// <summary>
+        /// Process expired packet.
+        /// </summary>
+        /// <param name="pendingPacket">Pending packet.</param>
+        void Process(
+            in PendingPacket pendingPacket);
 
         /// <summary>
         /// Process output packet.

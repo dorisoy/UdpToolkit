@@ -95,5 +95,10 @@ namespace UdpToolkit.Framework
         /// Gets or sets Executor instance.
         /// </summary>
         public IExecutor Executor { get; set; } = new ThreadBasedExecutor();
+
+        /// <summary>
+        /// Gets or sets resends packets interval.
+        /// </summary>
+        public TimeSpan ResendPacketsInterval { get; set; } = TimeSpan.FromSeconds(1);
     }
 }

@@ -2,11 +2,9 @@ namespace UdpToolkit.Network.Clients
 {
     using System;
     using System.Buffers;
-    using System.Collections.Concurrent;
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using System.Threading.Tasks;
     using UdpToolkit.Network.Channels;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Channels;
@@ -29,8 +27,6 @@ namespace UdpToolkit.Network.Clients
         private readonly ISocket _client;
         private readonly INetworkEventReporter _networkEventReporter;
         private readonly IConnectionPool _connectionPool;
-
-        private readonly BlockingCollection<IConnection> _resendRequests = new BlockingCollection<IConnection>(new ConcurrentQueue<IConnection>());
         private readonly ConcurrentPool<InNetworkPacket> _packetsPool;
         private readonly ArrayPool<byte> _arrayPool;
 
@@ -67,16 +63,6 @@ namespace UdpToolkit.Network.Clients
             _packetsPool = packetsPool;
             _arrayPool = arrayPool;
             _id = id;
-
-            // TODO move count of resend jobs to config
-            for (int i = 0; i < 2; i++)
-            {
-                Task.Factory.StartNew(
-                    action: ResendPendingPackets,
-                    cancellationToken: default,
-                    creationOptions: TaskCreationOptions.LongRunning,
-                    scheduler: TaskScheduler.Current);
-            }
         }
 
         /// <summary>
@@ -98,7 +84,7 @@ namespace UdpToolkit.Network.Clients
         public event Action<InNetworkPacket> OnInvalidPacketReceived;
 
         /// <inheritdoc />
-        public event Action<InNetworkPacket> OnPacketExpired;
+        public event Action<PendingPacket> OnPacketExpired;
 
         /// <inheritdoc />
         public event Action<IpV4Address, Guid> OnConnected;
@@ -153,7 +139,7 @@ namespace UdpToolkit.Network.Clients
                         ipV4Address,
                         buffer,
                         PacketType.Connect,
-                        byte.MaxValue);
+                        NetworkConsts.Connect);
                 }
                 else
                 {
@@ -192,7 +178,7 @@ namespace UdpToolkit.Network.Clients
                         ipV4Address,
                         buffer,
                         PacketType.Ping,
-                        byte.MaxValue);
+                        NetworkConsts.Ping);
                 }
                 else
                 {
@@ -224,7 +210,7 @@ namespace UdpToolkit.Network.Clients
                         ipV4Address,
                         buffer,
                         PacketType.Disconnect,
-                        byte.MaxValue);
+                        NetworkConsts.Disconnect);
                 }
                 else
                 {
@@ -244,25 +230,35 @@ namespace UdpToolkit.Network.Clients
         /// <inheritdoc />
         public void ResendPackets()
         {
-            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize);
-            try
+            // TODO limit to resend?
+            foreach (var connection in _connectionPool.GetAll())
             {
-                if (_connectionPool.TryGetConnection(ConnectionId, out var connection))
+                for (var i = 0; i < connection.PendingPackets.Count; i++)
                 {
-                    _resendRequests.Add(connection);
-                }
-                else
-                {
-                    _arrayPool.Return(buffer);
-                }
-            }
-            catch (Exception ex)
-            {
-                _arrayPool.Return(buffer);
-                var exceptionThrown = new ExceptionThrown(ex);
-                _networkEventReporter.Handle(in exceptionThrown);
+                    var pendingPacket = connection.PendingPackets[i];
 
-                throw;
+                    var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > _settings.ResendTimeout;
+                    var isDelivered = pendingPacket.Channel.IsDelivered(pendingPacket.Id);
+                    if (isExpired || isDelivered)
+                    {
+                        _arrayPool.Return(pendingPacket.Buffer);
+                        connection.PendingPackets.RemoveAt(i);
+
+                        if (isExpired)
+                        {
+                            var expiredPacketRemoved = new ExpiredPacketRemoved(connection.IpV4Address);
+                            _networkEventReporter.Handle(in expiredPacketRemoved);
+                            OnPacketExpired?.Invoke(pendingPacket);
+                        }
+                    }
+                    else
+                    {
+                        var pendingPacketResent = new PendingPacketResent(connection.IpV4Address);
+                        _networkEventReporter.Handle(in pendingPacketResent);
+                        var ip = pendingPacket.IpV4Address;
+                        _client.Send(ref ip, pendingPacket.Buffer, pendingPacket.PayloadLength);
+                    }
+                }
             }
         }
 
@@ -467,6 +463,7 @@ namespace UdpToolkit.Network.Clients
             if (channel.IsReliable)
             {
                 connection.PendingPackets.Add(new PendingPacket(
+                    dataType: dataType,
                     ipV4Address: ipV4Address,
                     buffer: buffer,
                     payloadLength: bufferSpan.Length,
@@ -549,6 +546,7 @@ namespace UdpToolkit.Network.Clients
             if (channel.IsReliable)
             {
                 connection.PendingPackets.Add(new PendingPacket(
+                    dataType: dataType,
                     ipV4Address: ipV4Address,
                     buffer: buffer,
                     payloadLength: bufferSpan.Length,
@@ -717,39 +715,6 @@ namespace UdpToolkit.Network.Clients
                     channel.HandleAck(networkHeader);
 
                     break;
-                }
-            }
-        }
-
-        private void ResendPendingPackets()
-        {
-            foreach (var connection in _resendRequests.GetConsumingEnumerable())
-            {
-                // TODO limit to resend?
-                for (var i = 0; i < connection.PendingPackets.Count; i++)
-                {
-                    var pendingPacket = connection.PendingPackets[i];
-
-                    var isExpired = _dateTimeProvider.GetUtcNow() - pendingPacket.CreatedAt > _settings.ResendTimeout;
-                    var isDelivered = pendingPacket.Channel.IsDelivered(pendingPacket.Id);
-                    if (isExpired || isDelivered)
-                    {
-                        _arrayPool.Return(pendingPacket.Buffer);
-                        connection.PendingPackets.RemoveAt(i);
-                        if (isExpired)
-                        {
-                            var expiredPacketRemoved = new ExpiredPacketRemoved(connection.IpV4Address);
-                            _networkEventReporter.Handle(in expiredPacketRemoved);
-                            OnPacketExpired?.Invoke(default);
-                        }
-                    }
-                    else
-                    {
-                        var pendingPacketResent = new PendingPacketResent(connection.IpV4Address);
-                        _networkEventReporter.Handle(in pendingPacketResent);
-                        var ip = pendingPacket.IpV4Address;
-                        _client.Send(ref ip, pendingPacket.Buffer, pendingPacket.PayloadLength);
-                    }
                 }
             }
         }

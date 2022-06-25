@@ -22,10 +22,5 @@ namespace UdpToolkit.Framework
         /// Gets or sets remote host ports for receive packets.
         /// </summary>
         public IEnumerable<int> ServerPorts { get; set; } = Array.Empty<int>();
-
-        /// <summary>
-        /// Gets or sets delay for resend request.
-        /// </summary>
-        public int? ResendPacketsDelay { get; set; } = 1000;
     }
 }

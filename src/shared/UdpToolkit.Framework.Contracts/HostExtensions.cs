@@ -24,7 +24,7 @@ namespace UdpToolkit.Framework.Contracts
         public static void On<TEvent>(
             this IHost host,
             Func<Guid, IpV4Address, TEvent, Guid> onEvent,
-            Action<Guid> onTimeout = null,
+            Action onTimeout = null,
             BroadcastMode broadcastMode = default)
         {
 #pragma warning disable SA1503

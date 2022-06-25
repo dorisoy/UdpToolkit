@@ -20,7 +20,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="broadcastMode">Broadcast mode.</param>
         public Subscription(
             Func<Guid, IpV4Address, TEvent, Guid> onEvent,
-            Action<Guid> onTimeout,
+            Action onTimeout,
             BroadcastMode broadcastMode = default)
         {
             OnEvent = onEvent;
@@ -36,7 +36,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Gets on timeout callback.
         /// </summary>
-        public Action<Guid> OnTimeout { get; }
+        public Action OnTimeout { get; }
 
         /// <summary>
         /// Gets broadcast mode.

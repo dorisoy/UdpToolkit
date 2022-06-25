@@ -18,13 +18,15 @@ namespace UdpToolkit.Network.Contracts.Packets
         /// <param name="createdAt">Created at.</param>
         /// <param name="channel">Source channel.</param>
         /// <param name="id">Packet identifier.</param>
+        /// <param name="dataType">Data type.</param>
         public PendingPacket(
             IpV4Address ipV4Address,
             byte[] buffer,
             int payloadLength,
             DateTimeOffset createdAt,
             IChannel channel,
-            ushort id)
+            ushort id,
+            ushort dataType)
         {
             IpV4Address = ipV4Address;
             Buffer = buffer;
@@ -32,12 +34,18 @@ namespace UdpToolkit.Network.Contracts.Packets
             CreatedAt = createdAt;
             Channel = channel;
             Id = id;
+            DataType = dataType;
         }
 
         /// <summary>
         /// Gets packet identifier.
         /// </summary>
         public ushort Id { get; }
+
+        /// <summary>
+        /// Gets packet identifier.
+        /// </summary>
+        public ushort DataType { get; }
 
         /// <summary>
         /// Gets destination ip address.

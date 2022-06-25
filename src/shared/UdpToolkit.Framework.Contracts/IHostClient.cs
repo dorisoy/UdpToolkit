@@ -66,6 +66,11 @@ namespace UdpToolkit.Framework.Contracts
         void Ping();
 
         /// <summary>
+        /// Resend packets.
+        /// </summary>
+        void ResendPackets();
+
+        /// <summary>
         /// Send event to the remote host.
         /// </summary>
         /// <param name="event">user-defined event instance.</param>

@@ -74,6 +74,12 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
+        public void ResendPackets()
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)

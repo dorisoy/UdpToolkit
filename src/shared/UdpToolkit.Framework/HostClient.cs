@@ -4,10 +4,10 @@ namespace UdpToolkit.Framework
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using System.Threading.Tasks;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -16,48 +16,45 @@ namespace UdpToolkit.Framework
     /// </summary>
     public sealed class HostClient : IHostClient
     {
+        private readonly IpV4Address _serverIpAddress;
         private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly HostClientSettingsInternal _hostClientSettingsInternal;
         private readonly ConcurrentPool<OutNetworkPacket> _outPacketsPool;
 
         private readonly IHostWorker _hostWorker;
-        private readonly IDateTimeProvider _dateTimeProvider;
         private readonly IUdpClient _udpClient;
         private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
-
-        private DateTimeOffset _startConnect;
         private bool _disposed = false;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="HostClient"/> class.
         /// </summary>
-        /// <param name="hostClientSettingsInternal">Instance of internal host client settings.</param>
-        /// <param name="dateTimeProvider">Instance of date time provider.</param>
+        /// <param name="serverIpAddress">Server ip address.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         /// <param name="udpClient">Instance of UDP client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
         /// <param name="outPacketsPool">Instance of out packets pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
         public HostClient(
-            HostClientSettingsInternal hostClientSettingsInternal,
-            IDateTimeProvider dateTimeProvider,
+            IpV4Address serverIpAddress,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             ConcurrentPool<OutNetworkPacket> outPacketsPool,
             IHostWorker hostWorker)
         {
-            _hostClientSettingsInternal = hostClientSettingsInternal;
+            _serverIpAddress = serverIpAddress;
             _cancellationTokenSource = cancellationTokenSource;
             _udpClient = udpClient;
             _outQueueDispatcher = outQueueDispatcher;
             _outPacketsPool = outPacketsPool;
             _hostWorker = hostWorker;
-            _dateTimeProvider = dateTimeProvider;
 
-            OnConnectionTimeout += () =>
+            this._udpClient.OnPacketExpired += (pendingPacket) =>
             {
-                IsConnected = false;
+                if (pendingPacket.DataType == NetworkConsts.Connect)
+                {
+                    this.OnConnectionTimeout?.Invoke();
+                }
             };
         }
 
@@ -95,16 +92,7 @@ namespace UdpToolkit.Framework
         public void Connect(
             Guid connectionId)
         {
-            _startConnect = _dateTimeProvider.GetUtcNow();
-            _udpClient.Connect(_hostClientSettingsInternal.ServerIpV4, connectionId);
-
-            var token = _cancellationTokenSource.Token;
-
-            Task.Factory.StartNew(
-                function: () => StartResendPackets(token),
-                cancellationToken: token,
-                creationOptions: TaskCreationOptions.LongRunning,
-                scheduler: TaskScheduler.Current);
+            _udpClient.Connect(_serverIpAddress, connectionId);
         }
 
         /// <inheritdoc />
@@ -121,7 +109,7 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void Disconnect()
         {
-            _udpClient.Disconnect(_hostClientSettingsInternal.ServerIpV4);
+            _udpClient.Disconnect(_serverIpAddress);
         }
 
         /// <inheritdoc />
@@ -137,7 +125,13 @@ namespace UdpToolkit.Framework
         /// <inheritdoc />
         public void Ping()
         {
-            _udpClient.Ping(_hostClientSettingsInternal.ServerIpV4);
+            _udpClient.Ping(_serverIpAddress);
+        }
+
+        /// <inheritdoc />
+        public void ResendPackets()
+        {
+            _udpClient.ResendPackets();
         }
 
         /// <inheritdoc />
@@ -161,7 +155,7 @@ namespace UdpToolkit.Framework
         {
             SendInternal(
                 @event: @event,
-                destination: _hostClientSettingsInternal.ServerIpV4,
+                destination: _serverIpAddress,
                 channelId: channelId);
         }
 
@@ -200,28 +194,6 @@ namespace UdpToolkit.Framework
             double rtt)
         {
             OnRttReceived?.Invoke(rtt);
-        }
-
-        private async Task StartResendPackets(
-            CancellationToken cancellationToken)
-        {
-            if (!_hostClientSettingsInternal.ResendDelayMs.HasValue)
-            {
-                return;
-            }
-
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                if (!IsConnected && _dateTimeProvider.GetUtcNow() - _startConnect > _hostClientSettingsInternal.ConnectionTimeout)
-                {
-                    OnConnectionTimeout?.Invoke();
-                    return;
-                }
-
-                _udpClient.ResendPackets();
-
-                await Task.Delay(_hostClientSettingsInternal.ResendDelayMs.Value, cancellationToken).ConfigureAwait(false);
-            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -3,6 +3,7 @@ namespace UdpToolkit.Network.Contracts.Clients
     using System;
     using System.Threading;
     using UdpToolkit.Network.Contracts.Connections;
+    using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -28,7 +29,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <summary>
         /// Raised when user-defined packet expired.
         /// </summary>
-        event Action<InNetworkPacket> OnPacketExpired;
+        event Action<PendingPacket> OnPacketExpired;
 
         /// <summary>
         /// Raised when UDP client connected to other UDP client.

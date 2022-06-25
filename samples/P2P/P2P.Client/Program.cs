@@ -126,13 +126,13 @@
                     settings.HostPorts = new[] { 0 };
                     settings.Workers = 8;
                     settings.Executor = new ThreadBasedExecutor();
+                    settings.ResendPacketsInterval = TimeSpan.FromSeconds(1);
                 })
                 .ConfigureHostClient((settings) =>
                 {
                     settings.ConnectionTimeout = TimeSpan.FromSeconds(60);
                     settings.ServerHost = "127.0.0.1";
                     settings.ServerPorts = new[] { 7000, 7001 };
-                    settings.ResendPacketsDelay = 1000; // pass null for disable packets resending
                 })
                 .ConfigureNetwork((settings) =>
                 {

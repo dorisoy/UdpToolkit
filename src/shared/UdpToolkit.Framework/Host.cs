@@ -3,7 +3,9 @@ namespace UdpToolkit.Framework
     using System;
     using System.Collections.Generic;
     using System.Diagnostics.CodeAnalysis;
+    using System.Linq;
     using System.Threading;
+    using System.Threading.Tasks;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Events;
     using UdpToolkit.Network.Contracts.Clients;
@@ -15,6 +17,7 @@ namespace UdpToolkit.Framework
     {
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly IExecutor _executor;
+        private readonly TimeSpan _resendInterval;
         private readonly IHostEventReporter _hostEventReporter;
         private readonly IHostClient _hostClient;
         private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
@@ -27,6 +30,7 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Initializes a new instance of the <see cref="Host"/> class.
         /// </summary>
+        /// <param name="resendInterval">Resend packets interval.</param>
         /// <param name="hostEventReporter">Instance of host event reporter.</param>
         /// <param name="hostClient">Instance of host client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
@@ -37,6 +41,7 @@ namespace UdpToolkit.Framework
         /// <param name="serviceProvider">Providing internal services.</param>
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         public Host(
+            TimeSpan resendInterval,
             IHostEventReporter hostEventReporter,
             IHostClient hostClient,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
@@ -47,6 +52,7 @@ namespace UdpToolkit.Framework
             Contracts.IServiceProvider serviceProvider,
             CancellationTokenSource cancellationTokenSource)
         {
+            _resendInterval = resendInterval;
             _hostEventReporter = hostEventReporter;
             _hostClient = hostClient;
             _outQueueDispatcher = outQueueDispatcher;
@@ -113,6 +119,24 @@ namespace UdpToolkit.Framework
                     opName: $"Sender_{index}",
                     cancellationToken: token);
             }
+
+            Task.Factory.StartNew(
+                function: async () =>
+                {
+                    var udpClient = _udpClients.FirstOrDefault();
+                    while (!token.IsCancellationRequested && udpClient != default)
+                    {
+                        for (var i = 0; i < _udpClients.Length; i++)
+                        {
+                            udpClient.ResendPackets();
+                        }
+
+                        await Task.Delay(_resendInterval, token).ConfigureAwait(false);
+                    }
+                },
+                cancellationToken: token,
+                creationOptions: TaskCreationOptions.LongRunning,
+                scheduler: TaskScheduler.Current);
 
             var hostStarted = new HostStarted(
                 receiversCount: _udpClients.Length,

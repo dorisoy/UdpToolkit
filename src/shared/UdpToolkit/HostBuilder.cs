@@ -170,7 +170,6 @@ namespace UdpToolkit
                 ? (IHostClient)BuildHostClient(
                     udpClients: udpClients,
                     cancellationTokenSource: cancellationTokenSource,
-                    dateTimeProvider: dateTimeProvider,
                     outQueueDispatcher: outQueueDispatcher,
                     outPacketsPool: outPacketsPool)
                 : new DummyHostClient();
@@ -198,15 +197,9 @@ namespace UdpToolkit
 
             foreach (var udpClient in udpClients)
             {
-                udpClient.OnPacketExpired += (networkPacket) =>
+                udpClient.OnPacketExpired += (pendingPacket) =>
                 {
-                    // may be returned to pool
-                    if (networkPacket != null)
-                    {
-                        inQueueDispatcher
-                            .Dispatch(networkPacket.ConnectionId)
-                            .Produce(networkPacket);
-                    }
+                    HostWorkerInternal.Process(in pendingPacket);
                 };
 
                 udpClient.OnPacketReceived += (networkPacket) =>
@@ -235,7 +228,6 @@ namespace UdpToolkit
 
         private HostClient BuildHostClient(
             IUdpClient[] udpClients,
-            IDateTimeProvider dateTimeProvider,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             CancellationTokenSource cancellationTokenSource,
             ConcurrentPool<OutNetworkPacket> outPacketsPool)
@@ -249,16 +241,10 @@ namespace UdpToolkit
             var randomRemoteHostIp = remoteHostIps[MurMurHash.Hash3_x86_32(seed) % remoteHostIps.Length];
             var udpClient = udpClients[MurMurHash.Hash3_x86_32(seed) % udpClients.Length];
 
-            var hostClientSettingsInternal = new HostClientSettingsInternal(
-                resendDelayMs: HostClientSettings.ResendPacketsDelay,
-                connectionTimeout: HostClientSettings.ConnectionTimeout,
-                serverIpV4: randomRemoteHostIp);
-
             var hostClient = new HostClient(
                 hostWorker: HostWorkerInternal,
                 outPacketsPool: outPacketsPool,
-                dateTimeProvider: dateTimeProvider,
-                hostClientSettingsInternal: hostClientSettingsInternal,
+                serverIpAddress: randomRemoteHostIp,
                 udpClient: udpClient,
                 cancellationTokenSource: cancellationTokenSource,
                 outQueueDispatcher: outQueueDispatcher);
@@ -320,6 +306,7 @@ namespace UdpToolkit
             toDispose.Add(HostSettings.Executor);
 
             return new Host(
+                resendInterval: HostSettings.ResendPacketsInterval,
                 serviceProvider: new ServiceProvider(
                     groupManager: groupManager,
                     scheduler: scheduler,
