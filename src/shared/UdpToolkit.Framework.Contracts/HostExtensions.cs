@@ -32,6 +32,7 @@ namespace UdpToolkit.Framework.Contracts
 #pragma warning restore SA1503
 
             host.On(new Subscription<TEvent>(
+                broadcastMode: broadcastMode,
                 onEvent: onEvent,
                 onTimeout: onTimeout));
         }

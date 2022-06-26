@@ -83,7 +83,7 @@ namespace UdpToolkit.Framework
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
-
+                {
                     for (int i = 0; i < group.GroupConnections.Count; i++)
                     {
                         var groupConnection = group.GroupConnections[i];
@@ -95,9 +95,13 @@ namespace UdpToolkit.Framework
                         outPacket.Connections.Add(groupConnection);
                     }
 
+                    queue.Produce(outPacket);
+
                     break;
+                }
 
                 case BroadcastMode.GroupExceptCaller:
+                {
                     for (var i = 0; i < group.GroupConnections.Count; i++)
                     {
                         var groupConnection = group.GroupConnections[i];
@@ -109,9 +113,13 @@ namespace UdpToolkit.Framework
                         outPacket.Connections.Add(groupConnection);
                     }
 
+                    queue.Produce(outPacket);
+
                     break;
+                }
 
                 case BroadcastMode.Group:
+                {
                     for (var i = 0; i < group.GroupConnections.Count; i++)
                     {
                         var groupConnection = group.GroupConnections[i];
@@ -119,10 +127,13 @@ namespace UdpToolkit.Framework
                         outPacket.Connections.Add(groupConnection);
                     }
 
+                    queue.Produce(outPacket);
+
                     break;
+                }
 
                 case BroadcastMode.Server:
-
+                {
                     var connections = _connectionPool.GetAll();
                     for (int i = 0; i < connections.Count; i++)
                     {
@@ -131,17 +142,22 @@ namespace UdpToolkit.Framework
                         outPacket.Connections.Add(connection);
                     }
 
+                    queue.Produce(outPacket);
+
                     break;
+                }
 
                 case BroadcastMode.None:
+                {
+                    @event.Dispose();
+                    outPacket.Dispose();
 
                     break;
+                }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
             }
-
-            queue.Produce(outPacket);
         }
 
         private void Dispose(bool disposing)

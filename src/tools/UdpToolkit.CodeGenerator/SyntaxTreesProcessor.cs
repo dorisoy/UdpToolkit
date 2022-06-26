@@ -248,19 +248,12 @@
                                 networkPacket.IpV4Address,
                                 @event);
                         
-                        if (subscription.BroadcastMode != BroadcastMode.None)
-                        {
-                            Broadcaster.Broadcast<TYPE>(
+                        Broadcaster.Broadcast<TYPE>(
                                 caller: networkPacket.ConnectionId,
                                 groupId: groupId.Value,
                                 @event: @event,
                                 channelId: networkPacket.ChannelId,
                                 broadcastMode: subscription.BroadcastMode);
-                        }
-                        else
-                        {
-                            @event.Dispose();
-                        }
                     }
                     catch (Exception)
                     {

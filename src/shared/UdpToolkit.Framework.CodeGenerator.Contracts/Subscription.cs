@@ -21,7 +21,7 @@ namespace UdpToolkit.Framework.Contracts
         public Subscription(
             Func<Guid, IpV4Address, TEvent, Guid> onEvent,
             Action onTimeout,
-            BroadcastMode broadcastMode = default)
+            BroadcastMode broadcastMode)
         {
             OnEvent = onEvent;
             OnTimeout = onTimeout;
