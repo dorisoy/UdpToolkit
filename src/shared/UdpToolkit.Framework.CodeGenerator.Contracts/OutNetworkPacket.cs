@@ -2,9 +2,7 @@
 namespace UdpToolkit.Framework.Contracts
 {
     using System;
-    using System.Collections.Generic;
     using UdpToolkit.Framework.CodeGenerator.Contracts;
-    using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
@@ -14,7 +12,6 @@ namespace UdpToolkit.Framework.Contracts
     public sealed class OutNetworkPacket : IDisposable
     {
         private readonly ConcurrentPool<OutNetworkPacket> _pool;
-        private int _referencesCounter;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="OutNetworkPacket"/> class.
@@ -23,19 +20,7 @@ namespace UdpToolkit.Framework.Contracts
         public OutNetworkPacket(ConcurrentPool<OutNetworkPacket> pool)
         {
             _pool = pool;
-            Connections = new List<IConnection>();
-            BufferWriter = new BufferWriter<byte>(2048);
         }
-
-        /// <summary>
-        /// Gets list connections for broadcast.
-        /// </summary>
-        public List<IConnection> Connections { get; }
-
-        /// <summary>
-        /// Gets user-defined object instance.
-        /// </summary>
-        public IDisposable Event { get; private set; }
 
         /// <summary>
         /// Gets channel identifier.
@@ -60,7 +45,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Gets buffer writer.
         /// </summary>
-        public BufferWriter<byte> BufferWriter { get; }
+        public BufferWriter<byte> BufferWriter { get; private set; }
 
         /// <summary>
         /// Setup.
@@ -69,49 +54,30 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="ipV4Address">Destination ip address.</param>
         /// <param name="connectionId">Connection identifier.</param>
         /// <param name="dataType">Type of data.</param>
-        /// <param name="event">Instance of user-defined event.</param>
+        /// <param name="bufferWriter">Instance of buffer writer.</param>
         public void Setup(
             byte channelId,
             IpV4Address ipV4Address,
             Guid connectionId,
             byte dataType,
-            IDisposable @event)
+            BufferWriter<byte> bufferWriter)
         {
-            _referencesCounter++;
             ConnectionId = connectionId;
             IpV4Address = ipV4Address;
             ChannelId = channelId;
-            Event = @event;
             DataType = dataType;
+            BufferWriter = bufferWriter;
         }
 
         /// <inheritdoc />
         public void Dispose()
         {
-            _referencesCounter--;
-            if (_referencesCounter == 0)
-            {
-                _referencesCounter = 0;
-                ConnectionId = default;
-                IpV4Address = default;
-                DataType = default;
-                Event?.Dispose();
-                Connections.Clear();
-                BufferWriter.Clear();
-                ChannelId = default;
-                _pool.Return(this);
-            }
-#if DEBUG
-            else
-            {
-                if (_referencesCounter < 0)
-                {
-#pragma warning disable
-                    throw new Exception("Possible bug, negative references counter!");
-#pragma warning restore
-                }
-            }
-#endif
+            ConnectionId = default;
+            IpV4Address = default;
+            DataType = default;
+            BufferWriter.Dispose();
+            ChannelId = default;
+            _pool.Return(this);
         }
     }
 }

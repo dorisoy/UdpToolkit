@@ -63,7 +63,6 @@
             GeneratePublicDisposeMethod(sb);
             GenerateTryGetSubscriptionId(sb);
             GenerateProcessInPacketMethod(sb, allClasses);
-            GenerateProcessOutPacketMethod(sb, allClasses);
             GenerateProcessExpiredPacketMethod(sb, allClasses);
             GeneratePrivateDisposeMethod(sb);
             GenerateClosedBraces(sb);
@@ -296,43 +295,6 @@
                     subscription?.OnTimeout?.Invoke();
 
                     break;    
-                }
-                 ";
-
-                var ns = GetNamespace(@class);
-                var body = caseTemplate
-                    .Replace("VALUE", i.ToString())
-                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{@class.Identifier.Text}");
-
-                sb.Append(body);
-            }
-
-            sb.Append(@"                 
-                default:
-                {
-                    return;
-                }
-            }
-        }");
-        }
-
-        private static void GenerateProcessOutPacketMethod(StringBuilder sb, List<ClassDeclarationSyntax> allClasses)
-        {
-            sb.Append(@"
-        public void Process(
-            global::UdpToolkit.Framework.Contracts.OutNetworkPacket outPacket)
-        {
-            switch (outPacket.DataType)
-            {");
-
-            for (int i = 0; i < allClasses.Count; i++)
-            {
-                var @class = allClasses[i];
-                var caseTemplate = @"
-                case VALUE:
-                {
-                    Serializer.Serialize<TYPE>(outPacket.BufferWriter, (TYPE)outPacket.Event);
-                    return;
                 }
                  ";
 

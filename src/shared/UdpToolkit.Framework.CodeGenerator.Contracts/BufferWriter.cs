@@ -1,23 +1,26 @@
-namespace UdpToolkit.Framework.CodeGenerator.Contracts
+  namespace UdpToolkit.Framework.CodeGenerator.Contracts
 {
     using System;
     using System.Buffers;
+    using System.Threading;
 
     /// <summary>
     /// Backport for net standard 2.0.
     /// </summary>
     /// <typeparam name="T">Type of buffer.</typeparam>
-    public sealed class BufferWriter<T> : IBufferWriter<T>
+    public sealed class BufferWriter<T> : IBufferWriter<T>, IDisposable
     {
+        private readonly int _initialCapacity = 2048;
         private T[] _buffer;
         private int _index;
+        private int _references;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="BufferWriter{T}"/> class.
         /// </summary>
         public BufferWriter()
         {
-          this._buffer = Array.Empty<T>();
+          this._buffer = new T[_initialCapacity];
           this._index = 0;
         }
 
@@ -93,6 +96,24 @@ namespace UdpToolkit.Framework.CodeGenerator.Contracts
         {
           this.CheckAndResizeBuffer(sizeHint);
           return this._buffer.AsSpan<T>(this._index);
+        }
+
+        /// <summary>
+        /// Add reference.
+        /// </summary>
+        public void AddReference()
+        {
+          Interlocked.Increment(ref _references);
+        }
+
+        /// <inheritdoc />
+        public void Dispose()
+        {
+          if (Interlocked.Decrement(ref _references) == 0)
+          {
+            this.Clear();
+            ObjectsPool<BufferWriter<T>>.Return(this);
+          }
         }
 
         private static void ThrowInvalidOperationException_AdvancedTooFar(int capacity) => throw new InvalidOperationException($"BufferWriterAdvancedTooFar {(object)capacity}");

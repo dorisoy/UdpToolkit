@@ -105,33 +105,12 @@ namespace UdpToolkit
                     {
                         using (outPacket)
                         {
-                            HostWorkerInternal.Process(outPacket);
-                            if (outPacket.BufferWriter.WrittenSpan.Length == 0)
-                            {
-                                return;
-                            }
-
-                            if (outPacket.ConnectionId != default)
-                            {
-                                sender.Send(
-                                    connectionId: outPacket.ConnectionId,
-                                    channelId: outPacket.ChannelId,
-                                    dataType: outPacket.DataType,
-                                    payload: outPacket.BufferWriter.WrittenSpan,
-                                    ipV4Address: outPacket.IpV4Address);
-                            }
-                            else
-                            {
-                                foreach (var connection in outPacket.Connections)
-                                {
-                                    sender.Send(
-                                        connectionId: connection.ConnectionId,
-                                        channelId: outPacket.ChannelId,
-                                        dataType: outPacket.DataType,
-                                        payload: outPacket.BufferWriter.WrittenSpan,
-                                        ipV4Address: connection.IpV4Address);
-                                }
-                            }
+                            sender.Send(
+                                connectionId: outPacket.ConnectionId,
+                                channelId: outPacket.ChannelId,
+                                dataType: outPacket.DataType,
+                                payload: outPacket.BufferWriter.WrittenSpan,
+                                ipV4Address: outPacket.IpV4Address);
                         }
                     },
                     hostEventReporter: hostEventReporter))
@@ -242,6 +221,7 @@ namespace UdpToolkit
             var udpClient = udpClients[MurMurHash.Hash3_x86_32(seed) % udpClients.Length];
 
             var hostClient = new HostClient(
+                serializer: HostSettings.Serializer,
                 hostWorker: HostWorkerInternal,
                 outPacketsPool: outPacketsPool,
                 serverIpAddress: randomRemoteHostIp,
@@ -281,6 +261,7 @@ namespace UdpToolkit
                 hostEventReporter: hostEventReporter);
 
             var broadcaster = new Broadcaster(
+                serializer: HostSettings.Serializer,
                 scheduler: scheduler,
                 hostWorker: HostWorkerInternal,
                 connectionPool: sharedConnectionsPool,

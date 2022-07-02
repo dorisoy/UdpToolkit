@@ -29,13 +29,6 @@ namespace UdpToolkit.Framework.Contracts
             InNetworkPacket inPacket);
 
         /// <summary>
-        /// Process output packet.
-        /// </summary>
-        /// <param name="outPacket">Output packet.</param>
-        void Process(
-            OutNetworkPacket outPacket);
-
-        /// <summary>
         /// Process expired packet.
         /// </summary>
         /// <param name="pendingPacket">Pending packet.</param>

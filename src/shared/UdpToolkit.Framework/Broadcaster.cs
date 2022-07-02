@@ -2,13 +2,18 @@ namespace UdpToolkit.Framework
 {
     using System;
     using System.Diagnostics.CodeAnalysis;
+    using System.Runtime.CompilerServices;
+    using UdpToolkit.Framework.CodeGenerator.Contracts;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts.Connections;
     using UdpToolkit.Network.Contracts.Pooling;
+    using UdpToolkit.Network.Contracts.Sockets;
+    using UdpToolkit.Serialization;
 
     /// <inheritdoc />
     public sealed class Broadcaster : IBroadcaster
     {
+        private readonly ISerializer _serializer;
         private readonly IScheduler _scheduler;
         private readonly IHostWorker _hostWorker;
         private readonly IConnectionPool _connectionPool;
@@ -27,13 +32,15 @@ namespace UdpToolkit.Framework
         /// <param name="connectionPool">Instance of connection pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
         /// <param name="scheduler">Instance of scheduler.</param>
+        /// <param name="serializer">Instance of serializer.</param>
         public Broadcaster(
             IGroupManager groupManager,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             ConcurrentPool<OutNetworkPacket> pool,
             IConnectionPool connectionPool,
             IHostWorker hostWorker,
-            IScheduler scheduler)
+            IScheduler scheduler,
+            ISerializer serializer)
         {
             _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
@@ -41,6 +48,7 @@ namespace UdpToolkit.Framework
             _connectionPool = connectionPool;
             _hostWorker = hostWorker;
             _scheduler = scheduler;
+            _serializer = serializer;
         }
 
         /// <summary>
@@ -74,15 +82,8 @@ namespace UdpToolkit.Framework
             }
 
             var group = _groupManager.GetGroup(groupId);
-            var queue = _outQueueDispatcher.Dispatch(groupId);
-            var outPacket = _pool.GetOrCreate();
-
-            outPacket.Setup(
-                @event: @event,
-                channelId: channelId,
-                dataType: subscriptionId,
-                connectionId: default,
-                ipV4Address: default);
+            var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
+            _serializer.Serialize(bufferWriter, @event);
 
             switch (broadcastMode)
             {
@@ -96,10 +97,14 @@ namespace UdpToolkit.Framework
                             continue;
                         }
 
-                        outPacket.Connections.Add(groupConnection);
+                        PublishOutPacket(
+                            connectionId: groupConnection.ConnectionId,
+                            groupId: groupId,
+                            ipV4Address: groupConnection.IpV4Address,
+                            subscriptionId: subscriptionId,
+                            channelId: channelId,
+                            bufferWriter: bufferWriter);
                     }
-
-                    queue.Produce(outPacket);
 
                     break;
                 }
@@ -114,10 +119,14 @@ namespace UdpToolkit.Framework
                             continue;
                         }
 
-                        outPacket.Connections.Add(groupConnection);
+                        PublishOutPacket(
+                            connectionId: groupConnection.ConnectionId,
+                            groupId: groupId,
+                            ipV4Address: groupConnection.IpV4Address,
+                            subscriptionId: subscriptionId,
+                            channelId: channelId,
+                            bufferWriter: bufferWriter);
                     }
-
-                    queue.Produce(outPacket);
 
                     break;
                 }
@@ -128,10 +137,14 @@ namespace UdpToolkit.Framework
                     {
                         var groupConnection = group.GroupConnections[i];
 
-                        outPacket.Connections.Add(groupConnection);
+                        PublishOutPacket(
+                            connectionId: groupConnection.ConnectionId,
+                            groupId: groupId,
+                            ipV4Address: groupConnection.IpV4Address,
+                            subscriptionId: subscriptionId,
+                            channelId: channelId,
+                            bufferWriter: bufferWriter);
                     }
-
-                    queue.Produce(outPacket);
 
                     break;
                 }
@@ -143,10 +156,14 @@ namespace UdpToolkit.Framework
                     {
                         var connection = connections[i];
 
-                        outPacket.Connections.Add(connection);
+                        PublishOutPacket(
+                            connectionId: connection.ConnectionId,
+                            groupId: groupId,
+                            ipV4Address: connection.IpV4Address,
+                            subscriptionId: subscriptionId,
+                            channelId: channelId,
+                            bufferWriter: bufferWriter);
                     }
-
-                    queue.Produce(outPacket);
 
                     break;
                 }
@@ -154,7 +171,6 @@ namespace UdpToolkit.Framework
                 case BroadcastMode.None:
                 {
                     @event.Dispose();
-                    outPacket.Dispose();
 
                     break;
                 }
@@ -169,7 +185,7 @@ namespace UdpToolkit.Framework
             Guid caller,
             Guid groupId,
             TimerKey timerKey,
-            TEvent @event,
+            Func<TEvent> factory,
             byte channelId,
             TimeSpan delay,
             BroadcastMode broadcastMode,
@@ -186,10 +202,33 @@ namespace UdpToolkit.Framework
                     this.Broadcast(
                         caller: caller,
                         groupId: groupId,
-                        @event: @event,
+                        @event: factory(),
                         channelId: channelId,
                         broadcastMode: broadcastMode);
                 });
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void PublishOutPacket(
+            Guid connectionId,
+            Guid groupId,
+            IpV4Address ipV4Address,
+            byte subscriptionId,
+            byte channelId,
+            BufferWriter<byte> bufferWriter)
+        {
+            bufferWriter.AddReference();
+
+            var outPacket = _pool.GetOrCreate();
+
+            outPacket.Setup(
+                bufferWriter: bufferWriter,
+                channelId: channelId,
+                dataType: subscriptionId,
+                connectionId: connectionId,
+                ipV4Address: ipV4Address);
+
+            _outQueueDispatcher.Dispatch(groupId).Produce(outPacket);
         }
 
         private void Dispose(bool disposing)

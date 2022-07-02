@@ -31,7 +31,7 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="caller">Caller connection identifier.</param>
         /// <param name="groupId">Group identifier.</param>
         /// <param name="timerKey">Timer key.</param>
-        /// <param name="event">User-defined event.</param>
+        /// <param name="factory">Event factory.</param>
         /// <param name="channelId">UDP Channel identifier.</param>
         /// <param name="delay">Delay before first call.</param>
         /// <param name="broadcastMode">Broadcast mode.</param>
@@ -41,7 +41,7 @@ namespace UdpToolkit.Framework.Contracts
             Guid caller,
             Guid groupId,
             TimerKey timerKey,
-            TEvent @event,
+            Func<TEvent> factory,
             byte channelId,
             TimeSpan delay,
             BroadcastMode broadcastMode,
