@@ -3,6 +3,7 @@
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using System.Threading;
     using ReliableUdp.Contracts;
     using Serializers;
     using UdpToolkit;
@@ -28,7 +29,6 @@
             var host = BuildHost();
 
             var broadcaster = host.ServiceProvider.Broadcaster;
-            var scheduler = host.ServiceProvider.Scheduler;
             var groupManager = host.ServiceProvider.GroupManager;
 
             host
@@ -39,58 +39,68 @@
 
                         groupManager.JoinOrCreate(joinEvent.GroupId, connectionId);
 
-                        scheduler.ScheduleOnce<StartGame>(
-                            groupId: joinEvent.GroupId,
+                        var roomId = joinEvent.GroupId;
+
+                        broadcaster.ScheduleBroadcast<StartGame>(
+                            caller: connectionId,
+                            groupId: roomId,
+                            timerKey: new TimerKey(roomId, typeof(StartGame)),
+                            factory: () => GetSpawnPoints(roomId, groupManager),
+                            channelId: ReliableChannel.Id,
                             delay: TimeSpan.FromSeconds(10),
-                            action: () => SendSpawnPoints(connectionId, joinEvent.GroupId, groupManager, broadcaster));
+                            broadcastMode: BroadcastMode.Group,
+                            frequency: TimeSpan.FromMilliseconds(Timeout.Infinite));
 
-                        var gameOver = ObjectsPool<GameOver>.GetOrCreate();
-
-                        scheduler.ScheduleOnce<GameOver>(
-                            groupId: joinEvent.GroupId,
+                        broadcaster.ScheduleBroadcast<GameOver>(
+                            caller: connectionId,
+                            groupId: roomId,
+                            timerKey: new TimerKey(roomId, typeof(GameOver)),
+                            factory: () => ObjectsPool<GameOver>
+                                .GetOrCreate()
+                                .SetUp("Game Over!", roomId),
+                            channelId: ReliableChannel.Id,
                             delay: TimeSpan.FromSeconds(20),
-                            action: () => broadcaster.Broadcast(
-                                caller: connectionId,
-                                groupId: joinEvent.GroupId,
-                                @event: gameOver.SetUp("Game Over!", joinEvent.GroupId),
-                                channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.Group));
+                            broadcastMode: BroadcastMode.Group,
+                            frequency: TimeSpan.FromMilliseconds(Timeout.Infinite));
 
-                        return joinEvent.GroupId;
-                    },
-                    broadcastMode: BroadcastMode.GroupExceptCaller);
+                        broadcaster.Broadcast<JoinEvent>(
+                            caller: connectionId,
+                            groupId: roomId,
+                            @event: joinEvent,
+                            channelId: ReliableChannel.Id,
+                            broadcastMode: BroadcastMode.GroupExceptCaller);
+                    });
 
             host
                 .On<Death>(
                     onEvent: (connectionId, ip, death) =>
                     {
-                        Console.WriteLine($"{death.Nickname} is dead!");
+                        var roomId = death.GroupId;
+                        var nickname = death.Nickname;
+
+                        Console.WriteLine($"{nickname} is dead!");
 
                         var respawn = ObjectsPool<Respawn>.GetOrCreate();
 
-                        scheduler.Schedule<Respawn>(
-                            action: () => broadcaster.Broadcast(
-                                caller: connectionId,
-                                groupId: death.GroupId,
-                                @event: respawn.SetUp(death.Nickname, death.GroupId),
-                                channelId: ReliableChannel.Id,
-                                broadcastMode: BroadcastMode.Group),
-                            delay: TimeSpan.FromSeconds(1));
-
-                        return death.GroupId;
-                    },
-                    broadcastMode: BroadcastMode.GroupExceptCaller);
+                        broadcaster.ScheduleBroadcast<Respawn>(
+                            caller: connectionId,
+                            groupId: roomId,
+                            timerKey: new TimerKey(Guid.NewGuid(), typeof(Respawn)),
+                            factory: () => respawn.SetUp(death.Nickname, death.GroupId),
+                            channelId: ReliableChannel.Id,
+                            delay: TimeSpan.FromSeconds(1),
+                            broadcastMode: BroadcastMode.GroupExceptCaller,
+                            frequency: TimeSpan.FromMilliseconds(Timeout.Infinite));
+                    });
 
             host.Run();
 
             Console.ReadLine();
         }
 
-        private static void SendSpawnPoints(
-            Guid connectionId,
+        private static StartGame GetSpawnPoints(
             Guid groupId,
-            IGroupManager groupManager,
-            IBroadcaster broadcaster)
+            IGroupManager groupManager)
         {
             var group = groupManager.GetGroup(groupId);
 
@@ -99,14 +109,9 @@
                 .Select(id => new { id, position = Positions.Dequeue() })
                 .ToDictionary(pair => pair.id, pair => pair.position);
 
-            var startGame = ObjectsPool<StartGame>.GetOrCreate();
-
-            broadcaster.Broadcast(
-                caller: connectionId,
-                groupId: groupId,
-                @event: startGame.SetUp(groupId, spawnPositions),
-                channelId: ReliableChannel.Id,
-                broadcastMode: BroadcastMode.Group);
+            return ObjectsPool<StartGame>
+                .GetOrCreate()
+                .SetUp(groupId, spawnPositions);
         }
 
         private static IHost BuildHost()

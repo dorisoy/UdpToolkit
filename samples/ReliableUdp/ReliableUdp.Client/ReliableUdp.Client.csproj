@@ -4,7 +4,6 @@
         <OutputType>Exe</OutputType>
         <TargetFramework>net6.0</TargetFramework>
         <NoWarn>SA0001, SA1600</NoWarn>
-        <RootNamespace>ReliableUdp.Client.A</RootNamespace>
     </PropertyGroup>
 
     <ItemGroup>

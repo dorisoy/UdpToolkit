@@ -26,7 +26,12 @@
 
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
 
-                    return joinEvent.GroupId;
+                    broadcaster.Broadcast(
+                        caller: connectionId,
+                        groupId: joinEvent.GroupId,
+                        @event: joinEvent,
+                        channelId: ReliableChannel.Id,
+                        broadcastMode: BroadcastMode.GroupExceptCaller);
                 });
 
             host
@@ -48,8 +53,6 @@
                             @event: new GroupPeers(fetchPeers.GroupId, peers),
                             channelId: ReliableChannel.Id,
                             broadcastMode: BroadcastMode.Caller);
-
-                        return fetchPeers.GroupId;
                     });
 
             host.Run();

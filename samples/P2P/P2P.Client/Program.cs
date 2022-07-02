@@ -1,4 +1,4 @@
-﻿namespace P2P.Client.A
+﻿namespace P2P.Client
 {
     using System;
     using System.Collections.Generic;
@@ -45,7 +45,6 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Console.WriteLine($"{joinEvent.Nickname} joined to group! (event)");
-                    return joinEvent.GroupId;
                 });
 
             host.On<GroupPeers>(
@@ -57,16 +56,12 @@
                     {
                         Console.WriteLine($"Peer fetched, {peer.Address}:{peer.Port}! (event)");
                     }
-
-                    return fetchResult.GroupId;
                 });
 
             host.On<Message>(
                 onEvent: (connectionId, ip, message) =>
                 {
                     Console.WriteLine($"P2P message received - {message.Text}! (event)");
-
-                    return message.GroupId;
                 });
 
             host.Run();

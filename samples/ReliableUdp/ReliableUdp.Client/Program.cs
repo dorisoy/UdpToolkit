@@ -1,4 +1,4 @@
-﻿namespace ReliableUdp.Client.A
+﻿namespace ReliableUdp.Client
 {
     using System;
     using System.Linq;
@@ -59,8 +59,6 @@
                     {
                         Console.WriteLine($"Spawn positions - {position}!");
                     }
-
-                    return startGame.GroupId;
                 });
 
             host.On<GameOver>(
@@ -68,16 +66,12 @@
                 {
                     Console.WriteLine("End of Game!");
                     _isOver = true;
-
-                    return gameOver.GroupId;
                 });
 
             host.On<Respawn>(
                 onEvent: (connectionId, ip, respawn) =>
                 {
                     Console.WriteLine($"Respawn for {respawn.Nickname}!");
-
-                    return respawn.GroupId;
                 });
 
             host.Run();

@@ -1,4 +1,4 @@
-﻿namespace Sequenced.Client.A
+﻿namespace Sequenced.Client
 {
     using System;
     using System.Threading;
@@ -38,16 +38,12 @@
                 onEvent: (connectionId, ip, joinEvent) =>
                 {
                     Console.WriteLine($"{joinEvent.Nickname} joined to group!");
-
-                    return joinEvent.GroupId;
                 });
 
             host.On<MoveEvent>(
                 onEvent: (connectionId, ip, move) =>
                 {
                     Console.WriteLine($"Id {move.Id} - from - {move.From}");
-
-                    return move.GroupId;
                 });
 
             host.Run();
