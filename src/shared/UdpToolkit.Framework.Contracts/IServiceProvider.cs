@@ -11,11 +11,6 @@ namespace UdpToolkit.Framework.Contracts
         IGroupManager GroupManager { get; }
 
         /// <summary>
-        /// Gets scheduler.
-        /// </summary>
-        IScheduler Scheduler { get; }
-
-        /// <summary>
         /// Gets broadcaster.
         /// </summary>
         IBroadcaster Broadcaster { get; }

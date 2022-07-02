@@ -8,6 +8,11 @@ namespace UdpToolkit.Framework.Contracts
     public interface IGroupManager : IDisposable
     {
         /// <summary>
+        /// Gets group ttl.
+        /// </summary>
+        TimeSpan GroupTtl { get; }
+
+        /// <summary>
         /// Join or create group.
         /// </summary>
         /// <param name="groupId">Group identifier.</param>

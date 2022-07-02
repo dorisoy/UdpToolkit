@@ -9,6 +9,7 @@ namespace UdpToolkit.Framework
     /// <inheritdoc />
     public sealed class Broadcaster : IBroadcaster
     {
+        private readonly IScheduler _scheduler;
         private readonly IHostWorker _hostWorker;
         private readonly IConnectionPool _connectionPool;
         private readonly IGroupManager _groupManager;
@@ -25,18 +26,21 @@ namespace UdpToolkit.Framework
         /// <param name="pool">Instance pool.</param>
         /// <param name="connectionPool">Instance of connection pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
+        /// <param name="scheduler">Instance of scheduler.</param>
         public Broadcaster(
             IGroupManager groupManager,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             ConcurrentPool<OutNetworkPacket> pool,
             IConnectionPool connectionPool,
-            IHostWorker hostWorker)
+            IHostWorker hostWorker,
+            IScheduler scheduler)
         {
             _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
             _pool = pool;
             _connectionPool = connectionPool;
             _hostWorker = hostWorker;
+            _scheduler = scheduler;
         }
 
         /// <summary>
@@ -158,6 +162,34 @@ namespace UdpToolkit.Framework
                 default:
                     throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
             }
+        }
+
+        /// <inheritdoc />
+        public void ScheduleBroadcast<TEvent>(
+            Guid caller,
+            Guid groupId,
+            TimerKey timerKey,
+            TEvent @event,
+            byte channelId,
+            TimeSpan delay,
+            BroadcastMode broadcastMode,
+            TimeSpan frequency)
+        where TEvent : class, IDisposable
+        {
+            _scheduler.Schedule(
+                timerKey: timerKey,
+                delay: delay,
+                frequency: frequency,
+                ttl: this._groupManager.GroupTtl,
+                action: () =>
+                {
+                    this.Broadcast(
+                        caller: caller,
+                        groupId: groupId,
+                        @event: @event,
+                        channelId: channelId,
+                        broadcastMode: broadcastMode);
+                });
         }
 
         private void Dispose(bool disposing)

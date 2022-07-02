@@ -16,7 +16,6 @@ namespace UdpToolkit.Framework
         private readonly IConnectionPool _connectionPool;
         private readonly ConcurrentDictionary<Guid, Group> _groups = new ConcurrentDictionary<Guid, Group>();
         private readonly IDateTimeProvider _dateTimeProvider;
-        private readonly TimeSpan _groupTtl;
         private readonly Timer _houseKeeper;
         private readonly IHostEventReporter _hostEventReporter;
 
@@ -38,7 +37,7 @@ namespace UdpToolkit.Framework
             IConnectionPool connectionPool)
         {
             _dateTimeProvider = dateTimeProvider;
-            _groupTtl = groupTtl;
+            GroupTtl = groupTtl;
             _hostEventReporter = hostEventReporter;
             _connectionPool = connectionPool;
             _houseKeeper = new Timer(
@@ -56,6 +55,9 @@ namespace UdpToolkit.Framework
         {
             Dispose(false);
         }
+
+        /// <inheritdoc />
+        public TimeSpan GroupTtl { get; }
 
         /// <inheritdoc />
         public void Dispose()
@@ -133,7 +135,7 @@ namespace UdpToolkit.Framework
                 var group = _groups.ElementAt(i);
 
                 var ttlDiff = now - group.Value.CreatedAt;
-                if (ttlDiff > _groupTtl)
+                if (ttlDiff > GroupTtl)
                 {
                     _groups.TryRemove(group.Key, out _);
                 }

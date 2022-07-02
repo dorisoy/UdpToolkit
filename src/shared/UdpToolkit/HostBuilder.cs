@@ -274,18 +274,19 @@ namespace UdpToolkit
                 hostEventReporter: hostEventReporter,
                 connectionPool: sharedConnectionsPool);
 
-            var broadcaster = new Broadcaster(
-                hostWorker: HostWorkerInternal,
-                connectionPool: sharedConnectionsPool,
-                groupManager: groupManager,
-                outQueueDispatcher: outQueueDispatcher,
-                pool: outPacketsPool);
-
             var scheduler = new Scheduler(
                 groupTtl: HostSettings.GroupTtl,
                 dateTimeProvider: dateTimeProvider,
                 cleanupFrequency: HostSettings.TimersCleanupFrequency,
                 hostEventReporter: hostEventReporter);
+
+            var broadcaster = new Broadcaster(
+                scheduler: scheduler,
+                hostWorker: HostWorkerInternal,
+                connectionPool: sharedConnectionsPool,
+                groupManager: groupManager,
+                outQueueDispatcher: outQueueDispatcher,
+                pool: outPacketsPool);
 
             HostWorkerInternal.Serializer = HostSettings.Serializer;
             HostWorkerInternal.Broadcaster = broadcaster;
@@ -309,7 +310,6 @@ namespace UdpToolkit
                 resendInterval: HostSettings.ResendPacketsInterval,
                 serviceProvider: new ServiceProvider(
                     groupManager: groupManager,
-                    scheduler: scheduler,
                     broadcaster: broadcaster),
                 cancellationTokenSource: cancellationTokenSource,
                 udpClients: udpClients,
