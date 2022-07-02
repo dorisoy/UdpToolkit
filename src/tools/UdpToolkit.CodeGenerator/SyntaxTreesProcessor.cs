@@ -31,6 +31,7 @@
                 .SelectMany(s => s.GetRoot().DescendantNodes())
                 .Where(d => d.IsKind(SyntaxKind.ClassDeclaration))
                 .OfType<ClassDeclarationSyntax>()
+                .OrderBy(x => x.Identifier.Text)
                 .ToList();
 
             if (filterByAttribute)
@@ -43,6 +44,7 @@
                     })
                     .Where(tuple => tuple.attributes.Any(a => a.Name.ToString() == "UdpEvent"))
                     .Select(x => x.@class)
+                    .OrderBy(x => x.Identifier.Text)
                     .ToList();
             }
 
@@ -243,17 +245,10 @@
                         var payload = networkPacket.Buffer.AsSpan().Slice(0, networkPacket.BytesReceived);
                         var @event = Serializer.Deserialize<TYPE>(payload, pooledObject);
 
-                        var groupId = subscription?.OnEvent?.Invoke(
+                        subscription?.OnEvent?.Invoke(
                                 networkPacket.ConnectionId,
                                 networkPacket.IpV4Address,
                                 @event);
-                        
-                        Broadcaster.Broadcast<TYPE>(
-                                caller: networkPacket.ConnectionId,
-                                groupId: groupId.Value,
-                                @event: @event,
-                                channelId: networkPacket.ChannelId,
-                                broadcastMode: subscription.BroadcastMode);
                     }
                     catch (Exception)
                     {
