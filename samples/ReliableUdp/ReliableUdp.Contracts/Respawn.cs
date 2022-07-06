@@ -34,7 +34,7 @@ namespace ReliableUdp.Contracts
             ObjectsPool<Respawn>.Return(this);
         }
 
-        public Respawn SetUp(
+        public Respawn Setup(
             string nickname,
             Guid groupId)
         {

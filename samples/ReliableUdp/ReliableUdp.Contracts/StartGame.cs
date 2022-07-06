@@ -35,7 +35,7 @@ namespace ReliableUdp.Contracts
             ObjectsPool<StartGame>.Return(this);
         }
 
-        public StartGame SetUp(
+        public StartGame Setup(
             Guid groupId,
             Dictionary<Guid, Position> spawnPositions)
         {

@@ -28,7 +28,7 @@ namespace ReliableUdp.Contracts
         [ProtoMember(2)]
         public Guid GroupId { get; private set; }
 
-        public GameOver SetUp(
+        public GameOver Setup(
             string message,
             Guid groupId)
         {

@@ -57,7 +57,7 @@
                             timerKey: new TimerKey(roomId, typeof(GameOver)),
                             factory: () => ObjectsPool<GameOver>
                                 .GetOrCreate()
-                                .SetUp("Game Over!", roomId),
+                                .Setup("Game Over!", roomId),
                             channelId: ReliableChannel.Id,
                             delay: TimeSpan.FromSeconds(20),
                             broadcastMode: BroadcastMode.Group,
@@ -86,7 +86,7 @@
                             caller: connectionId,
                             groupId: roomId,
                             timerKey: new TimerKey(Guid.NewGuid(), typeof(Respawn)),
-                            factory: () => respawn.SetUp(death.Nickname, death.GroupId),
+                            factory: () => respawn.Setup(death.Nickname, death.GroupId),
                             channelId: ReliableChannel.Id,
                             delay: TimeSpan.FromSeconds(1),
                             broadcastMode: BroadcastMode.GroupExceptCaller,
@@ -111,7 +111,7 @@
 
             return ObjectsPool<StartGame>
                 .GetOrCreate()
-                .SetUp(groupId, spawnPositions);
+                .Setup(groupId, spawnPositions);
         }
 
         private static IHost BuildHost()
