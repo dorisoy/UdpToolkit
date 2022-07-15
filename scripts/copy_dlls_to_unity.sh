@@ -17,7 +17,6 @@ cp ./build/UdpToolkit.Annotations.dll                         ./src/unity/UdpToo
 cp ./build/UdpToolkit.Framework.dll                           ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/UdpToolkit.Framework.CodeGenerator.Contracts.dll   ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/UdpToolkit.Framework.Contracts.dll                 ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
-cp ./build/UdpToolkit.Logging.dll                             ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/UdpToolkit.Network.dll                             ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/  
 cp ./build/UdpToolkit.Network.Contracts.dll                   ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/UdpToolkit.Serialization.dll                       ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
