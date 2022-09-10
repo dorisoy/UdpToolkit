@@ -49,9 +49,9 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
-        public IAsyncQueue<TEvent> Dispatch(Guid connectionId)
+        public IAsyncQueue<TEvent> Dispatch(Guid routingKey)
         {
-            return _queues[MurMurHash.Hash3_x86_32(connectionId) % _queues.Length];
+            return _queues[MurMurHash.Hash3_x86_32(routingKey) % _queues.Length];
         }
 
         private void Dispose(bool disposing)

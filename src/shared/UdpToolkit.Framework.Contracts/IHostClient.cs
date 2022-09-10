@@ -32,8 +32,10 @@ namespace UdpToolkit.Framework.Contracts
         /// Connect to the remote host.
         /// </summary>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         void Connect(
-            Guid connectionId);
+            Guid connectionId,
+            Guid routingKey);
 
         /// <summary>
         /// Connect to the remote host.
@@ -41,10 +43,12 @@ namespace UdpToolkit.Framework.Contracts
         /// <param name="host">The ip address of the remote host.</param>
         /// <param name="port">The port of the remote host.</param>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         void Connect(
             string host,
             int port,
-            Guid connectionId);
+            Guid connectionId,
+            Guid routingKey);
 
         /// <summary>
         /// Disconnect from the remote host.

@@ -39,7 +39,8 @@ namespace UdpToolkit.Framework
 
         /// <inheritdoc />
         public void Connect(
-            Guid connectionId)
+            Guid connectionId,
+            Guid routingKey)
         {
             // nothing to do
         }
@@ -48,7 +49,8 @@ namespace UdpToolkit.Framework
         public void Connect(
             string host,
             int port,
-            Guid connectionId)
+            Guid connectionId,
+            Guid routingKey)
         {
             // nothing to do
         }

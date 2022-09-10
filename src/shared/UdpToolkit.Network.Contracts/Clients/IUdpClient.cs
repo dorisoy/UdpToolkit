@@ -71,9 +71,11 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// </summary>
         /// <param name="ipV4Address">Destination ip address.</param>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         void Connect(
             IpV4Address ipV4Address,
-            Guid connectionId);
+            Guid connectionId,
+            Guid routingKey);
 
         /// <summary>
         /// Resend packets.

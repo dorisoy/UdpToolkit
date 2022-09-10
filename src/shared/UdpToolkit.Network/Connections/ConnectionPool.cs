@@ -81,6 +81,7 @@ namespace UdpToolkit.Network.Connections
         /// <inheritdoc />
         public IConnection GetOrAdd(
             Guid connectionId,
+            Guid routingKey,
             bool keepAlive,
             DateTimeOffset timestamp,
             IpV4Address ipV4Address)
@@ -92,7 +93,13 @@ namespace UdpToolkit.Network.Connections
                 return connection;
             }
 
-            var newConnection = _connectionFactory.Create(connectionId, keepAlive, timestamp, ipV4Address);
+            var newConnection = _connectionFactory.Create(
+                connectionId: connectionId,
+                routingKey: routingKey,
+                keepAlive: keepAlive,
+                createdAt: timestamp,
+                ipAddress: ipV4Address);
+
             if (_connections.TryAdd(connectionId, newConnection))
             {
                 var connectionAccepted = new ConnectionAccepted(ipV4Address);

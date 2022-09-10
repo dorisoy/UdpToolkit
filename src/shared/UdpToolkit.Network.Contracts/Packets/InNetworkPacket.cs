@@ -37,6 +37,11 @@ namespace UdpToolkit.Network.Contracts.Clients
         public Guid ConnectionId { get; private set; }
 
         /// <summary>
+        /// Gets routing key.
+        /// </summary>
+        public Guid RoutingKey { get; private set; }
+
+        /// <summary>
         /// Gets pooled bytes buffer.
         /// </summary>
         public byte[] Buffer { get; private set; }
@@ -67,6 +72,7 @@ namespace UdpToolkit.Network.Contracts.Clients
         /// <param name="buffer">Pooled buffer with received data.</param>
         /// <param name="ipV4">Source ip address.</param>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         /// <param name="channelId">Channel identifier.</param>
         /// <param name="dataType">Type of data.</param>
         /// <param name="bytesReceived">Received bytes count.</param>
@@ -75,6 +81,7 @@ namespace UdpToolkit.Network.Contracts.Clients
             byte[] buffer,
             IpV4Address ipV4,
             Guid connectionId,
+            Guid routingKey,
             byte channelId,
             byte dataType,
             int bytesReceived,
@@ -87,6 +94,7 @@ namespace UdpToolkit.Network.Contracts.Clients
             DataType = dataType;
             BytesReceived = bytesReceived;
             Expired = isExpired;
+            RoutingKey = routingKey;
         }
 
         /// <inheritdoc />
@@ -96,6 +104,7 @@ namespace UdpToolkit.Network.Contracts.Clients
 
             IpV4Address = default;
             ConnectionId = default;
+            RoutingKey = default;
             ChannelId = default;
             DataType = default;
             BytesReceived = default;

@@ -65,7 +65,8 @@
                 });
 
             host.Run();
-            client.Connect(Guid.NewGuid());
+            var connId = Guid.NewGuid();
+            client.Connect(connId, connId);
 
             SpinWait.SpinUntil(() => isConnected, waitTimeout);
 
@@ -84,7 +85,8 @@
 
             foreach (var peer in Peers)
             {
-                client.Connect(host: peer.Address, port: peer.Port, Guid.NewGuid());
+                var connectionId = Guid.NewGuid();
+                client.Connect(host: peer.Address, port: peer.Port, connectionId, connectionId);
             }
 
             SpinWait.SpinUntil(() => _connections == Peers.Count, waitTimeout);

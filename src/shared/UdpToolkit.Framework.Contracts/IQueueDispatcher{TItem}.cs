@@ -24,9 +24,9 @@ namespace UdpToolkit.Framework.Contracts
         /// <summary>
         /// Dispatch connection data to queue.
         /// </summary>
-        /// <param name="connectionId">ConnectionId.</param>
+        /// <param name="routingKey">ConnectionId.</param>
         /// <returns>Queue for connection.</returns>
         IAsyncQueue<TItem> Dispatch(
-            Guid connectionId);
+            Guid routingKey);
     }
 }

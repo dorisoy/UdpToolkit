@@ -44,7 +44,7 @@ namespace UdpToolkit.Benchmarks
             _destination = new IpV4Address(0, 0);
 
             // add connection to pool
-            _udpClient.Connect(_destination, _connectionId);
+            _udpClient.Connect(_destination, _connectionId, _connectionId);
         }
 
         [IterationSetup(Target = nameof(Poll))]
@@ -65,7 +65,7 @@ namespace UdpToolkit.Benchmarks
         {
             for (int i = 0; i < Repeats; i++)
             {
-                _udpClient.Connect(_destination, _connectionId);
+                _udpClient.Connect(_destination, _connectionId, _connectionId);
             }
         }
 

@@ -90,20 +90,22 @@ namespace UdpToolkit.Framework
 
         /// <inheritdoc />
         public void Connect(
-            Guid connectionId)
+            Guid connectionId,
+            Guid routingKey)
         {
-            _udpClient.Connect(_serverIpAddress, connectionId);
+            _udpClient.Connect(_serverIpAddress, connectionId, routingKey);
         }
 
         /// <inheritdoc />
         public void Connect(
             string host,
             int port,
-            Guid connectionId)
+            Guid connectionId,
+            Guid routingKey)
         {
             var destination = new IpV4Address(IpUtils.ToInt(host), (ushort)port);
 
-            _udpClient.Connect(destination, connectionId);
+            _udpClient.Connect(destination, connectionId, routingKey);
         }
 
         /// <inheritdoc />

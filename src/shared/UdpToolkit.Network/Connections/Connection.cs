@@ -17,6 +17,7 @@ namespace UdpToolkit.Network.Connections
         /// Initializes a new instance of the <see cref="Connection"/> class.
         /// </summary>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         /// <param name="keepAlive">Flag indicating whether needs to remove the connection from the pool on cleanup scan.</param>
         /// <param name="ipAddress">Ip address of connection.</param>
         /// <param name="createdAt">Connection creation date.</param>
@@ -24,6 +25,7 @@ namespace UdpToolkit.Network.Connections
         /// <param name="outputChannelsMap">Map of output channels.</param>
         internal Connection(
             Guid connectionId,
+            Guid routingKey,
             bool keepAlive,
             IpV4Address ipAddress,
             DateTimeOffset createdAt,
@@ -32,6 +34,7 @@ namespace UdpToolkit.Network.Connections
         {
             _inputChannelsMap = inputChannelsMap;
             _outputChannelsMap = outputChannelsMap;
+            RoutingKey = routingKey;
             ConnectionId = connectionId;
             IpV4Address = ipAddress;
             KeepAlive = keepAlive;
@@ -44,6 +47,9 @@ namespace UdpToolkit.Network.Connections
 
         /// <inheritdoc />
         public Guid ConnectionId { get; }
+
+        /// <inheritdoc />
+        public Guid RoutingKey { get; }
 
         /// <inheritdoc />
         public bool KeepAlive { get; }

@@ -24,6 +24,7 @@ namespace UdpToolkit.Network.Connections
         /// <inheritdoc />
         public IConnection Create(
             Guid connectionId,
+            Guid routingKey,
             bool keepAlive,
             DateTimeOffset createdAt,
             IpV4Address ipAddress)
@@ -38,6 +39,7 @@ namespace UdpToolkit.Network.Connections
 
             return new Connection(
                 connectionId: connectionId,
+                routingKey: routingKey,
                 keepAlive: keepAlive,
                 ipAddress: ipAddress,
                 createdAt: createdAt,

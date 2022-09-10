@@ -204,7 +204,7 @@ namespace UdpToolkit
                 udpClient.OnPacketReceived += (networkPacket) =>
                 {
                     inQueueDispatcher
-                        .Dispatch(networkPacket.ConnectionId)
+                        .Dispatch(networkPacket.RoutingKey)
                         .Produce(networkPacket);
                 };
 

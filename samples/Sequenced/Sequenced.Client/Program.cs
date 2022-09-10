@@ -48,7 +48,8 @@
 
             host.Run();
 
-            client.Connect(Guid.NewGuid());
+            var connId = Guid.NewGuid();
+            client.Connect(connectionId: connId, routingKey: connId);
 
             var waitTimeout = TimeSpan.FromSeconds(120);
             SpinWait.SpinUntil(() => isConnected, waitTimeout);

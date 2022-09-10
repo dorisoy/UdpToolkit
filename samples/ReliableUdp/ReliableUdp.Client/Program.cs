@@ -76,7 +76,7 @@
 
             host.Run();
 
-            client.Connect(ConnectionId);
+            client.Connect(ConnectionId, ConnectionId);
 
             var waitTimeout = TimeSpan.FromSeconds(120);
             SpinWait.SpinUntil(() => isConnected, waitTimeout);

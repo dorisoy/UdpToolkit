@@ -23,6 +23,11 @@ namespace UdpToolkit.Network.Contracts.Connections
         Guid ConnectionId { get; }
 
         /// <summary>
+        /// Gets routing key.
+        /// </summary>
+        Guid RoutingKey { get; }
+
+        /// <summary>
         /// Gets a value indicating whether needs to remove the connection from the pool.
         /// </summary>
         /// <remarks>

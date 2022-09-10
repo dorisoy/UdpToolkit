@@ -43,7 +43,7 @@ namespace UdpToolkit.Network.Tests
         {
             var connectionId = Guid.NewGuid();
             var connectionTask = SubscribeOnConnected();
-            udpClient.Connect(serverIp, connectionId);
+            udpClient.Connect(serverIp, connectionId, connectionId);
             await connectionTask.ConfigureAwait(false);
             return connectionId;
 

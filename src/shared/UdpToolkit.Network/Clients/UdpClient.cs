@@ -119,14 +119,17 @@ namespace UdpToolkit.Network.Clients
         /// <inheritdoc />
         public void Connect(
             IpV4Address ipV4Address,
-            Guid connectionId)
+            Guid connectionId,
+            Guid routingKey)
         {
             ConnectionId = connectionId;
-            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize);
+            var buffer = _arrayPool.Rent(Consts.NetworkHeaderSize + Consts.RoutingKeySize);
             try
             {
+                var payload = routingKey.ToByteArray();
                 var connection = _connectionPool.GetOrAdd(
                     connectionId: ConnectionId,
+                    routingKey: routingKey,
                     keepAlive: true,
                     timestamp: _dateTimeProvider.GetUtcNow(),
                     ipV4Address: _client.GetLocalIp());
@@ -139,7 +142,8 @@ namespace UdpToolkit.Network.Clients
                         ipV4Address,
                         buffer,
                         PacketType.Connect,
-                        NetworkConsts.Connect);
+                        NetworkConsts.Connect,
+                        payload: payload);
                 }
                 else
                 {
@@ -289,6 +293,7 @@ namespace UdpToolkit.Network.Clients
                     buffer: droppedBytes,
                     ipV4: ipV4Address,
                     connectionId: connectionId,
+                    routingKey: default,
                     channelId: channelId,
                     dataType: dataType,
                     bytesReceived: default,
@@ -380,6 +385,7 @@ namespace UdpToolkit.Network.Clients
                         networkPacket.Setup(
                             buffer: invalidPacketBuffer,
                             ipV4: remoteIp,
+                            routingKey: default,
                             connectionId: default,
                             channelId: default,
                             dataType: default,
@@ -442,7 +448,8 @@ namespace UdpToolkit.Network.Clients
             IpV4Address ipV4Address,
             byte[] buffer,
             PacketType packetType,
-            byte dataType)
+            byte dataType,
+            byte[] payload = default)
         {
             var bufferSpan = buffer
                 .AsSpan()
@@ -458,21 +465,30 @@ namespace UdpToolkit.Network.Clients
 
             UnsafeSerialization.Serialize(bufferSpan, networkHeader);
 
-            // TODO trace events
-            // "[UdpToolkit.Network] {packetType} sent to: {IpUtils.ToString(ipV4Address.Address)}:{ipV4Address.Port} bytes length: {bufferSpan.Length}"
+            if (payload?.Length > 0)
+            {
+                Array.Copy(
+                    sourceArray: payload,
+                    sourceIndex: 0,
+                    destinationArray: buffer,
+                    destinationIndex: Consts.NetworkHeaderSize,
+                    length: payload.Length);
+            }
+
+            var length = bufferSpan.Length + (payload?.Length ?? 0);
             if (channel.IsReliable)
             {
                 connection.PendingPackets.Add(new PendingPacket(
                     dataType: dataType,
                     ipV4Address: ipV4Address,
                     buffer: buffer,
-                    payloadLength: bufferSpan.Length,
+                    payloadLength: length,
                     createdAt: _dateTimeProvider.GetUtcNow(),
                     channel: channel,
                     id: networkHeader.Id));
             }
 
-            _client.Send(ref ipV4Address, buffer, bufferSpan.Length);
+            _client.Send(ref ipV4Address, buffer, length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -640,8 +656,11 @@ namespace UdpToolkit.Network.Clients
                         break;
                     }
 
+                    var routingKeySpan = buffer.AsSpan().Slice(0, Consts.RoutingKeySize);
+
                     var newConnection = _connectionPool.GetOrAdd(
                         connectionId: networkHeader.ConnectionId,
+                        routingKey: SpanUtils.ToGuid(routingKeySpan),
                         timestamp: _dateTimeProvider.GetUtcNow(),
                         keepAlive: false,
                         ipV4Address: remoteIp);
@@ -696,6 +715,7 @@ namespace UdpToolkit.Network.Clients
                     networkPacket.Setup(
                         buffer: buffer,
                         ipV4: remoteIp,
+                        routingKey: connection.RoutingKey,
                         connectionId: connection.ConnectionId,
                         channelId: networkHeader.ChannelId,
                         dataType: networkHeader.DataType,

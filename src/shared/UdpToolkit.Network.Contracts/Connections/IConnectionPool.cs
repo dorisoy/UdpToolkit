@@ -33,12 +33,14 @@ namespace UdpToolkit.Network.Contracts.Connections
         /// Get or add connection.
         /// </summary>
         /// <param name="connectionId">Connection identifier.</param>
+        /// <param name="routingKey">Routing key.</param>
         /// <param name="keepAlive">Flag indicating whether needs to remove the connection from the pool on cleanup scan.</param>
         /// <param name="timestamp">Timestamp (utc now).</param>
         /// <param name="ipV4Address">Ip address of connection.</param>
         /// <returns>Instance of connection.</returns>
         IConnection GetOrAdd(
             Guid connectionId,
+            Guid routingKey,
             bool keepAlive,
             DateTimeOffset timestamp,
             IpV4Address ipV4Address);
