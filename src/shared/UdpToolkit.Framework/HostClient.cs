@@ -4,21 +4,18 @@ namespace UdpToolkit.Framework
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using UdpToolkit.Framework.CodeGenerator.Contracts;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Packets;
     using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
-    using UdpToolkit.Serialization;
 
     /// <summary>
     /// HostClient.
     /// </summary>
     public sealed class HostClient : IHostClient
     {
-        private readonly ISerializer _serializer;
         private readonly IpV4Address _serverIpAddress;
         private readonly CancellationTokenSource _cancellationTokenSource;
         private readonly ConcurrentPool<OutNetworkPacket> _outPacketsPool;
@@ -37,15 +34,13 @@ namespace UdpToolkit.Framework
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
         /// <param name="outPacketsPool">Instance of out packets pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
-        /// <param name="serializer">Instance of serializer.</param>
         public HostClient(
             IpV4Address serverIpAddress,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
             IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
             ConcurrentPool<OutNetworkPacket> outPacketsPool,
-            IHostWorker hostWorker,
-            ISerializer serializer)
+            IHostWorker hostWorker)
         {
             _serverIpAddress = serverIpAddress;
             _cancellationTokenSource = cancellationTokenSource;
@@ -53,7 +48,6 @@ namespace UdpToolkit.Framework
             _outQueueDispatcher = outQueueDispatcher;
             _outPacketsPool = outPacketsPool;
             _hostWorker = hostWorker;
-            _serializer = serializer;
 
             this._udpClient.OnPacketExpired += (pendingPacket) =>
             {
@@ -217,12 +211,9 @@ namespace UdpToolkit.Framework
                 }
 
                 var outPacket = _outPacketsPool.GetOrCreate();
-                var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
-                bufferWriter.AddReference();
-                _serializer.Serialize(bufferWriter, @event);
 
                 outPacket.Setup(
-                    bufferWriter: bufferWriter,
+                    @event: @event,
                     dataType: subscriptionId,
                     ipV4Address: destination,
                     connectionId: connectionId,

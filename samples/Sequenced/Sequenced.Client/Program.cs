@@ -62,7 +62,8 @@
 
             await Task.Delay(20_000).ConfigureAwait(false);
 
-            for (var i = 0; i < 5000; i++)
+            Console.WriteLine("Start sending");
+            for (var i = 0; i < 300; i++)
             {
                 client.Send(
                     @event: new MoveEvent(
@@ -73,12 +74,11 @@
                 Thread.Sleep(1000 / 60);
             }
 
+            Console.WriteLine("End sending");
+
             client.Disconnect();
             SpinWait.SpinUntil(() => !isConnected);
             Console.WriteLine($"Client disconnected, IsConnected - {isConnected}");
-
-            Console.WriteLine("Press any key...");
-            Console.ReadLine();
         }
 
         private static IHost BuildHost()

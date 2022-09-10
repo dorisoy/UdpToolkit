@@ -5,6 +5,7 @@ namespace UdpToolkit
     using System.Linq;
     using System.Threading;
     using UdpToolkit.Framework;
+    using UdpToolkit.Framework.CodeGenerator.Contracts;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Events;
     using UdpToolkit.Network.Clients;
@@ -105,12 +106,31 @@ namespace UdpToolkit
                     {
                         using (outPacket)
                         {
-                            sender.Send(
-                                connectionId: outPacket.ConnectionId,
-                                channelId: outPacket.ChannelId,
-                                dataType: outPacket.DataType,
-                                payload: outPacket.BufferWriter.WrittenSpan,
-                                ipV4Address: outPacket.IpV4Address);
+                            // from HostClient for avoid serialization on UI thread
+                            if (outPacket.Event != null)
+                            {
+                                using (var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate())
+                                {
+                                    HostSettings.Serializer.Serialize(bufferWriter, outPacket.Event);
+                                    sender.Send(
+                                        connectionId: outPacket.ConnectionId,
+                                        channelId: outPacket.ChannelId,
+                                        dataType: outPacket.DataType,
+                                        payload: bufferWriter.WrittenSpan,
+                                        ipV4Address: outPacket.IpV4Address);
+                                }
+                            }
+
+                            // from Host
+                            else
+                            {
+                                sender.Send(
+                                    connectionId: outPacket.ConnectionId,
+                                    channelId: outPacket.ChannelId,
+                                    dataType: outPacket.DataType,
+                                    payload: outPacket.BufferWriter.WrittenSpan,
+                                    ipV4Address: outPacket.IpV4Address);
+                            }
                         }
                     },
                     hostEventReporter: hostEventReporter))
@@ -220,16 +240,13 @@ namespace UdpToolkit
             var randomRemoteHostIp = remoteHostIps[MurMurHash.Hash3_x86_32(seed) % remoteHostIps.Length];
             var udpClient = udpClients[MurMurHash.Hash3_x86_32(seed) % udpClients.Length];
 
-            var hostClient = new HostClient(
-                serializer: HostSettings.Serializer,
+            return new HostClient(
                 hostWorker: HostWorkerInternal,
                 outPacketsPool: outPacketsPool,
                 serverIpAddress: randomRemoteHostIp,
                 udpClient: udpClient,
                 cancellationTokenSource: cancellationTokenSource,
                 outQueueDispatcher: outQueueDispatcher);
-
-            return hostClient;
         }
 
         private IHost BuildHost(
