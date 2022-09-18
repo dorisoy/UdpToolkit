@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net6.0</TargetFramework>
+        <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+        <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)GeneratedFiles</CompilerGeneratedFilesOutputPath>
+        <NoWarn>SA0001, SA1600</NoWarn>
+        <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\src\tools\UdpToolkit.CodeGenerator\UdpToolkit.CodeGenerator.csproj" ReferenceOutputAssembly="true" OutputItemType="Analyzer" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Annotations\UdpToolkit.Annotations.csproj" />
+        <ProjectReference Include="..\..\..\src\shared\UdpToolkit.Framework.CodeGenerator.Contracts\UdpToolkit.Framework.CodeGenerator.Contracts.csproj" />
+        <ProjectReference Include="..\..\Serialization\Serializers\Serializers.csproj" />
+    </ItemGroup>
+</Project>

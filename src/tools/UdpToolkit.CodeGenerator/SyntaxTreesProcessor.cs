@@ -27,16 +27,18 @@
             IEnumerable<SyntaxTree> syntaxTrees,
             bool filterByAttribute)
         {
-            var allClasses = syntaxTrees
+            var st = syntaxTrees.ToArray();
+
+            var allTypes = st
                 .SelectMany(s => s.GetRoot().DescendantNodes())
-                .Where(d => d.IsKind(SyntaxKind.ClassDeclaration))
-                .OfType<ClassDeclarationSyntax>()
+                .Where(d => d.IsKind(SyntaxKind.ClassDeclaration) || d.IsKind(SyntaxKind.StructDeclaration))
+                .OfType<TypeDeclarationSyntax>()
                 .OrderBy(x => x.Identifier.Text)
                 .ToList();
 
             if (filterByAttribute)
             {
-                allClasses = allClasses
+                allTypes = allTypes
                     .Select(cds => new
                     {
                         @class = cds,
@@ -55,15 +57,15 @@
             GenerateNamespaces(sb);
             GenerateUsings(sb);
             GenerateClassHeader(sb);
-            GenerateLookup(sb, allClasses);
+            GenerateLookup(sb, allTypes);
             GenerateProperties(sb);
             GenerateFields(sb);
             GenerateCtorMethod(sb);
             GenerateFinalizerMethod(sb);
             GeneratePublicDisposeMethod(sb);
             GenerateTryGetSubscriptionId(sb);
-            GenerateProcessInPacketMethod(sb, allClasses);
-            GenerateProcessExpiredPacketMethod(sb, allClasses);
+            GenerateProcessInPacketMethod(sb, allTypes);
+            GenerateProcessExpiredPacketMethod(sb, allTypes);
             GeneratePrivateDisposeMethod(sb);
             GenerateClosedBraces(sb);
 
@@ -90,23 +92,40 @@
             sb.AppendLine(string.Empty);
         }
 
-        private static void GenerateLookup(StringBuilder sb, List<ClassDeclarationSyntax> allClasses)
+        private static void GenerateLookup(
+            StringBuilder sb,
+            List<TypeDeclarationSyntax> allTypes)
         {
             sb.Append(@"
         private static readonly IReadOnlyDictionary<Type, byte> Lookup = new Dictionary<Type, byte>
         {");
 
-            for (int i = 0; i < allClasses.Count; i++)
+            for (int i = 0; i < allTypes.Count; i++)
             {
-                var @class = allClasses[i];
-                var ns = GetNamespace(@class);
-                var template = @"
-            [typeof(TYPE)] = NUMBER,";
-                var body = template
-                    .Replace("NUMBER", i.ToString())
-                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{@class.Identifier.Text}");
+                var type = allTypes[i];
+                var ns = GetNamespace(type);
 
-                sb.Append(body);
+                if (type is ClassDeclarationSyntax)
+                {
+                    var template = @"
+            [typeof(TYPE)] = NUMBER,";
+                    var body = template
+                        .Replace("NUMBER", i.ToString())
+                        .Replace("TYPE", $"global::{ns.Name.ToString()}.{type.Identifier.Text}");
+
+                    sb.Append(body);
+                }
+
+                if (type is StructDeclarationSyntax)
+                {
+                    var template = @"
+            [typeof(TYPE)] = NUMBER,";
+                    var body = template
+                        .Replace("NUMBER", i.ToString())
+                        .Replace("TYPE", $"global::{ns.Name.ToString()}.{type.Identifier.Text}");
+
+                    sb.Append(body);
+                }
             }
 
             sb.Append(@"
@@ -222,7 +241,9 @@
         }");
         }
 
-        private static void GenerateProcessInPacketMethod(StringBuilder sb, List<ClassDeclarationSyntax> allClasses)
+        private static void GenerateProcessInPacketMethod(
+            StringBuilder sb,
+            List<TypeDeclarationSyntax> allTypes)
         {
             sb.Append(@"
         public void Process(
@@ -231,10 +252,33 @@
             switch (networkPacket.DataType)
             {");
 
-            for (int i = 0; i < allClasses.Count; i++)
+            for (int i = 0; i < allTypes.Count; i++)
             {
-                var @class = allClasses[i];
-                var caseTemplate = @"
+                var type = allTypes[i];
+
+                string caseTemplate = string.Empty;
+                if (type is StructDeclarationSyntax)
+                {
+                    caseTemplate = @"
+                case VALUE:
+                {
+                    var subscription = SubscriptionStorage<TYPE>.GetSubscription();
+                    var payload = networkPacket.Buffer.AsSpan().Slice(0, networkPacket.BytesReceived);
+                    var @event = Serializer.DeserializeUnmanaged<TYPE>(payload);
+
+                    subscription?.OnEvent?.Invoke(
+                            networkPacket.ConnectionId,
+                            networkPacket.IpV4Address,
+                            @event);
+
+                    break;
+                }
+             ";
+                }
+
+                if (type is ClassDeclarationSyntax)
+                {
+                    caseTemplate = @"
                 case VALUE:
                 {
                     var pooledObject = ObjectsPool<TYPE>.GetOrCreate();
@@ -257,11 +301,12 @@
                     break;
                 }
              ";
+                }
 
-                var ns = GetNamespace(@class);
+                var ns = GetNamespace(type);
                 var body = caseTemplate
                     .Replace("VALUE", i.ToString())
-                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{@class.Identifier.Text}");
+                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{type.Identifier.Text}");
 
                 sb.Append(body);
             }
@@ -277,7 +322,7 @@
 
         private static void GenerateProcessExpiredPacketMethod(
             StringBuilder sb,
-            List<ClassDeclarationSyntax> allClasses)
+            List<TypeDeclarationSyntax> allTypes)
         {
             sb.Append(@"
         public void Process(
@@ -285,9 +330,10 @@
         {
             switch (pendingPacket.DataType)
             {");
-            for (int i = 0; i < allClasses.Count; i++)
+            for (int i = 0; i < allTypes.Count; i++)
             {
-                var @class = allClasses[i];
+                var type = allTypes[i];
+
                 var caseTemplate = @"
                 case VALUE:
                 {
@@ -298,10 +344,10 @@
                 }
                  ";
 
-                var ns = GetNamespace(@class);
+                var ns = GetNamespace(type);
                 var body = caseTemplate
                     .Replace("VALUE", i.ToString())
-                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{@class.Identifier.Text}");
+                    .Replace("TYPE", $"global::{ns.Name.ToString()}.{type.Identifier.Text}");
 
                 sb.Append(body);
             }

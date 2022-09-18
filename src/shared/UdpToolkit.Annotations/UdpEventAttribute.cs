@@ -6,7 +6,7 @@ namespace UdpToolkit.Annotations
     /// <summary>
     /// Attribute for marking C# classes represents events sending over the network.
     /// </summary>
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = false)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Struct, AllowMultiple = false, Inherited = false)]
     public class UdpEventAttribute : Attribute
     {
     }

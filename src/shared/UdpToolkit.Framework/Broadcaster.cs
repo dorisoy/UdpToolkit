@@ -6,7 +6,6 @@ namespace UdpToolkit.Framework
     using UdpToolkit.Framework.CodeGenerator.Contracts;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts.Connections;
-    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
     using UdpToolkit.Serialization;
 
@@ -18,8 +17,7 @@ namespace UdpToolkit.Framework
         private readonly IHostWorker _hostWorker;
         private readonly IConnectionPool _connectionPool;
         private readonly IGroupManager _groupManager;
-        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
-        private readonly ConcurrentPool<OutNetworkPacket> _pool;
+        private readonly IQueueDispatcher<IOutNetworkPacket> _outQueueDispatcher;
 
         private bool _disposed = false;
 
@@ -28,15 +26,13 @@ namespace UdpToolkit.Framework
         /// </summary>
         /// <param name="groupManager">Instance of group manager.</param>
         /// <param name="outQueueDispatcher">Instance of queue dispatcher.</param>
-        /// <param name="pool">Instance pool.</param>
         /// <param name="connectionPool">Instance of connection pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
         /// <param name="scheduler">Instance of scheduler.</param>
         /// <param name="serializer">Instance of serializer.</param>
         public Broadcaster(
             IGroupManager groupManager,
-            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
-            ConcurrentPool<OutNetworkPacket> pool,
+            IQueueDispatcher<IOutNetworkPacket> outQueueDispatcher,
             IConnectionPool connectionPool,
             IHostWorker hostWorker,
             IScheduler scheduler,
@@ -44,7 +40,6 @@ namespace UdpToolkit.Framework
         {
             _groupManager = groupManager;
             _outQueueDispatcher = outQueueDispatcher;
-            _pool = pool;
             _connectionPool = connectionPool;
             _hostWorker = hostWorker;
             _scheduler = scheduler;
@@ -76,6 +71,37 @@ namespace UdpToolkit.Framework
             BroadcastMode broadcastMode)
         where TEvent : class, IDisposable
         {
+            using (@event)
+            {
+                if (!_hostWorker.TryGetSubscriptionId(typeof(TEvent), out var subscriptionId))
+                {
+                    return;
+                }
+
+                var group = _groupManager.GetGroup(groupId);
+                var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
+                _serializer.Serialize(bufferWriter, @event);
+
+                BroadcastInternal(
+                    broadcastMode: broadcastMode,
+                    @group: group,
+                    caller: caller,
+                    groupId: groupId,
+                    subscriptionId: subscriptionId,
+                    channelId: channelId,
+                    bufferWriter: bufferWriter);
+            }
+        }
+
+        /// <inheritdoc />
+        public void BroadcastUnmanaged<TEvent>(
+            Guid caller,
+            Guid groupId,
+            TEvent @event,
+            byte channelId,
+            BroadcastMode broadcastMode)
+        where TEvent : unmanaged
+        {
             if (!_hostWorker.TryGetSubscriptionId(typeof(TEvent), out var subscriptionId))
             {
                 return;
@@ -83,8 +109,84 @@ namespace UdpToolkit.Framework
 
             var group = _groupManager.GetGroup(groupId);
             var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
-            _serializer.Serialize(bufferWriter, @event);
+            _serializer.SerializeUnmanaged(bufferWriter, @event);
 
+            BroadcastInternal(
+                broadcastMode: broadcastMode,
+                @group: group,
+                caller: caller,
+                groupId: groupId,
+                subscriptionId: subscriptionId,
+                channelId: channelId,
+                bufferWriter: bufferWriter);
+        }
+
+        /// <inheritdoc />
+        public void ScheduleBroadcast<TEvent>(
+            Guid caller,
+            Guid groupId,
+            TimerKey timerKey,
+            Func<TEvent> factory,
+            byte channelId,
+            TimeSpan delay,
+            BroadcastMode broadcastMode,
+            TimeSpan frequency)
+        where TEvent : class, IDisposable
+        {
+            _scheduler.Schedule(
+                timerKey: timerKey,
+                delay: delay,
+                frequency: frequency,
+                ttl: this._groupManager.GroupTtl,
+                action: () =>
+                {
+                    this.Broadcast(
+                        caller: caller,
+                        groupId: groupId,
+                        @event: factory(),
+                        channelId: channelId,
+                        broadcastMode: broadcastMode);
+                });
+        }
+
+        /// <inheritdoc />
+        public void ScheduleBroadcastUnmanaged<TEvent>(
+            Guid caller,
+            Guid groupId,
+            TimerKey timerKey,
+            Func<TEvent> factory,
+            byte channelId,
+            TimeSpan delay,
+            BroadcastMode broadcastMode,
+            TimeSpan frequency)
+        where TEvent : unmanaged
+        {
+            _scheduler.Schedule(
+                timerKey: timerKey,
+                delay: delay,
+                frequency: frequency,
+                ttl: this._groupManager.GroupTtl,
+                action: () =>
+                {
+                    this.BroadcastUnmanaged(
+                        caller: caller,
+                        groupId: groupId,
+                        @event: factory(),
+                        channelId: channelId,
+                        broadcastMode: broadcastMode);
+                });
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void BroadcastInternal(
+            BroadcastMode broadcastMode,
+            Group group,
+            Guid caller,
+            Guid groupId,
+            byte subscriptionId,
+            byte channelId,
+            BufferWriter<byte> bufferWriter)
+        {
             switch (broadcastMode)
             {
                 case BroadcastMode.Caller:
@@ -170,42 +272,12 @@ namespace UdpToolkit.Framework
 
                 case BroadcastMode.None:
                 {
-                    @event.Dispose();
-
                     break;
                 }
 
                 default:
                     throw new ArgumentOutOfRangeException(nameof(broadcastMode), broadcastMode, null);
             }
-        }
-
-        /// <inheritdoc />
-        public void ScheduleBroadcast<TEvent>(
-            Guid caller,
-            Guid groupId,
-            TimerKey timerKey,
-            Func<TEvent> factory,
-            byte channelId,
-            TimeSpan delay,
-            BroadcastMode broadcastMode,
-            TimeSpan frequency)
-        where TEvent : class, IDisposable
-        {
-            _scheduler.Schedule(
-                timerKey: timerKey,
-                delay: delay,
-                frequency: frequency,
-                ttl: this._groupManager.GroupTtl,
-                action: () =>
-                {
-                    this.Broadcast(
-                        caller: caller,
-                        groupId: groupId,
-                        @event: factory(),
-                        channelId: channelId,
-                        broadcastMode: broadcastMode);
-                });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -219,7 +291,7 @@ namespace UdpToolkit.Framework
         {
             bufferWriter.AddReference();
 
-            var outPacket = _pool.GetOrCreate();
+            var outPacket = ObjectsPool<HostOutNetworkPacket>.GetOrCreate();
 
             outPacket.Setup(
                 bufferWriter: bufferWriter,

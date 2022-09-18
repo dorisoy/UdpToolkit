@@ -85,7 +85,7 @@ namespace UdpToolkit.Framework.Contracts
         void Send<TEvent>(
             TEvent @event,
             byte channelId)
-            where TEvent : class, IDisposable;
+        where TEvent : class, IDisposable;
 
         /// <summary>
         /// Send event to the remote host.
@@ -100,6 +100,34 @@ namespace UdpToolkit.Framework.Contracts
             TEvent @event,
             IpV4Address destination,
             byte channelId)
-            where TEvent : class, IDisposable;
+        where TEvent : class, IDisposable;
+
+        /// <summary>
+        /// Send event to the remote host.
+        /// </summary>
+        /// <param name="event">user-defined event instance.</param>
+        /// <param name="channelId">Channel id for sending data.</param>
+        /// <typeparam name="TEvent">
+        /// Type of user-defined event.
+        /// </typeparam>
+        void SendUnmanaged<TEvent>(
+            TEvent @event,
+            byte channelId)
+        where TEvent : unmanaged;
+
+        /// <summary>
+        /// Send event to the remote host.
+        /// </summary>
+        /// <param name="event">user-defined event instance.</param>
+        /// <param name="destination">Destination ip address.</param>
+        /// <param name="channelId">Channel id for sending data.</param>
+        /// <typeparam name="TEvent">
+        /// Type of user-defined event.
+        /// </typeparam>
+        void SendUnmanaged<TEvent>(
+            TEvent @event,
+            IpV4Address destination,
+            byte channelId)
+        where TEvent : unmanaged;
     }
 }

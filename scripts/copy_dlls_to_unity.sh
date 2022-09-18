@@ -24,6 +24,8 @@ cp ./build/UdpToolkit.Serialization.dll                       ./src/unity/UdpToo
 # copy system dll's
 cp ./build/System.Buffers.dll                          ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/System.Memory.dll                           ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
+cp ./build/System.Threading.Channels.dll               ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
+cp ./build/System.Threading.Tasks.Extensions.dll       ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 cp ./build/System.Runtime.CompilerServices.Unsafe.dll  ./src/unity/UdpToolkit.Unity/Assets/Plugins/UdpToolkit/
 
 # copy native part

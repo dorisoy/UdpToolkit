@@ -101,6 +101,25 @@ namespace UdpToolkit.Framework
         }
 
         /// <inheritdoc />
+        public void SendUnmanaged<TEvent>(
+            TEvent @event,
+            byte channelId)
+        where TEvent : unmanaged
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
+        public void SendUnmanaged<TEvent>(
+            TEvent @event,
+            IpV4Address destination,
+            byte channelId)
+        where TEvent : unmanaged
+        {
+            // nothing to do
+        }
+
+        /// <inheritdoc />
         public void Dispose()
         {
             // nothing to do

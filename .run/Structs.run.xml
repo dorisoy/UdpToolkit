@@ -1,0 +1,8 @@
+﻿<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Structs" type="CompoundRunConfigurationType">
+    <toRun name="Structs.Client1" type="DotNetProject" />
+    <toRun name="Structs.Client2" type="DotNetProject" />
+    <toRun name="Structs.Server" type="DotNetProject" />
+    <method v="2" />
+  </configuration>
+</component>

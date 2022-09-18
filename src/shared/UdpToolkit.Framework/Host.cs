@@ -20,7 +20,7 @@ namespace UdpToolkit.Framework
         private readonly TimeSpan _resendInterval;
         private readonly IHostEventReporter _hostEventReporter;
         private readonly IHostClient _hostClient;
-        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
+        private readonly IQueueDispatcher<IOutNetworkPacket> _outQueueDispatcher;
         private readonly IQueueDispatcher<InNetworkPacket> _inQueueDispatcher;
         private readonly IUdpClient[] _udpClients;
         private readonly IList<IDisposable> _toDispose;
@@ -44,7 +44,7 @@ namespace UdpToolkit.Framework
             TimeSpan resendInterval,
             IHostEventReporter hostEventReporter,
             IHostClient hostClient,
-            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
+            IQueueDispatcher<IOutNetworkPacket> outQueueDispatcher,
             IQueueDispatcher<InNetworkPacket> inQueueDispatcher,
             IUdpClient[] udpClients,
             IExecutor executor,

@@ -1,32 +1,31 @@
-namespace Serializers
+﻿namespace Serializers
 {
     using System;
     using System.Buffers;
     using UdpToolkit.Serialization;
 
-    public class MessagePackSerializer : ISerializer
+    public sealed class UnsafeSerializer : ISerializer
     {
         public void Serialize<T>(IBufferWriter<byte> buffer, T item)
         {
-            MessagePack.MessagePackSerializer.Serialize(buffer, item);
+            throw new NotSupportedException();
         }
 
         public void SerializeUnmanaged<T>(IBufferWriter<byte> buffer, T item)
             where T : unmanaged
         {
-            throw new NotSupportedException();
+            UdpToolkit.Network.Serialization.UnsafeSerialization.Serialize(buffer, item);
         }
 
         public T Deserialize<T>(ReadOnlySpan<byte> buffer, T item)
         {
-            // MessagePack does not support deserialization to an existing object
-            return MessagePack.MessagePackSerializer.Deserialize<T>(buffer.ToArray());
+            throw new NotSupportedException();
         }
 
         public T DeserializeUnmanaged<T>(ReadOnlySpan<byte> buffer)
             where T : unmanaged
         {
-            throw new NotSupportedException();
+            return UdpToolkit.Network.Serialization.UnsafeSerialization.Deserialize<T>(buffer);
         }
     }
 }

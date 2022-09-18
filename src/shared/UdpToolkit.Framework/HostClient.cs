@@ -4,11 +4,11 @@ namespace UdpToolkit.Framework
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
     using System.Threading;
+    using UdpToolkit.Framework.CodeGenerator.Contracts;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Network.Contracts;
     using UdpToolkit.Network.Contracts.Clients;
     using UdpToolkit.Network.Contracts.Packets;
-    using UdpToolkit.Network.Contracts.Pooling;
     using UdpToolkit.Network.Contracts.Sockets;
 
     /// <summary>
@@ -18,11 +18,10 @@ namespace UdpToolkit.Framework
     {
         private readonly IpV4Address _serverIpAddress;
         private readonly CancellationTokenSource _cancellationTokenSource;
-        private readonly ConcurrentPool<OutNetworkPacket> _outPacketsPool;
 
         private readonly IHostWorker _hostWorker;
         private readonly IUdpClient _udpClient;
-        private readonly IQueueDispatcher<OutNetworkPacket> _outQueueDispatcher;
+        private readonly IQueueDispatcher<IOutNetworkPacket> _outQueueDispatcher;
         private bool _disposed = false;
 
         /// <summary>
@@ -32,21 +31,18 @@ namespace UdpToolkit.Framework
         /// <param name="cancellationTokenSource">Instance of cancellation token source.</param>
         /// <param name="udpClient">Instance of UDP client.</param>
         /// <param name="outQueueDispatcher">Instance of outQueueDispatcher.</param>
-        /// <param name="outPacketsPool">Instance of out packets pool.</param>
         /// <param name="hostWorker">Instance of host worker.</param>
         public HostClient(
             IpV4Address serverIpAddress,
             CancellationTokenSource cancellationTokenSource,
             IUdpClient udpClient,
-            IQueueDispatcher<OutNetworkPacket> outQueueDispatcher,
-            ConcurrentPool<OutNetworkPacket> outPacketsPool,
+            IQueueDispatcher<IOutNetworkPacket> outQueueDispatcher,
             IHostWorker hostWorker)
         {
             _serverIpAddress = serverIpAddress;
             _cancellationTokenSource = cancellationTokenSource;
             _udpClient = udpClient;
             _outQueueDispatcher = outQueueDispatcher;
-            _outPacketsPool = outPacketsPool;
             _hostWorker = hostWorker;
 
             this._udpClient.OnPacketExpired += (pendingPacket) =>
@@ -141,7 +137,7 @@ namespace UdpToolkit.Framework
             TEvent @event,
             IpV4Address destination,
             byte channelId)
-            where TEvent : class, IDisposable
+        where TEvent : class, IDisposable
         {
             SendInternal(
                 @event: @event,
@@ -153,11 +149,36 @@ namespace UdpToolkit.Framework
         public void Send<TEvent>(
             TEvent @event,
             byte channelId)
-            where TEvent : class, IDisposable
+        where TEvent : class, IDisposable
         {
             SendInternal(
                 @event: @event,
                 destination: _serverIpAddress,
+                channelId: channelId);
+        }
+
+        /// <inheritdoc />
+        public void SendUnmanaged<TEvent>(
+            TEvent @event,
+            byte channelId)
+            where TEvent : unmanaged
+        {
+            UnmanagedSendInternal(
+                @event: @event,
+                destination: _serverIpAddress,
+                channelId: channelId);
+        }
+
+        /// <inheritdoc />
+        public void SendUnmanaged<TEvent>(
+            TEvent @event,
+            IpV4Address destination,
+            byte channelId)
+            where TEvent : unmanaged
+        {
+            UnmanagedSendInternal(
+                @event: @event,
+                destination: destination,
                 channelId: channelId);
         }
 
@@ -170,7 +191,6 @@ namespace UdpToolkit.Framework
             IpV4Address ipV4,
             Guid connectionId)
         {
-            Console.WriteLine("Connect");
             IsConnected = true;
             OnConnected?.Invoke(ipV4, connectionId);
         }
@@ -203,7 +223,7 @@ namespace UdpToolkit.Framework
             TEvent @event,
             IpV4Address destination,
             byte channelId)
-            where TEvent : class, IDisposable
+        where TEvent : class, IDisposable
         {
             if (_udpClient.IsConnected(out var connectionId))
             {
@@ -212,9 +232,42 @@ namespace UdpToolkit.Framework
                     return;
                 }
 
-                var outPacket = _outPacketsPool.GetOrCreate();
+                var outPacket = ObjectsPool<ClientOutNetworkPacket<TEvent>>.GetOrCreate();
+                var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
 
                 outPacket.Setup(
+                    bufferWriter: bufferWriter,
+                    @event: @event,
+                    dataType: subscriptionId,
+                    ipV4Address: destination,
+                    connectionId: connectionId,
+                    channelId: channelId);
+
+                _outQueueDispatcher
+                    .Dispatch(connectionId)
+                    .Produce(outPacket);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UnmanagedSendInternal<TEvent>(
+            TEvent @event,
+            IpV4Address destination,
+            byte channelId)
+        where TEvent : unmanaged
+        {
+            if (_udpClient.IsConnected(out var connectionId))
+            {
+                if (!_hostWorker.TryGetSubscriptionId(typeof(TEvent), out var subscriptionId))
+                {
+                    return;
+                }
+
+                var outPacket = ObjectsPool<ClientOutUnmanagedNetworkPacket<TEvent>>.GetOrCreate();
+                var bufferWriter = ObjectsPool<BufferWriter<byte>>.GetOrCreate();
+
+                outPacket.Setup(
+                    bufferWriter: bufferWriter,
                     @event: @event,
                     dataType: subscriptionId,
                     ipV4Address: destination,
