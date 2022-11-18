@@ -1,8 +1,8 @@
 namespace UdpToolkit.Framework
 {
     using System;
+    using System.Collections.Concurrent;
     using System.Diagnostics.CodeAnalysis;
-    using System.Threading.Channels;
     using UdpToolkit.Framework.Contracts;
     using UdpToolkit.Framework.Contracts.Events;
 
@@ -12,37 +12,39 @@ namespace UdpToolkit.Framework
     /// <typeparam name="TItem">
     /// Type of item in the async queue.
     /// </typeparam>
-    public sealed class AsyncQueue<TItem> : IAsyncQueue<TItem>
+    public sealed class BlockingAsyncQueue<TItem> : IAsyncQueue<TItem>
     {
         private readonly string _id;
         private readonly Action<TItem> _action;
-        private readonly Channel<TItem> _input;
+        private readonly BlockingCollection<TItem> _input;
         private readonly IHostEventReporter _hostEventReporter;
 
         private bool _disposed = false;
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="AsyncQueue{TItem}"/> class.
+        /// Initializes a new instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
         /// </summary>
+        /// <param name="id">Queue identifier.</param>
         /// <param name="action">Action for process consumed items.</param>
         /// <param name="hostEventReporter">Host event reporter.</param>
-        /// <param name="id">Queue identifier.</param>
-        public AsyncQueue(
+        public BlockingAsyncQueue(
+            string id,
             Action<TItem> action,
-            IHostEventReporter hostEventReporter,
-            string id)
+            IHostEventReporter hostEventReporter)
         {
+            _id = id;
             _action = action;
             _hostEventReporter = hostEventReporter;
-            _id = id;
-            _input = Channel.CreateUnbounded<TItem>();
+            _input = new BlockingCollection<TItem>(
+                boundedCapacity: int.MaxValue,
+                collection: new ConcurrentQueue<TItem>());
         }
 
         /// <summary>
-        /// Finalizes an instance of the <see cref="AsyncQueue{TItem}"/> class.
+        /// Finalizes an instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
         /// </summary>
         [ExcludeFromCodeCoverage]
-        ~AsyncQueue()
+        ~BlockingAsyncQueue()
         {
             Dispose(false);
         }
@@ -58,12 +60,14 @@ namespace UdpToolkit.Framework
         /// Produces items to the async queue.
         /// </summary>
         /// <param name="item">Produced item.</param>
-        public async void Produce(
+        public void Produce(
             TItem item)
         {
             try
             {
-                await _input.Writer.WriteAsync(item).ConfigureAwait(false);
+                _input.Add(item);
+                var queueItemConsumed = new QueueItemConsumed(_id);
+                _hostEventReporter.Handle(in queueItemConsumed);
             }
             catch (ObjectDisposedException)
             {
@@ -74,28 +78,26 @@ namespace UdpToolkit.Framework
         /// <summary>
         /// Consumes items in the async queue.
         /// </summary>
-        public async void Consume()
+        public void Consume()
         {
             try
             {
-                while (await _input.Reader.WaitToReadAsync().ConfigureAwait(false))
+                foreach (var @event in _input.GetConsumingEnumerable())
                 {
-                    while (_input.Reader.TryRead(out var item))
+                    try
                     {
-                        var queueItemConsumed = new QueueItemConsumed(_id);
-                        _hostEventReporter.Handle(in queueItemConsumed);
-                        _action(item);
+                        _action(@event);
+                    }
+                    catch (Exception ex)
+                    {
+                        var exThrown = new ExceptionThrown(ex);
+                        _hostEventReporter.Handle(in exThrown);
                     }
                 }
             }
             catch (ObjectDisposedException)
             {
                 // ignore
-            }
-            catch (Exception ex)
-            {
-                var exceptionThrown = new ExceptionThrown(ex);
-                _hostEventReporter.Handle(in exceptionThrown);
             }
         }
 
@@ -108,7 +110,8 @@ namespace UdpToolkit.Framework
 
             if (disposing)
             {
-                _input.Writer.Complete();
+                _input.CompleteAdding();
+                _input.Dispose();
             }
 
             _disposed = true;

@@ -9,8 +9,4 @@
     <ItemGroup>
       <ProjectReference Include="..\UdpToolkit.Framework.Contracts\UdpToolkit.Framework.Contracts.csproj" />
     </ItemGroup>
-
-    <ItemGroup>
-      <PackageReference Include="System.Threading.Channels" Version="6.0.0" />
-    </ItemGroup>
 </Project>

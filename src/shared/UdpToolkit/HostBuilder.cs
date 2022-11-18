@@ -98,7 +98,7 @@ namespace UdpToolkit
 
             // out packets processing
             var outQueues = udpClients
-                .Select((sender, id) => new AsyncQueue<IOutNetworkPacket>(
+                .Select((sender, id) => new BlockingAsyncQueue<IOutNetworkPacket>(
                     id: $"Sender_{id}",
                     action: (outPacket) =>
                     {
@@ -136,7 +136,7 @@ namespace UdpToolkit
             var inQueues = Enumerable.Range(0, HostSettings.Workers)
                 .Select(id =>
                 {
-                    return new AsyncQueue<InNetworkPacket>(
+                    return new BlockingAsyncQueue<InNetworkPacket>(
                         id: $"Worker_{id}",
                         action: (networkPacket) =>
                         {
