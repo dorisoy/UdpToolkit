@@ -8,8 +8,13 @@ namespace UdpToolkit.Framework.Contracts
     /// <typeparam name="TItem">
     /// Type of item in the async queue.
     /// </typeparam>
-    public interface IAsyncQueue<in TItem> : IDisposable
+    public interface IAsyncQueue<TItem> : IDisposable
     {
+        /// <summary>
+        /// Action for processing consumed items.
+        /// </summary>
+        event Action<TItem> OnItemConsumed;
+
         /// <summary>
         /// Produces items to the async queue.
         /// </summary>

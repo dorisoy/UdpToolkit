@@ -69,6 +69,11 @@ namespace UdpToolkit.Framework
         public ISerializer Serializer { get; }
 
         /// <summary>
+        /// Gets instance of serializer.
+        /// </summary>
+        public IAsyncQueueFactory AsyncQueueFactory { get; } = new BlockingAsyncQueueFactory();
+
+        /// <summary>
         /// Gets or sets instance of host event reporter.
         /// </summary>
         public IHostEventReporter HostEventReporter { get; set; } = new DefaultHostEventReporter();

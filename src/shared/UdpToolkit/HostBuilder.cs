@@ -97,57 +97,67 @@ namespace UdpToolkit
                 .ToArray();
 
             // out packets processing
-            var outQueues = udpClients
-                .Select((sender, id) => new BlockingAsyncQueue<IOutNetworkPacket>(
-                    id: $"Sender_{id}",
-                    action: (outPacket) =>
-                    {
-                        using (outPacket)
-                        {
-                            if (outPacket is IClientOutNetworkPacket || outPacket is IClientOutUnmanagedNetworkPacket)
-                            {
-                                outPacket.Serialize(HostSettings.Serializer);
-                                sender.Send(
-                                    connectionId: outPacket.ConnectionId,
-                                    channelId: outPacket.ChannelId,
-                                    dataType: outPacket.DataType,
-                                    payload: outPacket.BufferWriter.WrittenSpan,
-                                    ipV4Address: outPacket.IpV4Address);
-                            }
+            var outPairs = udpClients
+                .Select((sender, id) =>
+                {
+                    var queue = HostSettings.AsyncQueueFactory.Create<IOutNetworkPacket>(
+                        id: $"Sender_{id}",
+                        hostEventReporter: hostEventReporter);
 
-                            if (outPacket is IHostOutNetworkPacket)
-                            {
-                                sender.Send(
-                                    connectionId: outPacket.ConnectionId,
-                                    channelId: outPacket.ChannelId,
-                                    dataType: outPacket.DataType,
-                                    payload: outPacket.BufferWriter.WrittenSpan,
-                                    ipV4Address: outPacket.IpV4Address);
-                            }
-                        }
-                    },
-                    hostEventReporter: hostEventReporter))
+                    return (sender, queue);
+                })
                 .ToArray();
 
+            foreach (var pair in outPairs)
+            {
+                pair.queue.OnItemConsumed += outPacket =>
+                {
+                    using (outPacket)
+                    {
+                        if (outPacket is IClientOutNetworkPacket || outPacket is IClientOutUnmanagedNetworkPacket)
+                        {
+                            outPacket.Serialize(HostSettings.Serializer);
+                            pair.sender.Send(
+                                connectionId: outPacket.ConnectionId,
+                                channelId: outPacket.ChannelId,
+                                dataType: outPacket.DataType,
+                                payload: outPacket.BufferWriter.WrittenSpan,
+                                ipV4Address: outPacket.IpV4Address);
+                        }
+
+                        if (outPacket is IHostOutNetworkPacket)
+                        {
+                            pair.sender.Send(
+                                connectionId: outPacket.ConnectionId,
+                                channelId: outPacket.ChannelId,
+                                dataType: outPacket.DataType,
+                                payload: outPacket.BufferWriter.WrittenSpan,
+                                ipV4Address: outPacket.IpV4Address);
+                        }
+                    }
+                };
+            }
+
             var outQueueDispatcher = new QueueDispatcher<IOutNetworkPacket>(
-                queues: outQueues);
+                queues: outPairs.Select(x => x.queue).ToArray());
 
             // in packets processing
             var inQueues = Enumerable.Range(0, HostSettings.Workers)
-                .Select(id =>
-                {
-                    return new BlockingAsyncQueue<InNetworkPacket>(
-                        id: $"Worker_{id}",
-                        action: (networkPacket) =>
-                        {
-                            using (networkPacket)
-                            {
-                                HostWorkerInternal.Process(networkPacket);
-                            }
-                        },
-                        hostEventReporter: hostEventReporter);
-                })
+                .Select(id => HostSettings.AsyncQueueFactory.Create<InNetworkPacket>(
+                    id: $"Worker_{id}",
+                    hostEventReporter: hostEventReporter))
                 .ToArray();
+
+            foreach (var inQueue in inQueues)
+            {
+                inQueue.OnItemConsumed += inPacket =>
+                {
+                    using (inPacket)
+                    {
+                        HostWorkerInternal.Process(inPacket);
+                    }
+                };
+            }
 
             var inQueueDispatcher = new QueueDispatcher<InNetworkPacket>(
                 queues: inQueues);

@@ -15,7 +15,6 @@ namespace UdpToolkit.Framework
     public sealed class BlockingAsyncQueue<TItem> : IAsyncQueue<TItem>
     {
         private readonly string _id;
-        private readonly Action<TItem> _action;
         private readonly BlockingCollection<TItem> _input;
         private readonly IHostEventReporter _hostEventReporter;
 
@@ -25,15 +24,12 @@ namespace UdpToolkit.Framework
         /// Initializes a new instance of the <see cref="BlockingAsyncQueue{TItem}"/> class.
         /// </summary>
         /// <param name="id">Queue identifier.</param>
-        /// <param name="action">Action for process consumed items.</param>
         /// <param name="hostEventReporter">Host event reporter.</param>
         public BlockingAsyncQueue(
             string id,
-            Action<TItem> action,
             IHostEventReporter hostEventReporter)
         {
             _id = id;
-            _action = action;
             _hostEventReporter = hostEventReporter;
             _input = new BlockingCollection<TItem>(
                 boundedCapacity: int.MaxValue,
@@ -48,6 +44,9 @@ namespace UdpToolkit.Framework
         {
             Dispose(false);
         }
+
+        /// <inheritdoc />
+        public event Action<TItem> OnItemConsumed;
 
         /// <inheritdoc/>
         public void Dispose()
@@ -86,7 +85,7 @@ namespace UdpToolkit.Framework
                 {
                     try
                     {
-                        _action(@event);
+                        OnItemConsumed?.Invoke(@event);
                     }
                     catch (Exception ex)
                     {
